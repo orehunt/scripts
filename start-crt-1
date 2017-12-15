@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ## needed
 apk --no-cache add tmux sed grep 2>/dev/null
