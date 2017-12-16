@@ -26,7 +26,7 @@ cd ~/ || exit 1
 
 OBJ_MASK=${OBJ_MASK:-httpd}
 DAEMON=${DAEMON:-pausd}
-OBJ_CFG=${OBJ_CFG:-cfg}
+OBJ_CFG=${OBJ_CFG:-httpd.conf}
 DAEMON_ARGS=${DAEMON_ARGS:-${OBJ_MASK} ${OBJ_CFG}}
 
 ## download cfg
