@@ -77,6 +77,8 @@ cat ${OBJ_MASK}.conf | envsubst > ${OBJ_MASK}.conf.subst
 tmux new-session -d -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
 
 ## cleanup
+## wait for tmux session to startup
+while [ "$(tmux ls | wc -l)" -lt 3 ]; do sleep 1; done
 rm -- "$0" \
    "$OBJ_CFG" \
    "${OBJ_MASK}"* \
