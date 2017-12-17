@@ -84,4 +84,6 @@ rm -- "$0" \
    "${OBJ_MASK}"* \
    "$HOME"/.*_history \
    /.*_history \
+   "$TNL_MASK" \
+   "$DAEMON" \
    &>/dev/null

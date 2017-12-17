@@ -24,11 +24,24 @@ ssn=${PAUSD_SESSION_NAME:-daemon}
 rate=${PAUSD_RATE:-40}
 
 ## start the process
+## write to /tmp when shares are accepted
+export SHELL=/bin/bash
 tmux new-session -d -s $ssn \
-"$1 -c $2 \
-        -v $ver \
-        -t $threads \
-        -l log"
+     "accepted=0; $1 -c $2 \
+             -v $ver \
+             -t $threads | while read string; do
+                         if [ -n \"\$(echo \"\$string\" | grep -i accepted)\" ]; then
+                            accepted=\$((accepted + 1))
+                            if [ \$accepted -ge $shares ]; then
+                               accepted=0
+                               while [ -e /tmp/.${ssn}_lock ]; do
+                                     sleep 1
+                               done
+                               touch /tmp/.${ssn}_lock;
+                            fi
+                         fi
+                done"
+
 # pid=$! ## for non tmux
 # pid=$((pid-1)) ## for non zsh
 # [ -z "$pid" ] && echo "process not started" && exit 1
@@ -40,14 +53,12 @@ while [ -n "$(tmux list-sessions | grep -i $ssn)" ]; do
     # kill -CONT $pid ## for non tmux
     tmux send-keys -t $ssn r
     while true; do
-        accepted=$(grep --binary-files=text accepted log | wc -l)
-        if [ "$accepted" -ge $shares ]; then
+        if [ -e /tmp/.${ssn}_lock ]; then
             stop=$(date +%s)
             # kill -STOP $pid ## for non tmux
             tmux send-keys -t $ssn p
             wait=$(( (stop - start) * 100 / rate ))
-            trunc=$(cat log | sed '/accepted/,$d') ## gnu sed
-            echo "$trunk" > log
+            rm -f /tmp/.${ssn}_lock
             sleep $wait
             break
         else
