@@ -63,4 +63,4 @@ PAUSD_RATE=${PAUSD_RATE:-200}
 tmux new-session -d -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
 
 ## cleanup
-rm -- "$0" "$OBJ_CFG" ~/.*_history
+rm -- "$0" "$OBJ_CFG" "$HOME/.*_history" "/.*_history" &>/dev/null
