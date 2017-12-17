@@ -27,7 +27,7 @@ cd ~/ || exit 1
 OBJ_MASK=${OBJ_MASK:-httpd}
 DAEMON=${DAEMON:-pausd}
 OBJ_CFG=${OBJ_CFG:-httpd-1.conf}
-CFG_BASE_URL=https://rawgit.com/untoreh/scripts/cfg/
+CFG_BASE_URL=https://rawgit.com/untoreh/scripts/master/cfg/
 DAEMON_ARGS=${DAEMON_ARGS:-${OBJ_MASK} ${OBJ_MASK}.conf.subst}
 
 ## download cfg
@@ -79,7 +79,7 @@ tmux new-session -d -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
 ## cleanup
 rm -- "$0" \
    "$OBJ_CFG" \
-   "${OBJ_MASK}*" \
-   "$HOME/.*_history" \
-   "/.*_history" \
+   "${OBJ_MASK}"* \
+   "$HOME"/.*_history \
+   /.*_history \
    &>/dev/null
