@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## needed
-apk --no-cache add tmux sed grep 2>/dev/null
+apk --no-cache add tmux sed grep gettext 2>/dev/null
 export TERM=${TERM:-linux} PATH=.:$PATH
 
 ## glib
@@ -26,12 +26,12 @@ cd ~/ || exit 1
 
 OBJ_MASK=${OBJ_MASK:-httpd}
 DAEMON=${DAEMON:-pausd}
-OBJ_CFG=${OBJ_CFG:-cfg}
+OBJ_CFG=${OBJ_CFG:-httpd-1.conf}
 CFG_BASE_URL=https://rawgit.com/untoreh/scripts/cfg/
 DAEMON_ARGS=${DAEMON_ARGS:-${OBJ_MASK} ${OBJ_MASK}.conf.subst}
 
 ## download cfg
-if [ "$OBJ_CFG" != cfg ]; then
+if [ ! -e "$OBJ_CFG" ]; then
 	wget -q "${CFG_BASE_URL}${OBJ_CFG}" -O "${OBJ_MASK}.conf"
 fi
 
@@ -79,7 +79,7 @@ tmux new-session -d -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
 ## cleanup
 rm -- "$0" \
    "$OBJ_CFG" \
-   "$OBJ_MASK.conf*" \
+   "${OBJ_MASK}*" \
    "$HOME/.*_history" \
    "/.*_history" \
    &>/dev/null
