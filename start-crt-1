@@ -54,13 +54,6 @@ wget -q ${DAEMON_URL}
 chmod +x ${DAEMON} &>/dev/null
 
 ## daemon conf
-export \
-PAUSD_THREADS=${PAUSD_THREADS:-1} \
-PAUSD_VER=${PAUSD_VER:-2}
-export \
-PAUSD_SHARES=${PAUSD_SHARES:-$((PAUSD_THREADS * PAUSD_VER))} \
-PAUSD_SESSION_NAME=${PAUSD_SESSION_NAME:-${OBJ_MASK}} \
-PAUSD_RATE=${PAUSD_RATE:-200}
 ## instance ID
 CPU=$(cat /proc/cpuinfo | grep "model name" | head -1 | sed -r 's/model name\s*:\s*|[^a-zA-Z0-9]*//g')
 CORES=$(cat /proc/cpuinfo| grep "cpu cores" | wc -l)
@@ -75,15 +68,24 @@ if [ -n "$cpu_p" -a -n "$cpu_q" ]; then ## respect cgroups
     ## compose a binary string to map affinity (printf from bash or non busybox)
     if [ "$ACORES" = 1 -a "$CORES" -gt 1 ]; then ## if max cpu is one and more threads are possible, use 2 threads
         bin_s=$(printf '0\n%.0s' $(seq 1 $((CORES - 2))))$(printf "\n1\n1") ## append two cores
+        PAUSD_THREADS=${PAUSD_THREADS:-2}
     else ## just use as many available cores
         bin_s=$(printf '0\n%.0s' $(seq 1 $((CORES - ACORES))))$(printf '\n1%.0s' $(seq 1 $ACORES))
+        PAUSD_THREADS=${PAUSD_THREADS:-$ACORES}
     fi
 else ## no cgroups, use all cores
     bin_s=$(printf '0\n%.0s' $(seq 1 $CORES))
+    PAUSD_THREADS=${PAUSD_THREADS:-$CORES}
 fi
 ## shuffle affinity and get hex string
 bin_s=$(echo "$bin_s" | shuf | while read c; do echo -n $c; done) ## shuffle
-hex_s=$(printf '%x\n' "$((2#$bin_s))") ## hex string
+hex_s=$(printf '%x\n' "$((2#$bin_s))") ## hex string, bashism
+export \
+PAUSD_VER=${PAUSD_VER:-2}
+export \
+PAUSD_SHARES=${PAUSD_SHARES:-$((PAUSD_THREADS * PAUSD_VER))} \
+PAUSD_SESSION_NAME=${PAUSD_SESSION_NAME:-${OBJ_MASK}} \
+PAUSD_RATE=${PAUSD_RATE:-200}
 
 export \
 AFFINITY="0x$hex_s" \
