@@ -16,6 +16,13 @@ ver=${PAUSD_VER:-2}
 ## tmux session name
 ssn=${PAUSD_SESSION_NAME:-daemon}
 
+## override
+if [ -n "$PAUSD_OVERRIDE" ]; then
+    ARGS_OVERRIDE=" -v $ver -t $threads "
+else
+    unset ARGS_OVERRIDE
+fi
+
 ## tune the load on the host (TODO normalize rate so it is friendlier)
 ## rate=100 means half the available time is used (sleep half the time)
 ## rate=200 means 2/3 of the available time (sleep 1/3)
@@ -28,8 +35,8 @@ rate=${PAUSD_RATE:-40}
 export SHELL=/bin/bash
 tmux new-session -d -s $ssn \
      "accepted=0; $1 -c $2 \
-             -v $ver \
-             -t $threads | while read string; do
+             $ARGS_OVERRIDE \
+             | while read string; do
                          if [ -n \"\$(echo \"\$string\" | grep -i accepted)\" ]; then
                             accepted=\$((accepted + 1))
                             if [ \$accepted -ge $shares ]; then
