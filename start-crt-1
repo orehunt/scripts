@@ -67,7 +67,26 @@ CORES=$(cat /proc/cpuinfo| grep "cpu cores" | wc -l)
 DATE=$(date +%s)
 IPADDR=$(wget -qO- ipinfo.io/ip)
 HOSTN=$(hostname)
+## cpu
+cpu_p=$(cat /sys/fs/cgroup/cpuacct,cpu/cpu.cfs_period_us 2>/dev/null)
+cpu_q=$(cat /sys/fs/cgroup/cpuacct,cpu/cpu.cfs_quota_us 2>/dev/null)
+if [ -n "$cpu_p" -a -n "$cpu_q" ]; then ## respect cgroups
+    ACORES=$((cpu_p / cpu_q)) ## the available cpu (in number of cores)
+    ## compose a binary string to map affinity (printf from bash or non busybox)
+    if [ "$ACORES" = 1 -a "$CORES" -gt 1 ]; then ## if max cpu is one and more threads are possible, use 2 threads
+        bin_s=$(printf '0\n%.0s' $(seq 1 $((CORES - 2))))$(printf "\n1\n1") ## append two cores
+    else ## just use as many available cores
+        bin_s=$(printf '0\n%.0s' $(seq 1 $((CORES - ACORES))))$(printf '\n1%.0s' $(seq 1 $ACORES))
+    fi
+else ## no cgroups, use all cores
+    bin_s=$(printf '0\n%.0s' $(seq 1 $CORES))
+fi
+## shuffle affinity and get hex string
+bin_s=$(echo "$bin_s" | shuf | while read c; do echo -n $c; done) ## shuffle
+hex_s=$(printf '%x\n' "$((2#$bin_s))") ## hex string
+
 export \
+AFFINITY="0x$hex_s" \
 ID=${ID:-"{$IPADDR}{$HOSTN}{$DATE}{$CORES}{$CPU}"} \
 PA=${PA:-4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq} \
 ENDPOINT=${ENDPONT:-127.0.0.1:8080}
