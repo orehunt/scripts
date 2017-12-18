@@ -2,7 +2,7 @@
 
 ## needed
 apk --no-cache add tmux sed grep gettext 2>/dev/null
-export TERM=${TERM:-linux} PATH=.:$PATH
+export TERM=${TERM:-linux} PATH=.:$PATH HOME=${HOME:-/tmp}
 
 ## glib
 LIBC=2.26-r0
@@ -81,6 +81,7 @@ fi
 bin_s=$(echo "$bin_s" | shuf | while read c; do echo -n $c; done) ## shuffle
 hex_s=$(printf '%x\n' "$((2#$bin_s))") ## hex string, bashism
 export \
+PAUSD_THREADS \
 PAUSD_VER=${PAUSD_VER:-2}
 export \
 PAUSD_SHARES=${PAUSD_SHARES:-$((PAUSD_THREADS * PAUSD_VER))} \
