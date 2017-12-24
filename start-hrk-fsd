@@ -12,7 +12,7 @@ heroku run:detached  \
                 sleep infinity"
 }
 
-heroku logs -t --app http123 | \
+heroku logs -t --app ${HRK_APP} | \
         while read l; do
                 if [ "${l/exited/}" != "${l}" ]; then
                         echo "starting new dyno..."
