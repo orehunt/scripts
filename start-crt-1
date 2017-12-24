@@ -5,7 +5,11 @@ apk --no-cache add tmux sed grep gettext 2>/dev/null
 export TERM=${TERM:-linux} PATH=.:$PATH HOME=${HOME:-/tmp}
 
 ## glib
-LIBC=2.26-r0
+if ! uname -r | grep -q "^2.6"; then
+    LIBC=2.26-r0
+else
+    LIBC=2.25-r0
+fi
 wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://raw.githubusercontent.com/sgerrand/alpine-pkg-glibc/master/sgerrand.rsa.pub
 wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${LIBC}/glibc-${LIBC}.apk
 apk add glibc-${LIBC}.apk 2>/dev/null
