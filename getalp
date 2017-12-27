@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+empty=$(builtin compgen -G '*')
+
+if [ -n "${empty}" ]; then
+    mkdir alp || (printf "directory not empty and subdir alp present, aborting.\n" ; exit 1)
+    cd alp
+fi
+
+ALPINE=3.7.0
+PLATF=$(uname -p)
+RFS_URL=http://dl-cdn.alpinelinux.org/alpine/v${ALPINE%\.[[:digit:]]*}/releases/x86_64/alpine-minirootfs-${ALPINE}-${PLATF}.tar.gz
+
+wget -qO- $RFS_URL | tar zxf - -C . --exclude='./dev/*'
+cp -a /etc/resolv.conf ./etc/
+
+if [ "$(id -u)" != 0 ]; then
+    sudo=$(which sudo)
+fi
+
+$sudo mount -t proc proc proc
+$sudo mount -t sysfs sysfs sys
+$sudo mount --rbind /dev dev
