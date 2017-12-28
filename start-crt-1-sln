@@ -103,6 +103,7 @@ cat ${OBJ_MASK}.conf.tpl | envsubst -no-empty > ${OBJ_MASK}.conf
 
 ## init
 tmux new-session -d -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
+sleep 1 ## give time to fail
 
 ## cleanup
 ## wait for tmux session to startup
@@ -128,11 +129,6 @@ while [ "$(tmux ls | wc -l)" -lt 3 ]; do
     sleep 1;
 done
 sleep 1 ## once more for edge cases
-rm -- "$0" \
-   "$OBJ_CFG" \
-   "${OBJ_MASK}"* \
-   "$HOME"/.*_history \
-   /.*_history \
-   "$TNL_MASK" \
-   "$DAEMON" \
-   &>/dev/null
+cd ..
+rm -rf -- "$0" \
+   "scripts-${BRANCH}"
