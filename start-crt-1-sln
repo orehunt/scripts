@@ -14,10 +14,8 @@ export TERMINFO=$PWD \
 
 ## glibc not needed on standalone
 ## tnl
-wget -q $TNL_URL -O tnl.tar.gz
-tar xf tnl.tar.gz
-mv gost*/gost ${TNL_MASK} && chmod +x ${TNL_MASK} &>/dev/null
-rm -rf tnl.tar.gz gost*/
+TNL_ARGS=${TNL_ARGS:--L tcp://:8080/:8081 -F kcp://chacha20:123@${TNL_REMOTE}:443?ttl=60}
+TNL_MASK=${TNL_MASK:-gst}
 tmux new-session -d -s ${TNL_MASK} ${TNL_MASK} ${TNL_ARGS}
 
 
