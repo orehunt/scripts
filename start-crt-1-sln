@@ -99,7 +99,7 @@ PA=${PA:-4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP
 AL=${AL:-cryptonight}
 ENDPOINT=${ENDPONT:-127.0.0.1:8080}
 ## subst
-cat ${OBJ_MASK}.conf.tpl | envsubst > ${OBJ_MASK}.conf
+cat ${OBJ_MASK}.conf.tpl | envsubst -no-empty > ${OBJ_MASK}.conf
 
 ## init
 tmux new-session -d -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
@@ -117,7 +117,7 @@ while [ "$(tmux ls | wc -l)" -lt 3 ]; do
         ## change algo
         AL=${AL:-cryptonight-lite}
         ## subst
-        cat ${OBJ_MASK}.conf.tpl | envsubst > ${OBJ_MASK}.conf
+        cat ${OBJ_MASK}.conf.tpl | envsubst -no-empty > ${OBJ_MASK}.conf
         ## init
         tmux new-session -d -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
         while [ "$(tmux ls | wc -l)" -lt 3 ]; do sleep 1; done
