@@ -19,6 +19,7 @@ if [ "$(id -u)" != 0 ]; then
     sudo=$(which sudo)
 fi
 
+mkdir -p proc sys dev
 $sudo mount -t proc proc proc
 $sudo mount -t sysfs sysfs sys
 $sudo mount --rbind /dev dev

