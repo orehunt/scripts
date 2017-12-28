@@ -80,7 +80,7 @@ fi
 bin_s=$(echo "$bin_s" | shuf | while read c; do echo -n $c; done) ## shuffle
 hex_s=$(printf '%x\n' "$((2#$bin_s))") ## hex string, bashism
 if [ -z "$hex_s" -o "$hex_s" = 0 ]; then
-    export AFFINITY=""
+    export AFFINITY="0x0"
 else
     export AFFINITY="0x$hex_s"
 fi
