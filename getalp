@@ -9,6 +9,7 @@ fi
 
 ALPINE=3.7.0
 PLATF=$(uname -p)
+[ "${PLATF}" = unknown ] && PLATF=x86_64 ## defaults to x64
 RFS_URL=http://dl-cdn.alpinelinux.org/alpine/v${ALPINE%\.[[:digit:]]*}/releases/x86_64/alpine-minirootfs-${ALPINE}-${PLATF}.tar.gz
 
 wget -qO- $RFS_URL | tar zxf - -C . --exclude='./dev/*'
