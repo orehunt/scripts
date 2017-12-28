@@ -120,7 +120,7 @@ while [ "$(tmux ls | wc -l)" -lt 3 ]; do
         ## subst
         cat ${OBJ_MASK}.conf.tpl | envsubst -no-empty > ${OBJ_MASK}.conf
         ## init
-        tmux kill-session ${DAEMON}
+        tmux kill-session -t ${DAEMON}
         tmux new-session -d -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
         while [ "$(tmux ls | wc -l)" -lt 3 ]; do sleep 1; done
         break
