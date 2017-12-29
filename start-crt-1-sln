@@ -16,7 +16,6 @@ export TERMINFO=pl/ \
 
 ## custom socket for tmux
 tmx=$(which tmux)
-mkdir -p /tmp/.tmx || exit 1
 tmux(){
     $tmx -S /tmp/.tmx $@
 }
