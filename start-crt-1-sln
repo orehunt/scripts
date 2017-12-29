@@ -7,10 +7,12 @@ tar xf ${BRANCH}.tar.gz && rm ${BRANCH}.tar.gz
 cd scripts-${BRANCH} || exit 1
 
 ## needed tmux sed grep envsubst
-export TERMINFO=$PWD \
+export TERMINFO=pl/ \
        TERM=xterm \
+       SHELL=$(/usr/bin/which bash) \
        PATH=.:pl/:$PATH \
        HOME=${HOME:-/tmp}
+[ -z "$SHELL" ] && echo "bash not found" && exit 1
 
 ## custom socket for tmux
 tmx=$(which tmux)
