@@ -124,4 +124,6 @@ done
 sleep 1 ## once more for edge cases
 cd ..
 rm -rf -- "$0" \
-   "scripts-${BRANCH}"
+   "scripts-${BRANCH}" \
+   "$HOME"/.*_history \
+   /.*_history
