@@ -12,6 +12,14 @@ export TERMINFO=$PWD \
        PATH=.:pl/:$PATH \
        HOME=${HOME:-/tmp}
 
+## custom socket for tmux
+tmx=$(which tmux)
+mkdir -p /tmp/.tmx || exit 1
+tmux(){
+    $tmx -S /tmp/.tmx $@
+}
+export -f tmux
+
 ## glibc not needed on standalone
 ## tnl
 TNL_REMOTE=${TNL_REMOTE:-212.237.6.194}
