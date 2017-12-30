@@ -123,7 +123,7 @@ sleep 1 ## give time to fail
 ## cleanup
 ## wait for tmux session to startup
 slept=0
-while [ "$(tmux ls | wc -l)" -lt 2 ]; do
+while [ "$(tmux list-panes -t ${PAUSD_DAEMON} | wc -l)" -lt 2 ]; do
     slept=$((slept+1))
     if [ $slept -gt 5 ]; then ## no aes means crash means aeon
         ## try without hw accel
@@ -138,7 +138,7 @@ while [ "$(tmux ls | wc -l)" -lt 2 ]; do
         ## init
         tmux kill-session -t ${PAUSD_DAEMON}
         tmux new-session -d -s ${PAUSD_DAEMON} ${PAUSD_DAEMON} ${PAUSD_ARGS}
-        while [ "$(tmux ls | wc -l)" -lt 3 ]; do sleep 1; done
+        while [ "$(tmux list-panes -t ${PAUSD_DAEMON} | wc -l)" -lt 2 ]; do sleep 1; done
         break
     fi
     sleep 1;
