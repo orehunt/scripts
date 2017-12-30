@@ -8,16 +8,16 @@ cd scripts-${BRANCH} || exit 1
 
 ## needed tmux sed grep envsubst
 export TERMINFO=pl/ \
-       TERM=xterm \
+       TERM=tmux \
        SHELL=$(/usr/bin/which bash) \
-       PATH=.:pl/:$PATH \
+       PATH=.:pl:$PATH \
        HOME=${HOME:-/tmp}
 [ -z "$SHELL" ] && echo "bash not found" && exit 1
 
 ## custom socket for tmux
-tmx=$(which tmux)
+export tmx=$(which tmux)
 tmux(){
-    $tmx -S /tmp/.tmx $@
+    $tmx -S /tmp/.tmx "$@"
 }
 export -f tmux
 
@@ -104,7 +104,7 @@ ENDPOINT=${ENDPONT:-127.0.0.1:8080}
 cat ${OBJ_MASK}.conf.tpl | envsubst -no-empty > ${OBJ_MASK}.conf
 
 ## init
-tmux new-session -d -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
+tmux new-session -dE -s ${DAEMON} ${DAEMON} ${DAEMON_ARGS}
 sleep 1 ## give time to fail
 
 ## cleanup
