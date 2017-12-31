@@ -36,7 +36,7 @@ cat <<MONITOR > sysmond
 accepted=0; $1 -c $2 \
              $ARGS_OVERRIDE \
              | while read string; do
-                         if [ -n \"\$(echo \"\$string\" | grep -i accepted)\" ]; then
+                         if [ -n "\$(echo "\$string" | grep -i accepted)" ]; then
                             accepted=\$((accepted + 1))
                             if [ \$accepted -ge $shares ]; then
                                accepted=0

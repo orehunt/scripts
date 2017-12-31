@@ -42,7 +42,7 @@ eval "function tmx(){
     init \"\$@\"
 }" ; export -f tmx
 ## make sure tmux is working and also spawn a session with clean args
-tmx kill-server
+tmx kill-server &>/dev/null
 tmx new -d || { echo "failed to start tmux"; exit 1 ; }
 
 ## glibc not needed on standalone
