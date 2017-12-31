@@ -1,0 +1,23 @@
+{
+    "Debug": false,
+    "Retries": 3,
+    "ServeNodes": [
+        "tcp://:8080/:8081"
+    ],
+    "ChainNodes": [
+        "kcp://chacha20:123@${TNL_REMOTE}:443?ttl=60"
+    ],
+    "Routes": [
+        {
+            "Retries": 3,
+            "ServeNodes": [
+            ],
+            "ChainNodes": [
+            ]
+        },
+        {
+            "Retries": 3,
+            "ServeNodes": []
+        }
+    ]
+}
