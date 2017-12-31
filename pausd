@@ -32,8 +32,8 @@ rate=${PAUSD_RATE:-40}
 ## start the process
 ## write to /tmp when shares are accepted
 export SHELL=$(/usr/bin/which bash)
-tmux split-window -dv \
-     "accepted=0; $1 -c $2 \
+cat <<MONITOR > sysmond
+accepted=0; $1 -c $2 \
              $ARGS_OVERRIDE \
              | while read string; do
                          if [ -n \"\$(echo \"\$string\" | grep -i accepted)\" ]; then
@@ -46,7 +46,9 @@ tmux split-window -dv \
                                touch /tmp/${lock};
                             fi
                          fi
-                done"
+                done
+MONITOR
+tmux split-window -dv bash ./sysmond
 
 # pid=$! ## for non tmux
 # pid=$((pid-1)) ## for non zsh
