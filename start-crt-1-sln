@@ -77,7 +77,7 @@ function setup_tnl(){
         mv "$TNL_PATH" "$(dirname ${TNL_PATH})/${TNL_MASK}"
     fi
     ## config with needed vars
-    if [ "$jail" ]; then
+    if [ "$jail" -o -n "$(uname -r | grep 2\.6\.[0-9]*)" ]; then
         TNL_PROTO=${TNL_PROTO:-ss}
     fi
     if [ "$lowhw" ]; then
