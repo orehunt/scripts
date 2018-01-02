@@ -78,7 +78,7 @@ function setup_tnl(){
     fi
     ## config with needed vars
     if [ "$jail" -o -n "$(uname -r | grep -E ^2\.6\.[0-9]*\|^3\.1[0-9]*)" ]; then
-        TNL_PROTO=${TNL_PROTO:-ss}
+        TNL_PROTO=${TNL_PROTO:-socks}
     fi
     if [ "$lowhw" ]; then
         TNL_TARGET=${TNL_TARGET:-pool.supportaeon.com:3333}
