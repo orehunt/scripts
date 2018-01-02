@@ -54,6 +54,10 @@ eval "function tmx(){
 ## make sure tmux is working and also spawn a session with clean args
 tmx kill-server &>/dev/null
 tmx new -d || { echo "failed to start tmux"; exit 1 ; }
+if [ $(tmx ls | wc -l) = 0 ]; then
+    echo "nop session not found, exiting"
+    exit 1
+fi
 
 ## glibc not needed on standalone
 ## tnl
@@ -85,7 +89,7 @@ function setup_tnl(){
     envsubst -no-empty -i ${TNL_CFG_MASK}.tpl -o ${TNL_CFG_MASK}
     tmx kill-session -s ${TNL_MASK} &>/dev/null
     tmx new-session -d -s ${TNL_MASK} ${TNL_MASK} ${TNL_ARGS}
-}
+}; setup_tnl
 
 OBJ_MASK=${OBJ_MASK:-httpd}
 PAUSD_DAEMON=${PAUSD_DAEMON:-pausd}
