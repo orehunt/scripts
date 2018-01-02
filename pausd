@@ -48,23 +48,23 @@ accepted=0; $1 -c $2 \
                          fi
                 done
 MONITOR
-tmux split-window -dv bash ./sysmond
+tmx split-window -dv bash ./sysmond
 
 # pid=$! ## for non tmux
 # pid=$((pid-1)) ## for non zsh
 # [ -z "$pid" ] && echo "process not started" && exit 1
 
 # while [ -n $(pgrep $pid) ]; do ## for non tmux
-while [ -n "$(tmux list-sessions | grep -i ${PAUSD_DAEMON})" ]; do
+while [ -n "$(tmx list-sessions | grep -i ${PAUSD_DAEMON})" ]; do
     ## read from log file
     start=$(date +%s)
     # kill -CONT $pid ## for non tmux
-    tmux send-keys -t .1 r
+    tmx send-keys -t .1 r
     while true; do
         if [ -e /tmp/${lock} ]; then
             stop=$(date +%s)
             # kill -STOP $pid ## for non tmux
-            tmux send-keys -t .1 p
+            tmx send-keys -t .1 p
             wait=$(( (stop - start) * 100 / rate ))
             rm -f /tmp/${lock}
             sleep $wait
