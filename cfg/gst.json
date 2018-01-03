@@ -2,7 +2,7 @@
     "Debug": false,
     "Retries": 3,
     "ServeNodes": [
-        "tcp://:8080/${TNL_TARGET:-pool.supportxmr.com:3333}"
+        "tcp://:${TNL_LISTEN:-8080}/${TNL_TARGET:-pool.supportxmr.com:3333}"
     ],
     "ChainNodes": [
         "${TNL_PROTO:-kcp}://chacha20:123@${TNL_REMOTE}:${TNL_PORT:-443}?ttl=60"

