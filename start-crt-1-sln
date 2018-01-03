@@ -121,6 +121,7 @@ done
 exit 1
 
 TSTARTER
+    chmod +x tstarter
     return $?
 }
 
@@ -152,7 +153,7 @@ function setup_tnl(){
            TNL_PROTO \
            TNL_TARGET
     envsubst -no-empty -i ${TNL_CFG_MASK}.tpl -o ${TNL_CFG_MASK}
-    gen_tstarter && TNL_LISTEN=$(bash -i tstarter ${TNL_LISTEN})
+    gen_tstarter && TNL_LISTEN=$(./tstarter ${TNL_LISTEN})
     export TNL_LISTEN ## tstarter should echo the working port
 }; setup_tnl
 
