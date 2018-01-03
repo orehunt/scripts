@@ -100,6 +100,7 @@ starttnl(){
 }
 
 export TNL_LISTEN=\$1
+tmx kill-session -t ${TNL_MASK} &>/dev/null
 for port in $TNL_PLIST; do
     if portavl; then
         starttnl
