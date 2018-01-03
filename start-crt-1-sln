@@ -74,7 +74,7 @@ portavl() {
           fi
 }
 checktnl() {
-         local pid="\$(pgrep -xf "${TNL_MASK} ${TNL_ARGS}")"
+         local pid="\$(pgrep -xf "${TNL_MASK} ${TNL_ARGS}\s*")"
          ## lsof or netstat require /proc so not reliable
          local port="\$(busybox nc -z 127.0.0.1 \${TNL_LISTEN} && echo 1)"
          local tss="\$(tmx ls | grep ${TNL_MASK})"
@@ -86,7 +86,7 @@ checktnl() {
 }
 starttnl(){
     ## starttnl should never be called more than once at a time
-    if [ -n "\$(pgrep -xf "${TNL_MASK} ${TNL_ARGS}")" ]; then
+    if [ -n "\$(pgrep -xf "${TNL_MASK} ${TNL_ARGS}\s*")" ]; then
        if [ -n "\$(tmx ls | grep "$TNL_MASK")" ]; then
           echo \${PREV_TNL_LISTEN} ## the previous port binded
           exit ## tnl started and already in session
@@ -255,7 +255,7 @@ while [ "$(tmx list-panes -t ${PAUSD_DAEMON} | wc -l)" -lt 2 ]; do
         ## subst
         cat ${OBJ_MASK}.conf.tpl | envsubst -no-empty > ${OBJ_MASK}.conf
         ## resetup tnl to correct target
-        lowhw=1 TNL_LISTEN= setup_tnl
+        lowhw=1 TNL_LISTEN=8080 setup_tnl
         ## update endpoint according to new tnl port
         ENDPOINT="127.0.0.1:${TNL_LISTEN}"
         ## init
