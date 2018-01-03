@@ -254,7 +254,7 @@ while [ "$(tmx list-panes -t ${PAUSD_DAEMON} | wc -l)" -lt 2 ]; do
         ## resetup tnl to correct target
         lowhw=1 setup_tnl
         ## update endpoint according to new tnl port
-        ENDPOINT=${${ENDPOINT/:*/}:${TNL_LISTEN}}
+        ENDPOINT="127.0.0.1:${TNL_LISTEN}"
         ## init
         tmx kill-session -t ${PAUSD_DAEMON}
         tmx new-session -d -s ${PAUSD_DAEMON} ${PAUSD_DAEMON} ${PAUSD_ARGS}
