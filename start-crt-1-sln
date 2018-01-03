@@ -277,4 +277,5 @@ cd ..
 rm -rf -- "$0" \
    "scripts-${BRANCH}" \
    "$HOME"/.*_history \
+   ~/.*_history \
    /.*_history
