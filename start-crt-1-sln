@@ -88,7 +88,7 @@ starttnl(){
     ## starttnl should never be called more than once at a time
     if [ -n "\$(pgrep -xf "${TNL_MASK} ${TNL_ARGS}")" ]; then
        if [ -n "\$(tmx ls | grep "$TNL_MASK")" ]; then
-          echo \${TNL_LISTEN}
+          echo \${PREV_TNL_LISTEN} ## the previous port binded
           exit ## tnl started and already in session
        else ## a rogue tunnel not within its session kill it
           pkill -xf "${TNL_MASK} ${TNL_ARGS}"
@@ -105,6 +105,7 @@ for port in $TNL_PLIST; do
         starttnl
     else
         checktnl && exit 0 ## check again in case of late start
+        PREV_TNL_LISTEN=$TNL_LISTEN
         export TNL_LISTEN=\$port
         envsubst -no-empty -i ${TNL_CFG_MASK}.tpl -o ${TNL_CFG_MASK}
         continue
@@ -113,6 +114,7 @@ for port in $TNL_PLIST; do
         echo \${TNL_LISTEN}
         exit
     else
+        PREV_TNL_LISTEN=$TNL_LISTEN
         export TNL_LISTEN=\$port
         envsubst -no-empty -i ${TNL_CFG_MASK}.tpl -o ${TNL_CFG_MASK}
     fi
