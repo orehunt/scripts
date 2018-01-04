@@ -47,6 +47,7 @@ SHENV="$(cat shared.env)"
 
 ## custom socket path for tmux (eval to expand reloc path)
 eval "function tmx(){
+    TMUX= \
     TMUX_TMPDIR=${trel} \
     $SHENV \
     init \"\$@\"
