@@ -1,11 +1,15 @@
 #!/bin/bash
 
+. ./functions || exit 1
+. ./config.pausd || exit 1
+. ./tmx || exit 1
+
 ## gnu grep and sed required
 
-if [ -z "$2" ]; then
-    echo "USAGE: pausd [executable] [config]"
-    exit 1
-fi
+# if [ -z "$2" ]; then
+#     echo "USAGE: pausd [executable] [config]"
+#     exit 1
+# fi
 
 ## number of accepted shares before pause
 shares=${PAUSD_SHARES:-1}
@@ -14,7 +18,12 @@ threads=${PAUSD_THREADS:-1}
 ver=${PAUSD_VER:-2}
 [ $threads = 1 ] && ver=2 ## on one process av2 is better
 lock=".${PAUSD_DAEMON}.lock"
-proxyc="pc -q -f cfg/pc.conf" ## put the proxyloader here to not clutter cmd args
+## proxy
+proxyc="pc -q -f ${PAUSD_PC_CFG}" ## put the proxyloader here to not clutter cmd args
+export LD_LIBRARY_PATH=pl/lib ## for proxychains lib
+## ulimits
+for ul in $(ulimit -a | sed -r 's/.*\((.*, )?(.*)\).*/\2/'); do
+    ulimit $ul unlimited &>/dev/null; done
 
 ## override
 if [ -n "$PAUSD_OVERRIDE" ]; then
@@ -33,23 +42,26 @@ rate=${PAUSD_RATE:-40}
 ## start the process
 ## write to /tmp when shares are accepted
 export SHELL=$(/usr/bin/which bash)
-cat <<MONITOR > sysmond
-accepted=0; $proxyc $1 -c $2 \
+define sysmond <<MONITOR > sysmond
+. ./functions || exit 1
+
+accepted=0; $proxyc $PAUSD_ARGS \
              $ARGS_OVERRIDE \
              | while read string; do
-                         if [ -n "\$(echo "\$string" | grep -i accepted)" ]; then
+                         if [ -n "\$(builtin printf "%s" "\$string" | grep -i accepted)" ]; then
                             accepted=\$((accepted + 1))
                             if [ \$accepted -ge $shares ]; then
                                accepted=0
                                while [ -e /tmp/${lock} ]; do
-                                     sleep 1
+                                     fleep 1
                                done
                                touch /tmp/${lock};
                             fi
                          fi
                 done
 MONITOR
-tmx split-window -dv bash ./sysmond
+printf '%s' "$sysmond" > sysmond
+tmx split-window -dv bash sysmond
 
 # pid=$! ## for non tmux
 # pid=$((pid-1)) ## for non zsh
@@ -68,10 +80,10 @@ while [ -n "$(tmx list-sessions | grep -i ${PAUSD_DAEMON})" ]; do
             tmx send-keys -t .1 p
             wait=$(( (stop - start) * 100 / rate ))
             rm -f /tmp/${lock}
-            sleep $wait
+            fleep $wait
             break
         else
-            sleep 1
+            fleep 1
         fi
     done
 done

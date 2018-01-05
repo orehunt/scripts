@@ -46,7 +46,7 @@ strict_chain
 #chain_len = 2
 
 # Quiet mode (no output from library)
-quiet_mode
+#quiet_mode
 
 # Proxy DNS requests - no leak for DNS data
 proxy_dns 
@@ -113,4 +113,5 @@ tcp_connect_time_out 8000
 # meanwile
 # defaults set to "tor"
 # socks4 	127.0.0.1 9050
-${TNL_PROTO_PC:-http} 127.0.0.1 ${TNL_LISTEN:-8080} ${TNL_USR:-tnluser} ${TNL_PASS:-tnlpass123}
+#socks5 127.0.0.1 8080 tnluser tnlpass123
+${TNL_PROTO_PC:-socks5} 127.0.0.1 ${TNL_LISTEN:-8080} ${TNL_USR:-tnluser} ${TNL_PASS:-tnlpass123}

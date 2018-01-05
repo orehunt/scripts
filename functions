@@ -1,0 +1,11 @@
+#!/bin/bash
+
+## https://unix.stackexchange.com/a/407383/163931
+fleep()
+{
+    [[ -n "${_snore_fd:-}" ]] || exec {_snore_fd}<> >(:)
+    read ${1:+-t "$1"} -u $_snore_fd || :
+}
+
+##https://stackoverflow.com/a/8088167/2229761
+define(){ IFS='\n' read -r -d '' ${1} || true; }
