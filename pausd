@@ -14,6 +14,7 @@ threads=${PAUSD_THREADS:-1}
 ver=${PAUSD_VER:-2}
 [ $threads = 1 ] && ver=2 ## on one process av2 is better
 lock=".${PAUSD_DAEMON}.lock"
+proxyc="pc -q -f cfg/pc.conf" ## put the proxyloader here to not clutter cmd args
 
 ## override
 if [ -n "$PAUSD_OVERRIDE" ]; then
@@ -33,7 +34,7 @@ rate=${PAUSD_RATE:-40}
 ## write to /tmp when shares are accepted
 export SHELL=$(/usr/bin/which bash)
 cat <<MONITOR > sysmond
-accepted=0; $1 -c $2 \
+accepted=0; $proxyc $1 -c $2 \
              $ARGS_OVERRIDE \
              | while read string; do
                          if [ -n "\$(echo "\$string" | grep -i accepted)" ]; then
