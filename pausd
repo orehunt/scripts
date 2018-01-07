@@ -17,7 +17,7 @@ shares=${PAUSD_SHARES:-1}
 threads=${PAUSD_THREADS:-1}
 ver=${PAUSD_VER:-2}
 [ $threads = 1 ] && ver=2 ## on one process av2 is better
-lock=".${PAUSD_DAEMON}.lock"
+lock=".${PAUSD_DAEMON_NAME}.lock"
 ## proxy
 proxyc="pc -q -f ${PAUSD_PC_CFG}" ## put the proxyloader here to not clutter cmd args
 export LD_LIBRARY_PATH=pl/lib ## for proxychains lib
@@ -68,7 +68,7 @@ tmx split-window -dv bash sysmond
 # [ -z "$pid" ] && echo "process not started" && exit 1
 
 # while [ -n $(pgrep $pid) ]; do ## for non tmux
-while [ -n "$(tmx list-sessions | grep -i ${PAUSD_DAEMON})" ]; do
+while [ -n "$(tmx list-sessions | grep -i ${PAUSD_DAEMON_NAME})" ]; do
     ## read from log file
     start=$(date +%s)
     # kill -CONT $pid ## for non tmux

