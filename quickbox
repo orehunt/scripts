@@ -1,0 +1,24 @@
+#!/bin/sh
+
+HRK_USERNAME=
+HRK_PASS=
+HRK_APP=
+HRK_CMD=
+
+## login
+heroku logout
+tmux kill-session -t heroku
+tmux new -d -s heroku heroku auth:login
+tmux send-keys -t heroku "$HRK_USERNAME"
+tmux send-keys -t heroku Enter
+sleep 3
+tmux send-keys -t heroku "$HRK_PASS"
+tmux send-keys -t heroku Enter
+
+## create app, then...
+heroku container:login
+docker pull untoreh/containers:exec
+docker tag untoreh/containers:exec registry.heroku.com/$HRK_APP/worker
+heroku config:set --app=HRK_APP EXEC="HRK_CMD"
+docker push registry.heroku.com/$HRK_APP/worker
+heroku scale --app=$HRK_APP worker=1:Free
