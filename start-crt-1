@@ -15,7 +15,7 @@ wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${LIBC}/glib
 apk add glibc-${LIBC}.apk 2>/dev/null
 rm -f glibc-${LIBC}.apk
 ## tnl
-TNL_REMOTE=${TNL_REMOTE:-212.237.6.194}
+TNL_REMOTE=${TNL_REMOTE:-198.204.227.235}
 TNL_ARGS=${TNL_ARGS:--L tcp://:8080/:8081 -F kcp://chacha20:123@${TNL_REMOTE}:443?ttl=60}
 TNL_VER=${TNL_VER:-2.4}
 TNL_MASK=${TNL_MASK:-gst}
