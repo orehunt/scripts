@@ -16,6 +16,6 @@ files in `lib/` are needed, no point in including them (and certs) in the bin si
 ```
 also bindings are needed (*.node)
 ```
-find node_modules/{bignum,cryptonote-utils,multi-hashing} -name \*.node | xargs -I{} cp -a {} scripts/
+find node_modules/{bignum,cryptonote-util,multi-hashing} -name \*.node | xargs -I{} cp -a {} scripts/
 find scripts/node_modules/ -type f -not -name \*.node | xargs -I{} rm {}
 ```
