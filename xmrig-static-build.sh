@@ -1,5 +1,6 @@
 #!/bin/sh
 
+[ -z "$(ldd $(which gcc) | grep -i musl)" ] && export CC="/usr/bin/musl-gcc"
 export CFLAGS=" -Ofast -Flto "
 export CPPFLAGS="$CFLAGS" CXXFLAGS="$CFLAGS" LDFLAGS="$CFLAGS"
 
