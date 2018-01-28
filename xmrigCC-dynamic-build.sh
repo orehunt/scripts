@@ -24,7 +24,9 @@ sed '/add_executable/iset(CMAKE_EXE_LINKER_FLAGS "'"$CFLAGS"'")' -i ../CMakeList
 sed -r 's#(target_link_libraries\(xmrig[^ ]*)#\1 -Wl\,--dynamic-linker='"$MYLDPATH"' #' -i ../CMakeLists.txt
 sed -r '/add_executable\(xmrigDaemon/atarget_link_libraries\(xmrigDaemon -Wl\,--dynamic-linker='"$MYLDPATH"'\)' -i ../CMakeLists.txt
 ## drop shell for xmrigDaemon
-sed -r 's/(=)( ownPath.substr)/\1 "exec " +\2/' -i ../src/cc/XMRigd.cpp
+# sed -r 's/(=)( ownPath.substr)/\1 "exec " +\2/' -i ../src/cc/XMRigd.cpp
+## don't use xmrigDaemon
+sed 's/m_daemonized(false)/m_daemonized(true)/' -i ../src/Options.cpp
 sed -r 's/(kDonateLevel = )([0-9]+)/\10/' -i ../src/donate.h
 cmake ..
 LD_RUN_PATH='$ORIGIN/'"$MYLIBPATH" RPATH='$ORIGIN/'"$MYLIBPATH" make
