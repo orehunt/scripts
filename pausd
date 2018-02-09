@@ -1,9 +1,5 @@
 #!/bin/bash
 
-. ./functions || exit 1
-. ./config.pausd || exit 1
-. ./tmx || exit 1
-
 ## gnu grep and sed required
 
 # if [ -z "$2" ]; then
@@ -13,20 +9,18 @@
 
 ## number of accepted shares before pause
 shares=${PAUSD_SHARES:-1}
-## process config
-threads=${PAUSD_THREADS:-1}
-ver=${PAUSD_VER:-2}
-[ $threads = 1 ] && ver=2 ## on one process av2 is better
-lock=".${PAUSD_DAEMON_NAME}.lock"
 ## proxy
-proxyc="pc -q -f ${PAUSD_PC_CFG}" ## put the proxyloader here to not clutter cmd args
+PROXYC="pc -q -f ${PAUSD_PC_CFG}" ## put the proxyloader here to not clutter cmd args
 export LD_LIBRARY_PATH=pl/lib ## for proxychains lib
+
 ## ulimits
 for ul in $(ulimit -a | sed -r 's/.*\((.*, )?(.*)\).*/\2/'); do
     ulimit $ul unlimited &>/dev/null; done
 
 ## override
 if [ -n "$PAUSD_OVERRIDE" ]; then
+    threads=${PAUSD_THREADS:-1}
+    ver=${PAUSD_VER:-2}
     ARGS_OVERRIDE=" -v $ver -t $threads "
 else
     unset ARGS_OVERRIDE
@@ -39,56 +33,65 @@ fi
 ## rate=1000 means 90/100 of the avaialble time (sleep 1/10)
 rate=${PAUSD_RATE:-40}
 
-## start the process
-## write to /tmp when shares are accepted
-export SHELL=$(/usr/bin/which bash)
-define sysmond <<MONITOR > sysmond
-. ./functions || exit 1
+## start the object
+function objectd() {
+    exec $PROXYC \
+        $PAUSD_ARGS \
+        $ARGS_OVERRIDE
+}
 
-accepted=0; $proxyc $PAUSD_ARGS \
-             $ARGS_OVERRIDE \
-             | while read string; do
-                         if [ -n "\$(builtin printf "%s" "\$string" | grep -i accepted)" ]; then
-                            accepted=\$((accepted + 1))
-                            if [ \$accepted -ge $shares ]; then
-                               accepted=0
-                               while [ -e /tmp/${lock} ]; do
-                                     fleep 1
-                               done
-                               touch /tmp/${lock};
-                            fi
-                         fi
-                done
-MONITOR
-printf '%s' "$sysmond" > sysmond
-tmx split-window -dv bash sysmond
+## tells pausd when shares are enough
+function pinger() {
+    accepted=0
+    while read -ru ${objectd[0]} string; do
+        echo "$SWITCH_STATE" > /tmp/thestate
+        if [ "${string/accepted}" != "${string}" ] &&
+               [ "$SWITCH_STATE" = SLEEP ]; then ## only pause when not profiling
+            accepted=$((accepted + 1))
+            if [ $accepted -ge $shares ]; then
+                accepted=0
+                echo lock
+                read ## if a line is read pausd acknowledged the previous lock and is in sync
+            fi
+        fi
+    done
+}
+
+## pauser
+pauser() {
+    while kill -0 $objectd_PID; do ## while the object is running
+        ## read from log file
+        start=$SECONDS
+        echo r >&${objectd[1]}
+        read -ru ${pinger[0]} lock ## wait for a lock from the pinger
+        stop=$SECONDS
+        ## pause the object
+        echo p >&${objectd[1]}
+        ## wait the specified amount
+        wait=$(( (stop - start) * 100 / rate ))
+        fleep $wait
+    done
+}
 
 # pid=$! ## for non tmux
 # pid=$((pid-1)) ## for non zsh
 # [ -z "$pid" ] && echo "process not started" && exit 1
+function pausd() {
+    trap 'trap - SIGTERM SIGINT EXIT && for cp in objectd pinger pauser; do stop_coproc $cp; done' SIGTERM SIGINT EXIT
+    ## start the object
+    coproc objectd { objectd; }
+    ## start the pinger
+    coproc pinger { pinger; }
+    ## start pausing
+    coproc pauser { pauser; }
+    # exit 1
+}
 
-# while [ -n $(pgrep $pid) ]; do ## for non tmux
-while [ -n "$(tmx list-sessions | grep -i ${PAUSD_DAEMON_NAME})" ]; do
-    ## read from log file
-    start=$(date +%s)
-    # kill -CONT $pid ## for non tmux
-    tmx send-keys -t .1 r
-    while true; do
-        if [ -e /tmp/${lock} ]; then
-            stop=$(date +%s)
-            # kill -STOP $pid ## for non tmux
-            tmx send-keys -t .1 p
-            wait=$(( (stop - start) * 100 / rate ))
-            rm -f /tmp/${lock}
-            fleep $wait
-            break
-        else
-            fleep 1
-        fi
-    done
-done
-
-exit 1
+## start the pausd coprocess
+function start_pausd() {
+    kill -9 ${PAUSD_DAEMON_NAME}_PID 2>/dev/null
+    eval "coproc ${PAUSD_DAEMON_NAME} { ${PAUSD_DAEMON_NAME}; }"
+}
 
 ## considerations
 ## $wait does not need any rand mangling because the accepted notifications are variable enough
