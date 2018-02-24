@@ -1,0 +1,39 @@
+{
+    "algo": "cryptonight-lite",
+    "aesni": 1,
+    "threads": "2",
+    "multihash-factor": "5",
+    "multihash-thread-mask": "0x0",
+    "background": false,
+    "colors": false,
+    "cpu-affinity": "0x0",
+    "cpu-priority": null,
+    "donate-level": 0,
+    "log-file": null,
+    "max-cpu-usage": 75,
+    "print-time": "3",
+    "retries": 5,
+    "retry-pause": 5,
+    "safe": false,
+    "syslog": false,
+    "pools": [
+        {
+            "url": "52.2.254.4:8080",
+            "user": "4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq",
+            "pass": "hrk",
+            "keepalive": true,
+            "nicehash": false
+        }
+    ],
+    "api": {
+        "port": 0,
+        "access-token": null,
+        "worker-id": null
+    },
+    "cc-client": {
+        "url": "198.204.227.235:18213",
+        "access-token": "acstkn",
+        "worker-id": "hrk",
+        "update-interval-s": 10
+    }
+}

@@ -1,0 +1,10 @@
+#!/bin/sh
+
+IFS=''
+while true; do
+    printf "\033c"
+    while read l; do
+        echo -e "$l"
+    done < httpd.conf
+    sleep 1
+done

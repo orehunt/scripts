@@ -1,0 +1,1 @@
+export PATH=.:$PATH:/sbin:/usr/sbin SCRATCH_START=1 SWITCH_PROFILE=WARM
