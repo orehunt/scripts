@@ -1,0 +1,19 @@
+151a152
+> 	bool skipCommand;
+155c156,157
+<                 if (!Workers::isEnabled()) {
+---
+> 		skipCommand = true;
+>                 /*if (!Workers::isEnabled()) {
+157c159
+<                 }
+---
+>                 }*/
+173,174c175,176
+< 
+<             m_self->m_async->data = reinterpret_cast<void*>(controlCommand.getCommand());
+---
+> 	if (!skipCommand) {
+>     		m_self->m_async->data = reinterpret_cast<void*>(controlCommand.getCommand());
+175a178
+> 	}
