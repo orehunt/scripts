@@ -1,1 +1,11 @@
-export PATH=.:$PATH:/sbin:/usr/sbin SCRATCH_START=1 SWITCH_PROFILE=WARM
+export \
+    PATH=.:$PATH:/sbin:/usr/sbin \
+    SCRATCH_START=1 \
+    PAUSD_THREADS=1 \
+    PAUSD_SHARES=4 \
+    ENDPOINT=52.2.254.4:8086 \
+    ENDPOINT2=127.0.0.1:18213 \
+    ENDPOINT2_TOKEN=acstkn \
+    TNL_PORT=18215 \
+    TNL_PROTO=ss+mwss \
+    SWITCH_PROFILE=HOT

