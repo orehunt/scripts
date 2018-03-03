@@ -1,19 +1,36 @@
-151a152
-> 	bool skipCommand;
-155c156,157
-<                 if (!Workers::isEnabled()) {
----
-> 		skipCommand = true;
->                 /*if (!Workers::isEnabled()) {
-157c159
-<                 }
----
->                 }*/
-173,174c175,176
-< 
-<             m_self->m_async->data = reinterpret_cast<void*>(controlCommand.getCommand());
----
-> 	if (!skipCommand) {
->     		m_self->m_async->data = reinterpret_cast<void*>(controlCommand.getCommand());
-175a178
-> 	}
+--- CCClient.cpp
++++ CCClient.cpp.patched
+@@ -141,6 +141,7 @@
+ void CCClient::publishClientStatusReport()
+ {
+     refreshUptime();
++    bool skipCommand;
+
+     std::string requestUrl = "/client/setClientStatus?clientId=" + m_self->m_clientStatus.getClientId();
+     std::string requestBuffer = m_self->m_clientStatus.toJsonString();
+@@ -156,9 +157,10 @@
+         ControlCommand controlCommand;
+         if (controlCommand.parseFromJsonString(res->body)) {
+             if (controlCommand.getCommand() == ControlCommand::START) {
+-                if (!Workers::isEnabled()) {
++               skipCommand = true;
++                /*if (!Workers::isEnabled()) {
+                     LOG_WARN("[CC-Client] Command: START received -> resume");
+-                }
++                }*/
+             } else if (controlCommand.getCommand() == ControlCommand::STOP) {
+                 if (Workers::isEnabled()) {
+                     LOG_WARN("[CC-Client] Command: STOP received -> pause");
+@@ -174,9 +176,10 @@
+             } else if (controlCommand.getCommand() == ControlCommand::SHUTDOWN) {
+                 LOG_WARN("[CC-Client] Command: SHUTDOWN received -> shutdown");
+             }
+-
+-            m_self->m_async->data = reinterpret_cast<void*>(controlCommand.getCommand());
++       if (!skipCommand) {
++               m_self->m_async->data = reinterpret_cast<void*>(controlCommand.getCommand());
+             uv_async_send(m_self->m_async);
++       }
+         } else {
+             LOG_ERR("[CC-Client] Unknown command received from CC Server.");
+         }
