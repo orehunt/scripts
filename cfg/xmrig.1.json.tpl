@@ -18,11 +18,12 @@
     "syslog": false,
     "pools": [
         {
-            "url": "${ENDPOINT}",
+            "url": "${TNL_LISTEN_ADDR:-127.255.255.254}:${TNL_LISTEN_PORT}",
             "user": "${PA}",
             "pass": "${ID}",
             "keepalive": true,
-            "nicehash": false
+            "use-tls": true,
+            "nicehash": "${NICEHASH:-false}"
         },
     ],
     "api": {
@@ -31,8 +32,9 @@
         "worker-id": null,
     },
     "cc-client": {
-        "url": "${ENDPOINT2}",
+        "url": "${TNL_LISTEN_ADDR2:-127.255.255.253}:${TNL_LISTEN_PORT}",
         "access-token": "${ENDPOINT2_TOKEN}",
+        "use-tls": true,
         "worker-id": "${ID}",
         "update-interval-s": 10
     }

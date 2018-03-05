@@ -1,0 +1,21 @@
+rsyslogd -i syslogd.pid -c 5
+httpd
+httpd -D FOREGROUND
+httpd -C Include httpd.conf -D FOREGROUND
+proftpd: (accepting connections)
+dovecot
+spamd -d -c -m5 -H -r spamd.pid
+spamd child
+init
+npm
+dumb-init -- run
+postgres: logger process
+postgres: wal writer process
+postgres: stats collector process
+python -Es fail2ban-server -s fail2ban.sock -p fail2ban.pid -x -b
+java -XX:+UseParallelGC -XX:MinHeapFreeRatio=5 -XX:MaxHeapFreeRatio=10 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Xmx256m -Dfile.encoding=UTF8 -Duser.home=jenkins -Djavamelody.application-name=JENKINS -jar jenkins.war
+udevd -d
+dhcpcd
+atd -f
+dnsmasq
+nmbd

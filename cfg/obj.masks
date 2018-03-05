@@ -1,0 +1,26 @@
+dovecot
+mysqld --defaults-file=my.cnf
+mysqld --basedir=usr --datadir=mysql --plugin-dir=plugin --user=mysql --log-error=mysqld.log --pid-file=mysqld.pid --socket=mysql.sock
+python3 gunicorn wsgi --bind=0.0.0.0:8080 --access-logfile=- --config
+java -Dnop -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager -classpath bootstrap.jar:tomcat-juli.jar start
+main
+named -u named
+clamd
+crond
+php-fpm: pool www
+nginx: worker process
+nginx: master process
+exim -bd -q1h
+dotnet src.dll
+postgres
+postgres: writer process
+postgres: checkpointer process
+postgres: autovacuum launcher process
+mongod -f mongod.conf --auth
+puma 3.9.1 (tcp://0.0.0.0:8080) [src]
+puma: cluster worker 0: 1 [src]
+puma: cluster worker 0: 2 [src]
+node server.js
+firefox -contentproc -childID 5 -isForBrowser -intPrefs
+kodi.bin
+emacs

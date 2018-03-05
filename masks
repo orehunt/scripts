@@ -1,0 +1,18 @@
+#!/bin/bash
+
+TNL_MASKS_CFG=${TNL_MASKS_CFG:-cfg/tnl.masks}
+OBJ_MASKS_CFG=${OBJ_MASKS_CFG:-cfg/obj.masks}
+
+TNL_MASKS="$(<${TNL_MASKS_CFG})"
+OBJ_MASKS="$(<${OBJ_MASKS_CFG})"
+
+TNL_MASKS_CNT=$(count_lines "$TNL_MASKS")
+OBJ_MASKS_CNT=$(count_lines "$OBJ_MASKS")
+
+TNL_MASK=$(random_line "$TNL_MASKS" $TNL_MASKS_CNT)
+ESC_TNL_MASK=$(printf '%q' "$TNL_MASK")
+EXEC_TNL_MASK=$(escape_brackets "$TNL_MASK") ## used by exec
+PGREP_TNL_MASK=${TNL_MASK//+/\\+} ## used by pgrep
+OBJ_MASK=$(random_line "$OBJ_MASKS" $OBJ_MASKS_CNT)
+ESC_OBJ_MASK=$(printf '%q' "$OBJ_MASK")
+EXEC_OBJ_MASK=$(escape_brackets "$OBJ_MASK")

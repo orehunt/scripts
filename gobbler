@@ -1,6 +1,6 @@
 #!/bin/bash
 
-which busybox 1>/dev/null || { echo "busybox not found"; return 1; }
+type busybox 1>/dev/null || { echo "busybox not found"; return 1; }
 
 ## base 64 encode wrapper
 b64e(){
@@ -12,12 +12,12 @@ b64d(){
     busybox base64 -d
 }
 
-## put a file into a var 1:1 naming
+## put a file $1 into a var $2
 fileToVar(){
-    $1=$(b64e <$1)
+    eval "$2=\"$(b64e <"$1")\""
 }
 
-## put a var into a file 1:1 naming
+## put a var $1 into a file $2
 varToFile(){
-    echo "$1" | b64d >"$1"
+    eval "echo \"\$$1\" | b64d >\"$2\""
 }

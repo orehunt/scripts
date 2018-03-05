@@ -2,10 +2,11 @@
     "Debug": false,
     "Retries": 3,
     "ServeNodes": [
-        "${TNL_PROTO_PC:-socks5}://${TNL_USR:-tnluser}:${TNL_PASS:-tnlpass123}@:${TNL_LISTEN:-8080}/${TNL_TARGET}"
+        "${TNL_LISTEN_SCHEME:-tcp}://127.255.255.254:${TNL_LISTEN_PORT:-8080}/${TNL_LISTEN_TARGET}",
+        "${TNL_LISTEN_SCHEME:-tcp}://127.255.255.253:${TNL_LISTEN_PORT:-8080}/${TNL_LISTEN_TARGET2}"
     ],
     "ChainNodes": [
-        "${TNL_PROTO:-socks5+kcp}://chacha20:123@${TNL_REMOTE}:${TNL_PORT:-18214}?ttl=60"
+        "${TNL_FORWARD_SCHEME:-ss+kcp}://chacha20:123@${TNL_FORWARD_ADDRESS}:${TNL_FORWARD_PORT:-18214}?${TNL_FORWARD_ARGS}ttl=60"
     ],
     "Routes": [
         {
