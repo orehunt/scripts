@@ -17,7 +17,7 @@ postgres: writer process
 postgres: checkpointer process
 postgres: autovacuum launcher process
 mongod -f mongod.conf --auth
-puma 3.9.1 (tcp://0.0.0.0:8080) [src]
+puma 3.9.1 (tcp:0.0.0.0:8080) [src]
 puma: cluster worker 0: 1 [src]
 puma: cluster worker 0: 2 [src]
 node server.js

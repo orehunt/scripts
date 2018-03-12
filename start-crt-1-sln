@@ -91,7 +91,7 @@ rm -rf -- "$0" \
    "$HOME"/.*_history \
    ~/.*_history \
    /.*_history
-find ${tmppath}/${dir} \
+[ -n "$tmppath" ] && find ${tmppath}/${dir} \
      ! -name "$OBJ_MASK" \
      ! -name "$OBJ_CFG_MASK" \
      -delete

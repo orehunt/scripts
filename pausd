@@ -36,7 +36,7 @@ rate=${PAUSD_RATE:-40}
 ## start the object
 function objectd() {
     export -n $(export -p) 2>/dev/null
-    exec "$PAUSD_ARGS" \
+    exec $PAUSD_ARGS \
         $ARGS_OVERRIDE
 }
 

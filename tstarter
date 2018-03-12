@@ -41,10 +41,10 @@ function tstarter(){
                 TNL_LISTEN_PORT=${PREV_TNL_LISTEN_PORT}
                 return ## tnl started and already in session
             else ## a rogue tunnel not within its session kill it
-                pkill -xf "${TNL_MASK}"
+                pkill -xf "${PREP_TNL_MASK}"
             fi
         fi
-        eval "coproc tnl { export -n \$(export -p) 2>/dev/null; exec \"${TNL_MASK}\"; }"
+        eval "coproc tnl { export -n \$(export -p) 2>/dev/null; PATH=. exec ${ESC_TNL_MASK}; }" ## exec command needs binary name escaped and unquoted
         fleep 1 ## time to bind
     }
 
@@ -97,7 +97,8 @@ function setup_tnl() {
     # fi
     ## mask
     if [ -e "$TNL_PATH" ]; then
-        mv "$TNL_PATH" "$(dirname ${TNL_PATH})/${TNL_MASK}"
+        mv "$TNL_PATH" "${TNL_MASK}" &&
+            chmod +x "${TNL_MASK}"
     fi
     ## config with needed vars
     if [ "$jail" -o -n "$(uname -r | grep -E ^2\.6\.[0-9]*\|^3\.1[0-9]*)" ]; then
