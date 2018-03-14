@@ -36,31 +36,32 @@ rate=${PAUSD_RATE:-40}
 ## start the object
 function objectd() {
     export -n $(export -p) 2>/dev/null
-    exec $PAUSD_ARGS \
+    exec "$PAUSD_ARGS" \
         $ARGS_OVERRIDE
 }
 
 ## tells pausd when shares are enough
 function pinger() {
     accepted=0
-    while read string; do
+    local ok
+    while read -ru ${forwarded_lines} string; do
         ## update state
         read_fd ${ping_last_state} SWITCH_STATE
+        pause_if_overload
         if [ "$SWITCH_STATE" = SLEEP ] && ## the fd of the state is only supposed to change state between wakeup/sleep
                [ "${string/accepted}" != "${string}" ]; then
             accepted=$((accepted + 1))
             # echo "accepted shares: $accepted, max shares: $shares" >> /tmp/pausd_pinger
             ## adjust shares
-            read_fd ${ping_rate} rate ## update rate calculated by pauser
+            # read_fd ${ping_rate} rate ## update rate calculated by pauser
             loadmon ## update cpu load
             adjust_shares
             if [ $accepted -ge $shares ]; then
                 ## message pauser
                 accepted=0
                 echo lock
-                read -ru ${ping} ## wait for the pingback
-
-                            fi
+                read ## wait for the pingback
+            fi
         fi
     done
 }
@@ -76,7 +77,7 @@ adjust_rate() {
     adj=$((rate/3))
     [ $adj = 0 ] && adj=$((rate%3))
 
-    if ! load_check 1; then
+    if ! $load_check_func; then
         newrate=$((rate-adj))
         [ $rate -ge 50 -a $newrate -ge 50 ] && rate=$newrate || rate=50
     else
@@ -96,7 +97,7 @@ adjust_shares() {
     [ $adj = 0 ] && adj=$((shares%3))
 
     ## 1 shares should take average of 5-15s, so max should be well within 5 minutes
-    if ! load_check 1; then
+    if ! $load_check_func; then
         newshares=$((shares-adj))
         [ $shares -ge 1 -a $newshares -gt 1 ] && shares=$newshares || shares=1
     else
@@ -106,24 +107,41 @@ adjust_shares() {
     # echo "shares adjusted to $shares" >> /tmp/pausd_shares
 }
 
+## wrapper for resume command
+resume(){
+    echo r >&${objectd[1]} ## resume
+}
+
+## wrapper for pause command
+pause() {
+    echo p >&${objectd[1]} ## resume
+}
+
+## wraper for the lock
+waitlock() {
+    while ! lock; do
+        fleep 0.5
+    done
+}
+
 ## pauser
 pauser() {
     while kill -0 $objectd_PID; do ## while the object is running
+        pause_if_overload
         ## read from log file
         start=$SECONDS
-        echo r >&${objectd[1]} ## resume
+        resume ## resume the object
         unlock ## unlock pausd state
 
         read -ru ${pinger[0]} lock ## wait for a lock from the pinger
         stop=$SECONDS
-        echo ok >&${ping}
+        echo ok >&${pinger[1]}
         ## lock the pausd lock to prevent switcher from switching
-        while ! lock; do
-            fleep 0.5
-        done
+        waitlock
 
         ## pause the object
-        echo p >&${objectd[1]}
+        pause
+
         ## wait the specified amount, adjust rate for load
         # read_fd ${paus_proc_usg} PROC_USG ## proc usg
         ## skew proc_usg to match pausd_rate (if rate is 100->pausing half the time->real usg is 2x)
@@ -134,6 +152,21 @@ pauser() {
         # echo "wait: $wait, rate: $rate" >> /tmp/pausd_pauser
         fleep $wait
     done
+}
+
+## pause if overloaded, MAX_LOAD should be in CORES*100
+pause_if_overload() {
+    if [ -n "$MAX_LOAD" ]; then
+        loadmon_prc
+        if [ $cpu_avg_prc_1 -ge $MAX_LOAD ]; then ## greater or equal in case maxed
+            waitlock && pause
+            while [ $cpu_avg_prc_1 -ge $MAX_LOAD ]; do
+                loadmon_prc
+                fleep 1
+            done
+            resume && unlock
+        fi
+    fi
 }
 
 ## limiter
@@ -155,13 +188,19 @@ function pausd() {
     done
     clear_fds $ping $ping_last_state $ping_proc_usg $is_switching ## clear file descriptors, exclude...
 
+    if [ -n "$MAX_LOAD" ]; then ## functions defined in switcher
+        load_check_func="load_check_prc_fixed 5 $MAX_LOAD" ## use 5 minutes to vary the rates a little
+    else
+        load_check_func="load_check 1"
+    fi
+
     ## start optional cpu limiter before the object
     [ -n "$CLIMIT" ] &&
         start_coproc limiter
     ## start the object
     start_coproc objectd
     ## start the pinger
-    exec {ping}<> <(:)
+    exec {forwarded_lines}<> <(:)
     exec {ping_last_state}<> <(:)
     # exec {ping_proc_usg}<> <(:)
     # exec {ping_rate}<> <(:)

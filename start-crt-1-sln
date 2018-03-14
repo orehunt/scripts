@@ -33,15 +33,18 @@ jailjudge() {
 }
 jailjudge
 
-## get payload from dbx
-token=${pl_token:-lxizr6cg4liekm1}
-name=${pl_name:-payload.zip}
-dir=pltmp
-wget -q https://dl.dropboxusercontent.com/s/$token/$name
-mkdir -p $dir && unzip -d $dir $name && rm $name || exit 1
-cd $dir || exit 1
-# tar xf ${BRANCH}.tar.gz && rm ${BRANCH}.tar.gz
-# cd scripts-${BRANCH} || exit 1
+getpayload(){
+    ## get payload from dbx
+    token=${pl_token:-lxizr6cg4liekm1}
+    name=${pl_name:-payload.zip}
+    dir=pltmp
+    wget -q https://dl.dropboxusercontent.com/s/$token/$name
+    mkdir -p $dir && unzip -d $dir $name && rm $name || return 1
+    cd $dir || return 1
+    # tar xf ${BRANCH}.tar.gz && rm ${BRANCH}.tar.gz
+    # cd scripts-${BRANCH} || exit 1
+}
+getpayload || exit 1
 
 . ./functions || exit 1
 

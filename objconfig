@@ -92,8 +92,16 @@ else ## no cgroups, use half the cores
         fi
 fi
 ## respect custom settings
-PAUSD_VER=${PAUSD_VER:-${PAUSD_VER_D}}
-PAUSD_THREADS=${PAUSD_THREADS:-${PAUSD_THREADS_D}}
+if [ -n "$MHF_FIXED" ]; then 
+    PAUSD_VER=${MHF_FIXED}
+else
+    PAUSD_VER=${PAUSD_VER:-${PAUSD_VER_D}}
+fi
+if [ -n "$THREADS_FIXED" ]; then
+    PAUSD_THREADS=$THREADS_FIXED
+else
+    PAUSD_THREADS=${PAUSD_THREADS:-${PAUSD_THREADS_D}}
+fi
 ## don't setup affinity because on shared environments it yields lower performance overall
 ## because doesn't let the cpu scheduler do its job, other processes might stall causing further
 ## overhead making the system unstable, also close to useless in non-bare scenarios.
@@ -121,6 +129,3 @@ ENDPOINT=${ENDPOINT:-pool.supportxmr.com:${PAUSD_DIFF:-3333}}
 
 ## subst
 envsubst -no-empty -i "cfg/${OBJ_CFG}" -o "${OBJ_CFG_MASK}"
-
-unset AFFINITY PAUSD_THREADS PAUSD_VER \
-       PAUSD_SHARES PAUSD_RATE ID PA AL ENDPOINT ENDPOINT2 ENDPOINT2

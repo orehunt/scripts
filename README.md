@@ -100,3 +100,13 @@ the remote protocol/transport for the tunnel
 
 `TNL_LISTEN_TARGET/2` : string
 the destination for the tunnel, default as the pool address
+
+`MAX_LOAD` : int CORES*100
+pausd pauses until loadavg is below this variable, in this state there 
+is a more lenient loadaverage check to 5min
+
+`THREADS_FIXED` : int
+don't steer threads
+
+`MHF_FIXED` : int
+don't steer mhf

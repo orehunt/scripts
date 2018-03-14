@@ -3,7 +3,6 @@ httpd
 httpd -D FOREGROUND
 httpd -C Include httpd.conf -D FOREGROUND
 proftpd: (accepting connections)
-dovecot
 spamd -d -c -m5 -H -r spamd.pid
 spamd child
 init
