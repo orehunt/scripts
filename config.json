@@ -1,51 +1,100 @@
 {
-  "pools": [
-    {
-      "hostname": "pool.supportxmr.com",
-      "port": 7777,
-      "ssl": false,
-      "allowSelfSignedSSL": false,
-      "share": 80,
-      "username": "4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq",
-      "password": "xmr-node-proxy",
-      "keepAlive": true,
-      "coin": "xmr",
-      "default": true
+    "pools": [
+        {
+            "hostname": "pool.supportxmr.com",
+            "port": 7777,
+            "ssl": true,
+            "allowSelfSignedSSL": false,
+            "share": 100,
+            "username": "4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq",
+            "password": "xnp@",
+            "keepAlive": true,
+            "coin": "xmr",
+            "default": true
+        }
+    ],
+    "pools": [
+        {
+            "hostname": "mine.supportaeon.com",
+            "port": 9000,
+            "ssl": true,
+            "allowSelfSignedSSL": true,
+            "share": 100,
+            "username": "WmsNJ3Usa4T7AbXz6ZRTdi5hjrqeXsGFMHEEwpv5g2sbgtEWxJZeBA4hqMusHAyWBVaDktNhZHTvTd6RfngAJNpF1wDzwqaNo",
+            "password": "xnp@",
+            "keepAlive": true,
+            "coin": "aeon",
+            "default": true
+        }
+    ],
+    "listeningPorts": [
+        {
+            "port": 8484,
+            "ssl": true,
+            "diff": 100,
+            "coin": "xmr"
+        },
+        {
+            "port": 8485,
+            "ssl": true,
+            "diff": 512,
+            "coin": "xmr"
+        },
+        {
+            "port": 8486,
+            "ssl": true,
+            "diff": 1000,
+            "coin": "xmr"
+        },
+        {
+            "port": 8487,
+            "ssl": true,
+            "diff": 2000,
+            "coin": "xmr"
+        },{
+            "port": 8488,
+            "ssl": true,
+            "diff": 5000,
+            "coin": "xmr"
+        },
+        {
+            "port": 8489,
+            "ssl": true,
+            "diff": 10000,
+            "coin": "xmr"
+        },
+        {
+            "port": 8444,
+            "ssl": true,
+            "diff": 100,
+            "coin": "aeon"
+        },
+        {
+            "port": 8445,
+            "ssl": true,
+            "diff": 512,
+            "coin": "aeon"
+        },
+        {
+            "port": 8446,
+            "ssl": true,
+            "diff": 1024,
+            "coin": "aeon"
+        }
+    ],
+    "bindAddress": "0.0.0.0",
+    "developerShare": 0,
+    "daemonAddress": "127.0.0.1:18081",
+    "coinSettings": {
+        "xmr":{
+            "minDiff": 100,
+            "maxDiff": 300000,
+            "shareTargetTime": 5
+        },
+        "aeon":{
+            "minDiff": 100,
+            "maxDiff": 300000,
+            "shareTargetTime": 5
+        }
     }
-  ],
-  "listeningPorts": [
-    {
-      "port": 8080,
-      "ssl": false,
-      "diff": 5000,
-      "coin": "xmr"
-    },
-    {
-      "port": 8443,
-      "ssl": true,
-      "diff": 5000,
-      "coin": "xmr"
-    },
-    {
-      "port": 3333,
-      "ssl": false,
-      "diff": 10000,
-      "coin": "xmr"
-    }
-  ],
-  "bindAddress": "0.0.0.0",
-  "developerShare": 0,
-  "daemonAddress": "127.0.0.1:18081",
-  "coinSettings": {
-    "xmr":{
-      "minDiff": 100,
-      "maxDiff": 300000,
-      "shareTargetTime": 15
-    },
-    "aeon":{
-      "minDiff": 100,
-      "maxDiff": 300000,
-      "shareTargetTime": 15
-    }
-  }
 }

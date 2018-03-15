@@ -1,0 +1,9 @@
+39d38
+<     "forknote-util": "git://github.com/wallet42/node-forknote-util.git",
+40a40
+>     "forknote-util": "git://github.com/wallet42/node-forknote-util.git",
+41a42,45
+>   },
+>   "bin": "proxy.js",
+>   "pkg": {
+>     "scripts": "lib/**/*.js"

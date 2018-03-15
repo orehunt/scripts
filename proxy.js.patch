@@ -1,0 +1,20 @@
+5a6
+> const proc = require('process');
+11d11
+<
+139,140c139,140
+<     let local_conf = JSON.parse(fs.readFileSync('config.json'));
+<     if (typeof global.config === 'undefined') {
+---
+>     let local_conf = JSON.parse(fs.readFileSync(proc.cwd()+'/config.json'));
+>     if (typeof global.config === 'undefined' ) {
+148,150c148,150
+<     if (!cluster.isMaster) {
+<         activatePorts();
+<     }
+---
+>     //if (!cluster.isMaster) {
+>     //    activatePorts();
+>     //}
+1129a1130
+> readConfig();
