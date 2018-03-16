@@ -1,6 +1,7 @@
 #!/bin/sh
 
-LIBC=${LIBC:-musl}
+# LIBC=${LIBC:-musl}
+LIBC=${LIBC:-glib}
 DIR=$(dirname $(realpath "$0"))
 PATH="$DIR:$PATH"
 cd $DIR

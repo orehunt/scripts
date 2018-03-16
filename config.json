@@ -2,24 +2,22 @@
     "pools": [
         {
             "hostname": "pool.supportxmr.com",
-            "port": 7777,
+            "port": 443,
             "ssl": true,
-            "allowSelfSignedSSL": false,
+            "allowSelfSignedSSL": true,
             "share": 100,
             "username": "4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq",
-            "password": "xnp@",
+            "password": "xnp",
             "keepAlive": true,
             "coin": "xmr",
             "default": true
-        }
-    ],
-    "pools": [
+        },
         {
             "hostname": "mine.supportaeon.com",
             "port": 9000,
             "ssl": true,
             "allowSelfSignedSSL": true,
-            "share": 100,
+            "share": 0,
             "username": "WmsNJ3Usa4T7AbXz6ZRTdi5hjrqeXsGFMHEEwpv5g2sbgtEWxJZeBA4hqMusHAyWBVaDktNhZHTvTd6RfngAJNpF1wDzwqaNo",
             "password": "xnp@",
             "keepAlive": true,
