@@ -83,7 +83,8 @@ if [ -n "$cpu_p" -a -n "$cpu_q" -a "$cpu_p" != 0 ]; then ## respect cgroups
         fi
     fi
 else ## no cgroups, use half the cores
-        PAUSD_THREADS_D=$((CORES / 2))
+        
+        [ $CORES -gt 1 ] && PAUSD_THREADS_D=$((CORES / 2)) || PAUSD_THREADS_D=1
         hashes_pc=$((hashes / PAUSD_THREADS_D))
         if [ "$hashes_pc" -ge 5 ]; then
                 PAUSD_VER_D=4
