@@ -9,6 +9,7 @@ else
 fi
 
 ## get void ; chroot void ...
+prevpath=${PWD}
 cd /
 jobs=$(nproc || cat /proc/cpuinfo | grep -i "cpu cores" | wc -l)
 [ -z "$jobs" ] && jobs=1
