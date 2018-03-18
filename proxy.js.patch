@@ -1,20 +1,73 @@
-5a6
-> const proc = require('process');
-11d11
-<
-139,140c139,140
-<     let local_conf = JSON.parse(fs.readFileSync('config.json'));
-<     if (typeof global.config === 'undefined') {
----
->     let local_conf = JSON.parse(fs.readFileSync(proc.cwd()+'/config.json'));
->     if (typeof global.config === 'undefined' ) {
-148,150c148,150
-<     if (!cluster.isMaster) {
-<         activatePorts();
-<     }
----
->     //if (!cluster.isMaster) {
->     //    activatePorts();
->     //}
-1129a1130
-> readConfig();
+--- proxy.js    2018-03-18 15:12:41.290748690 +0000
++++ proxy.js.patched    2018-03-18 16:23:03.958454897 +0000
+@@ -3,10 +3,11 @@
+ const net = require('net');
+ const tls = require('tls');
+ const fs = require('fs');
++const proc = require('process');
+ const async = require('async');
+ const uuidV4 = require('uuid/v4');
+ const support = require('./lib/support.js')();
+-global.config = require('./config.json');
++//global.config = require('./config.json');
+
+
+ /*
+@@ -136,7 +137,7 @@
+
+ // Combined Functions
+ function readConfig() {
+-    let local_conf = JSON.parse(fs.readFileSync('config.json'));
++    let local_conf = JSON.parse(fs.readFileSync(proc.cwd()+'config.json'));
+     if (typeof global.config === 'undefined') {
+         global.config = {};
+     }
+@@ -145,9 +146,9 @@
+             global.config[key] = local_conf[key];
+         }
+     }
+-    if (!cluster.isMaster) {
+-        activatePorts();
+-    }
++    //if (!cluster.isMaster) {
++    //    activatePorts();
++    //}
+ }
+
+ // Pool Definition
+@@ -640,11 +641,11 @@
+                 catch (e) {
+                     if (message.indexOf('GET /') === 0) {
+                         if (message.indexOf('HTTP/1.1') !== -1) {
+-                            socket.end('HTTP/1.1' + httpResponse);
++                            socket.end();
+                             break;
+                         }
+                         else if (message.indexOf('HTTP/1.0') !== -1) {
+-                            socket.end('HTTP/1.0' + httpResponse);
++                            socket.end();
+                             break;
+                         }
+                     }
+@@ -1035,11 +1036,11 @@
+                         catch (e) {
+                             if (message.indexOf('GET /') === 0) {
+                                 if (message.indexOf('HTTP/1.1') !== -1) {
+-                                    socket.end('HTTP/1.1' + httpResponse);
++                                    socket.end();
+                                     break;
+                                 }
+                                 else if (message.indexOf('HTTP/1.0') !== -1) {
+-                                    socket.end('HTTP/1.0' + httpResponse);
++                                    socket.end();
+                                     break;
+                                 }
+                             }
+@@ -1127,6 +1128,7 @@
+
+ // System Init
+
++readConfig();
+ if (cluster.isMaster) {
+     let numWorkers;
+     try {

@@ -1,9 +1,12 @@
-39d38
-<     "forknote-util": "git://github.com/wallet42/node-forknote-util.git",
-40a40
->     "forknote-util": "git://github.com/wallet42/node-forknote-util.git",
-41a42,45
->   },
->   "bin": "proxy.js",
->   "pkg": {
->     "scripts": "lib/**/*.js"
+--- package.json        2018-03-18 16:01:15.491587005 +0000
++++ package.json.patched        2018-03-18 16:01:30.478032772 +0000
+@@ -39,5 +39,9 @@
+     "forknote-util": "git://github.com/wallet42/node-forknote-util.git",
+     "cryptonote-util": "git://github.com/bobbieltd/node-cryptonote-util.git#xmr-Nan-2.0",
+     "multi-hashing": "git+https://github.com/Snipa22/node-multi-hashing-aesni.git"
++  },
++  "bin": "server.js",
++  "pkg": {
++    "scripts": "lib/**/*.js"
+   }
+ }

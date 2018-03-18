@@ -1,0 +1,11 @@
+--- package.json        2018-03-18 16:09:09.451643276 +0000
++++ package.json.nan    2018-03-18 16:12:47.830100827 +0000
+@@ -38,7 +38,7 @@
+   "optionalDependencies": {
+     "forknote-util": "git://github.com/wallet42/node-forknote-util.git",
+     "cryptonote-util": "git://github.com/bobbieltd/node-cryptonote-util.git#xmr-Nan-2.0",
+-    "multi-hashing": "git+https://github.com/Snipa22/node-multi-hashing-aesni.git"
++    "multi-hashing": "git://github.com/clintar/node-multi-hashing.git#Nan-2.0"
+   },
+   "bin": "server.js",
+   "pkg": {
