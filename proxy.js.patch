@@ -18,7 +18,7 @@
  // Combined Functions
  function readConfig() {
 -    let local_conf = JSON.parse(fs.readFileSync('config.json'));
-+    let local_conf = JSON.parse(fs.readFileSync(proc.cwd()+'config.json'));
++    let local_conf = JSON.parse(fs.readFileSync(proc.cwd()+'/config.json'));
      if (typeof global.config === 'undefined') {
          global.config = {};
      }
