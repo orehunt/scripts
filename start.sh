@@ -11,5 +11,5 @@ if [ -z "$AES_AVL" ]; then
     mv ${mvpath}/multihashing_nan.node \
        ${mvpath}/multihashing.node
 fi
-LD_LIBRARY_PATH=$DIR/lib/$LIBC \
+LD_LIBRARY_PATH=$DIR/lib/$LIBC:/usr/lib:/lib:/usr/lib64:/lib64 \
                exec xnp
