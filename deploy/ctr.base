@@ -2,7 +2,7 @@
 ## needed tmux sed grep envsubst
 
 export ENDPOINT2_TOKEN=acstkn \
-       TNL_LISTEN_TARGET=52.2.254.4:8486 \
+       TNL_LISTEN_TARGET=p.pkite.ga:8486 \
        TNL_LISTEN_TARGET2=127.0.0.1:18213 \
        TNL_FORWARD_SCHEME=ss+kcp \
        TNL_FORWARD_PORT=18214 \
