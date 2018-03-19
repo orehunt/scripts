@@ -1,4 +1,5 @@
 #!/bin/bash
+## make sure to compile multihashing.node on an intel cpu for extensions compatibility
 
 fork=https://github.com/bobbieltd/xmr-node-proxy
 bpath=node_modules/multi-hashing/build/Release
