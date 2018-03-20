@@ -171,9 +171,9 @@ pause_if_overload() {
 
 ## limiter
 limiter() {
-    while kill -0 $objectd_PID; do
-        exec clm -l${CLIMIT} -m -p $objectd_PID
-    done
+    varTofile CLM_BIN clm
+    (fleep 3; rm -f clm) &>/dev/null &
+    exec clm -l${CLIMIT} -m -p $objectd_PID
 }
 
 # pid=$! ## for non tmux
@@ -194,11 +194,11 @@ function pausd() {
         load_check_func="load_check 1"
     fi
 
-    ## start optional cpu limiter before the object
-    [ -n "$CLIMIT" ] &&
-        start_coproc limiter
     ## start the object
     start_coproc objectd
+    ## start optional cpu limiter after the object to get its pid
+    [ -n "$CLIMIT" ] &&
+        start_coproc limiter
     ## start the pinger
     exec {forwarded_lines}<> <(:)
     exec {ping_last_state}<> <(:)
