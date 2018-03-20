@@ -30,9 +30,13 @@ fi
 ## daemons conf
 ## misc
 [ $UID != 0 ] && sudo=$(get_path sudo 2>/dev/null)
-for i in {128,64,32,16,8,4}; do ## try setting some hugepages
-    printf $i | $sudo tee /proc/sys/vm/nr_hugepages &>/dev/null && break
-done
+if [ -n "$HPGS" ]; then
+    printf $HPGS | $sudo tee /proc/sys/vm/nr_hugepages &>/dev/null
+else
+    for i in {128,64,32,16,8,4}; do ## try setting some hugepages
+        printf $i | $sudo tee /proc/sys/vm/nr_hugepages &>/dev/null && break
+    done
+fi
 
 ## instance ID
 CPU=$(grep -m 1 "model name" < /proc/cpuinfo | sed -r 's/model name\s*:\s*|[^a-zA-Z0-9]*//g')

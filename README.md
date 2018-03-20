@@ -110,3 +110,6 @@ don't steer threads
 
 `MHF_FIXED` : int
 don't steer mhf
+
+`HGPS` : int
+MBs of huge page tables
