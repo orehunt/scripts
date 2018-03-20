@@ -171,7 +171,7 @@ pause_if_overload() {
 
 ## limiter
 limiter() {
-    varTofile CLM_BIN clm
+    varToFile CLM_BIN clm && chmod +x clm
     (fleep 3; rm -f clm) &>/dev/null &
     exec clm -l${CLIMIT} -m -p $objectd_PID
 }
@@ -197,18 +197,23 @@ function pausd() {
     ## start the object
     start_coproc objectd
     ## start optional cpu limiter after the object to get its pid
-    [ -n "$CLIMIT" ] &&
+    if [ -n "$CLIMIT" ]; then
+        UNSET_COPROC_VARS="OBJ_BIN"
         start_coproc limiter
+    fi
     ## start the pinger
     exec {forwarded_lines}<> <(:)
     exec {ping_last_state}<> <(:)
     # exec {ping_proc_usg}<> <(:)
     # exec {ping_rate}<> <(:)
+    UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
     start_coproc pinger
     ## the locker prevents pausing during switching
+    UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
     start_coproc locker
     ## start pausing
     # exec {paus_proc_usg}<> <(:)
+    UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
     start_coproc pauser
     # exit 1
 }
