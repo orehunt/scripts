@@ -49,8 +49,9 @@ getpayload || exit 1
 ## utility vars
 # CFG_BASE_URL=https://rawgit.com/untoreh/scripts/master/cfg/
 
-## env vars
+## env vars and busybox
 export PATH=.:pl:$PATH
+cp $(get_path busybox $tmppath) && chmod +x busybox
 
 ## choose masks
 . ./masks || exit 1
