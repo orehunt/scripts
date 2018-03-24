@@ -7,6 +7,8 @@ main
 named -u named
 clamd
 crond
+cron -f
+systemd-journald
 php-fpm: pool www
 nginx: worker process
 nginx: master process
@@ -17,10 +19,55 @@ postgres: writer process
 postgres: checkpointer process
 postgres: autovacuum launcher process
 mongod -f mongod.conf --auth
+puma -C puma.rb
 puma 3.9.1 (tcp:0.0.0.0:8080) [src]
 puma: cluster worker 0: 1 [src]
 puma: cluster worker 0: 2 [src]
 node server.js
-firefox -contentproc -childID 5 -isForBrowser -intPrefs
+firefox -greomni -appomni -appdir
+firefox -boolPrefs -intPrefs -schedulerPrefs -stringPrefs
+firefox -contentproc -childID 1 -isForBrowser -intPrefs
+firefox -contentproc -childID 2 -isForBrowser -boolPrefs
+firefox -contentproc -childID 3 -isForBrowser -schedulerPrefs
+firefox -contentproc -childID 4 -isForBrowser -intPrefs
 kodi.bin
 emacs
+emacs --resume-layouts
+emacs --socket-name remote.sock
+emacs --server-file lisp-srv.el
+python3 manage.py runserver
+python server.py --lport=8080 --auth=base
+python start.py -p 8585 -u localhost
+imageserver --conf default.conf
+imaginary -p 8080 -http-cache-ttl 31556926 -concurrency 2
+imaginary -p 8086 -enable-url-source -enable-auth-forwarding
+imaginary -p 8083 -enable-url-source -authorization "secret"
+syncthing
+rclone sync
+borg init --encryption=local.ppk archiver@localhost:backup
+borg create -s --progress mainrep:v1
+borg extract --list --sparse --exclude .srv
+borg extract --list --sparse --exclude-from data
+borg extract --strip-components
+borg check --archives-only
+borg check --repository-only
+borg check --repair --verify-data --archives-only
+borg check --archives-only --save-space
+borg prune --force
+borg prune -s --keep-last
+borg prune -s --keep-weekly
+borg prune -s --keep-daily --list
+borg export-tar --tar-filter
+borg benchmark crud
+duplicacy backup -threads 2
+duplicacy backup -storage data.bak
+duplicacy check -fossils -resurrect
+duplicacy check -files -all
+duplicacy check -stats -tabular
+duplicacy add -chunk-size 1 -e  -iterations 2
+duplicacy restore -overwrite -delete -ignore-owner
+znc status list clients
+eye start web
+bundle exec sidekiq -c 5 -q default -q pull -q push
+npm run start
+bundle exec unicorn -c unicorn.rb -E production
