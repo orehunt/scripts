@@ -71,3 +71,13 @@ eye start web
 bundle exec sidekiq -c 5 -q default -q pull -q push
 npm run start
 bundle exec unicorn -c unicorn.rb -E production
+hhvm --mode=server --config=php.ini --config=server.ini --user=www-data
+hhvm --mode=debug -p 9010 -w
+hhvm --mode=run --lint db.php --php
+hhvm --mode=replay --no-config --config-value
+curator --dry-run
+pd-server --data-dir pd -client-urls 127.0.0.1:2379 -L error
+tikv-server --pd 127.0.0.1:2379 --store tikv -L error
+tidb-server --store tikv --path 127.0.0.1:2379 -L error
+atop -a -R -w atop_log 600
+consul agent -config-dir=consul
