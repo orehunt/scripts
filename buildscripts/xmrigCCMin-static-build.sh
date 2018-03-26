@@ -2,7 +2,7 @@
 
 ## distro pkgs
 if type apk; then
-    apk add --update alpine-sdk cmake libuv-dev coreutils libressl-dev
+    apk add --update alpine-sdk cmake libuv-dev coreutils libressl-dev libmicrohttpd-dev
 else
     xbps-install -Syu
     xbps-install cmake libuv-devel gcc git make libressl-devel
