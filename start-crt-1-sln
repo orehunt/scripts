@@ -67,22 +67,22 @@ setup_tnl
 . ./pausd || exit 1
 . ./switch || exit 1
 start &
-fleep 1 ## give time to fail
+fleep 2 ## give time to fail
 
 ## check for alternate if fail
-slept=0
-while [ "$(jobs -r | wc -l)" -lt 2 ]; do
-    slept=$((slept+1))
-    if [ $slept -gt 5 ]; then ## no aes means crash means aeon
-        ## altconfig
-        . ./altconfig
-        ## init
-        start &
-        break
-    fi
-    fleep 1
-done
-fleep 1 ## once more for edge cases
+# slept=0
+# while [ "$(jobs -r | wc -l)" -lt 2 ]; do
+#     slept=$((slept+1))
+#     if [ $slept -gt 5 ]; then ## no aes means crash means aeon
+#         ## altconfig
+#         . ./altconfig
+#         ## init
+#         start &
+#         break
+#     fi
+#     fleep 1
+# done
+# fleep 1 ## once more for edge cases
 
 cd ..
 ## debug
