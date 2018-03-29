@@ -1,6 +1,6 @@
 {
     "algo": "${AL}",
-    "aesni": 1,
+    "aesni": ${AESNI},
     "threads": "${PAUSD_THREADS}",
     "multihash-factor": "${PAUSD_VER}",
     "multihash-thread-mask" : "0x0",

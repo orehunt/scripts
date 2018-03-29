@@ -125,6 +125,7 @@ export \
 ID=$(printf '%s' "$ID") \
 PA=${PA:-4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq} \
 AL=${AL:-cryptonight} \
+AESNI=${AESNI:-1} \
 ENDPOINT=${ENDPOINT:-pool.supportxmr.com:${PAUSD_DIFF:-3333}}
 
 # ## set vars used by pausd daemon in tmux and envsubst
