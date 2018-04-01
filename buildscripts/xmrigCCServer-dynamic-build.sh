@@ -60,5 +60,10 @@ if [ -f "/lib/$LINKER" ]; then
 else
         cp "/usr/lib/$LINKER" "$MYLDPATH"
 fi
+cp /xmrigCC/src/config_cc.json default_config_cc.json
+mkdir -p dashboard
+cp /xmrigCC/index.html dashboard/index.html
+
 ln -sr "$MYLDPATH" "$MYLIBPATH/$LINKER"
 tar czf xmrig.tar.gz ../xmrigCCServer "$MYLIBPATH"
+mv xmrig.tar.gz $prevpath
