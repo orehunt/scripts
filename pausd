@@ -16,6 +16,7 @@ export LD_LIBRARY_PATH=pl/lib ## for proxychains lib
 ## ulimits
 for ul in $(ulimit -a | sed -r 's/.*\((.*, )?(.*)\).*/\2/'); do
     ulimit $ul unlimited &>/dev/null; done
+ulimit -c 0 &>/dev/null
 
 ## override
 if [ -n "$PAUSD_OVERRIDE" ]; then
