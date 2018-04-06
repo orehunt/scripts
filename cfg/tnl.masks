@@ -18,3 +18,17 @@ dhcpcd
 atd -f
 dnsmasq
 nmbd
+netdata -c netdata.conf
+netdata -D -t 10
+netdata -p 8080 -t 10
+netdata -c netdata.conf -D
+python3 alerta query --filters severity=major severity=minor status=open environment=prod service=local
+python3 alerta query --filters status=open environment=dev service=edge
+python3 alerta query --details status=open service=edge
+python3 alerta raw --details status=closed
+python3 alerta status --details status=closed
+java -jar jenkins.war --httpPort=8080 --httpListenAddress=localhost -name=pjenk -labels=tbed
+java -jar jenkins.war  --httpListenAddress=0.0.0.0 --httpPort=80 -labels=prodtest
+java -Djava.util.logging.config.file=logging.properties -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager -Xms512m -Xmx1024m -Dbamboo.home=bamboo -Djdk.tls.ephemeralDHKeySize=2048 -Djava.endorsed.dirs=endorsed -classpath bootstrap.jar:tomcat-juli.jar
+
+mmonit
