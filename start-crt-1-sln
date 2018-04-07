@@ -51,7 +51,7 @@ getpayload || exit 1
 
 ## env vars and busybox
 export PATH=.:pl:$PATH
-cp $(get_path busybox) $tmppath && chmod +x busybox
+cp $(get_path busybox) ../$tmppath && chmod +x ../$tmppath/busybox
 
 ## choose masks
 . ./masks || exit 1
