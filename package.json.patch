@@ -1,12 +1,13 @@
---- package.json        2018-03-18 16:01:15.491587005 +0000
-+++ package.json.patched        2018-03-18 16:01:30.478032772 +0000
-@@ -39,5 +39,9 @@
-     "forknote-util": "git://github.com/wallet42/node-forknote-util.git",
-     "cryptonote-util": "git://github.com/bobbieltd/node-cryptonote-util.git#xmr-Nan-2.0",
-     "multi-hashing": "git+https://github.com/Snipa22/node-multi-hashing-aesni.git"
+--- package.json        2018-04-07 07:10:02.661093289 +0000
++++ package.json.patched        2018-04-07 07:09:57.300946336 +0000
+@@ -38,5 +38,9 @@
+   "optionalDependencies": {
+     "cryptoforknote-util": "git+https://github.com/MoneroOcean/node-cryptoforknote-util.git",
+     "cryptonight-hashing": "git+https://github.com/MoneroOcean/node-cryptonight-hashing.git"
 +  },
 +  "bin": "server.js",
 +  "pkg": {
-+    "scripts": "lib/**/*.js"
++         "scripts": "lib/**/*.js"
    }
  }
+

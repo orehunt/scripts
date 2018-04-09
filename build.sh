@@ -1,8 +1,10 @@
 #!/bin/bash
 ## make sure to compile multihashing.node on an intel cpu for extensions compatibility
-
+set -e
 fork=https://github.com/bobbieltd/xmr-node-proxy
 bpath=node_modules/multi-hashing/build/Release
+# modules="{bignum,cryptonote-util,multi-hashing}"
+modules="{bignum,cryptoforknote-util,cryptonight-hashing}"
 export DEBIAN_FRONTEND=noninteractive
 name=xnp
 appname=server.js
@@ -13,24 +15,25 @@ rm -rf $name
 git clone $fork $name
 curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.0/install.sh | bash
 . ~/.nvm/nvm.sh
-nvm install v6.9.2
+nvm install v8
 
 ## rename folder and main bin for pkg children procs
 cd $name
-npm install
-npm install -g pkg
+npm install --nobuild
+find ./ -name binding.gyp | xargs sed 's/-march=native/-mtune=generic -maes/' -i
+npm build
+npm install -g pkg@4.2.5
 mv proxy.js $appname
 patch package.json ../package.json.patch
 patch $appname ../proxy.js.patch
-pkg -t node6-linux-x64 package.json -o pkgbin
+sed -r "s/multi-hashing/cryptonight-hashing/" -i lib/*.js
+pkg -t node8-linux-x64 package.json -o pkgbin
 rm -rf bindings/ && mkdir bindings && \
-    find node_modules/{bignum,cryptonote-util,multi-hashing} \
-         -name \*.node ! -path \*obj.target\* | \
+    eval "find node_modules/$modules \
+         -name \*.node ! -path \*obj.target\*" | \
         xargs -I{} cp --parents -a {} bindings/
-patch package.json ../package.json_nan.patch
-npm install multi-hashing
-cp ${bpath}/*.node bindings/${bpath}/multihashing_nan.node
 mv pkgbin ../
 rm -rf ../bindings
 mv bindings ../
 cd ../ && rm -rf $name && mv pkgbin $name
+

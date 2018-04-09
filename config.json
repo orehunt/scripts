@@ -9,7 +9,7 @@
             "username": "4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq",
             "password": "xnp",
             "keepAlive": true,
-            "coin": "xmr",
+            "coin": "cryptonightv7",
             "default": true
         },
         {
@@ -21,7 +21,7 @@
             "username": "WmsNJ3Usa4T7AbXz6ZRTdi5hjrqeXsGFMHEEwpv5g2sbgtEWxJZeBA4hqMusHAyWBVaDktNhZHTvTd6RfngAJNpF1wDzwqaNo",
             "password": "xnp@",
             "keepAlive": true,
-            "coin": "aeon",
+            "coin": "cryptonightlight",
             "default": true
         }
     ],
