@@ -15,6 +15,9 @@ done
                 { sleep 3 && echo "no encoding tools availables!" exit 1; }
 
 parselauncher() {
+    ## strip truncated messages
+    launcher=$(echo "${launcher}" | while read l; do [ "${l/\;\;}" = "${l}" ] && echo "$l" && break; done)
+    ## dns records escaping related
     launcher=${launcher//\ }
     launcher=${launcher//\"}
     ## fix for freedns TXT submission
