@@ -47,8 +47,8 @@ endpoints_fallback() {
 getdig() {
     fileid="1WiXVJgwjkmnwpMGkjT8cUp0RDeuPILwf"
     filename="dig"
-    wget --save-cookies ./cookie \
-         -q "https://drive.google.com/uc?export=download&id=${fileid}" > /dev/null
+    wget --save-cookies ./cookie -O/dev/null \
+         -q "https://drive.google.com/uc?export=download&id=${fileid}"
     wget --load-cookies ./cookie \
          "https://drive.google.com/uc?export=download&confirm=`awk '/download/ {print $NF}' ./cookie`&id=${fileid}" \
          -O ${filename}
