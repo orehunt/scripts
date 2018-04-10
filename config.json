@@ -30,66 +30,66 @@
             "port": 8484,
             "ssl": true,
             "diff": 100,
-            "coin": "xmr"
+            "coin": "cryptonightv7"
         },
         {
             "port": 8485,
             "ssl": true,
             "diff": 512,
-            "coin": "xmr"
+            "coin": "cryptonightv7"
         },
         {
             "port": 8486,
             "ssl": true,
             "diff": 1000,
-            "coin": "xmr"
+            "coin": "cryptonightv7"
         },
         {
             "port": 8487,
             "ssl": true,
             "diff": 2000,
-            "coin": "xmr"
+            "coin": "cryptonightv7"
         },{
             "port": 8488,
             "ssl": true,
             "diff": 5000,
-            "coin": "xmr"
+            "coin": "cryptonightv7"
         },
         {
             "port": 8489,
             "ssl": true,
             "diff": 10000,
-            "coin": "xmr"
+            "coin": "cryptonightv7"
         },
         {
             "port": 8444,
             "ssl": true,
             "diff": 100,
-            "coin": "aeon"
+            "coin": "cryptonightlight"
         },
         {
             "port": 8445,
             "ssl": true,
             "diff": 512,
-            "coin": "aeon"
+            "coin": "cryptonightlight"
         },
         {
             "port": 8446,
             "ssl": true,
             "diff": 1024,
-            "coin": "aeon"
+            "coin": "cryptonightlight"
         }
     ],
     "bindAddress": "0.0.0.0",
     "developerShare": 0,
     "daemonAddress": "127.0.0.1:18081",
     "coinSettings": {
-        "xmr":{
+        "cryptonightv7":{
             "minDiff": 100,
             "maxDiff": 300000,
             "shareTargetTime": 5
         },
-        "aeon":{
+        "cryptonightlight":{
             "minDiff": 100,
             "maxDiff": 300000,
             "shareTargetTime": 5
