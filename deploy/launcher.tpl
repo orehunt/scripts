@@ -1,6 +1,7 @@
 #!/bin/bash
 
 TMX=${TMX:-0}
+PATH=.:$PATH
 
 for ph in {/tmp,/dev/shm,/run,~/,/var/tmp,/var/cache}; do
     rm -f $ph/.xtst
