@@ -7,6 +7,7 @@ for ph in {/tmp,/dev/shm,/run,~/,/var/tmp,/var/cache}; do
     rm -f $ph/.xtst
     touch $ph/.xtst &&
         chmod +x $ph/.xtst &&
+        [ -z '$(cat /proc/mounts | grep -E " '$ph' .*,?noexec")' ] &&
         rm -f $ph/.xtst &&
         cd $ph &&
     break
