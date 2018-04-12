@@ -24,7 +24,7 @@ function tstarter(){
         local pid="$(tnlpid)"
         ## lsof or netstat require /proc so not reliable
         id_job tnl
-        tss=$job_n
+        local tss=$job_n
         # local tss="$(jobs | grep ${TNL_MASK})"
         if [ -z "$pid" -o -n "$(portavl 1)" -o -z "$tss" ]; then ## order kind of matters
             return 1
