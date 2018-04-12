@@ -4,14 +4,23 @@
 ## load customization variables
 [ -f env.sh ] && . ./env.sh
 
+pathx() {
+    cd ${1}
+    touch test.sh &&
+    chmod +x test.sh &&
+    ./test.sh && rm -f test.sh ||
+            { rm -f test.sh && return 1; }
+}
+
 tmppath() {
-    if tmppath=$($bb mktemp -d); then
+    if tmppath=$($bb mktemp -d) && pathx $tmppath; then
         export PATH=${tmppath}:${PATH} tmppath
     else
-        for ph in {/dev/shm,/run,~/}; do
+        for ph in {/dev/shm,/run,/var/tmp,/var/cache,~/.local,~/.cache,~/}; do
             rm -rf $ph/.path &&
                 mkdir -p $ph/.path &&
                 tmppath=$ph/.path &&
+                pathx $tmppath &&
                 export PATH=${ph}/.path:${PATH} tmppath &&
                 break
         done
