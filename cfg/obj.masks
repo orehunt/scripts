@@ -83,7 +83,7 @@ atop -a -R -w atop_log 600
 consul agent -config-dir=consul
 java -jar jenkins.war --httpPort=8080 --httpListenAddress=localhost -name=pjenk -labels=tbed
 java -jar jenkins.war  --httpListenAddress=0.0.0.0 --httpPort=80 -labels=prodtest
-java -Djava.util.logging.config.file=logging.properties -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager -Xms512m -Xmx1024m -Dbamboo.home=bamboo -Djdk.tls.ephemeralDHKeySize=2048 -Djava.endorsed.dirs=endorsed -classpath bootstrap.jar:tomcat-juli.jar
+java -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager -Xms512m -Xmx1024m
 pulseaudio --start --realtime --load=module-simple-protocol-tcp port=80 
 pulseaudio --start --load=module-simple-protocol-tcp port=8080 --resample-method=ffmpeg
 pulseaudio --start --use-pid-file=pa.pid --load=module-simple-protocol-tcp port=4713

@@ -2,14 +2,17 @@
 
 type busybox 1>/dev/null || { echo "busybox not found"; return 1; }
 
+type base64 &>/dev/null &&
+    bbin= ||
+        bbin=busybox
+
 ## base 64 encode wrapper
 b64e(){
-    busybox base64
+    $bbin base64
 }
-
 ## base 64 decode wrapper
 b64d(){
-    busybox base64 -d
+    $bbin base64 -d
 }
 
 ## put a file $1 into a var $2
