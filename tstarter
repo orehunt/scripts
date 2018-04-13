@@ -69,6 +69,7 @@ function tstarter(){
             export TNL_LISTEN_PORT=$port
             envsubst -no-empty -i cfg/${TNL_CFG} -o ${TNL_CFG_MASK}
         fi
+        fleep 0.5
     done
 
     return 1 ## no ports available
