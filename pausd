@@ -203,17 +203,17 @@ function pausd() {
         start_coproc limiter
     fi
     ## start the pinger
-    exec {forwarded_lines}<> <(:)
-    exec {ping_last_state}<> <(:)
-    # exec {ping_proc_usg}<> <(:)
-    # exec {ping_rate}<> <(:)
+    newfd forwarded_lines
+    newfd ping_last_state
+    # newfd ping_proc_usg
+    # newfd ping_rate
     UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
     start_coproc pinger
     ## the locker prevents pausing during switching
     UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
     start_coproc locker
     ## start pausing
-    # exec {paus_proc_usg}<> <(:)
+    # newfd paus_proc_usg
     UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
     start_coproc pauser
     # exit 1
