@@ -44,7 +44,7 @@ function tstarter(){
                 pkill -xf "${PREP_TNL_MASK}"
             fi
         fi
-        eval "coproc tnl { export -n \$(export -p) 2>/dev/null; PATH=. exec ${ESC_TNL_MASK}; }" ## exec command needs binary name escaped and unquoted
+        eval "coproc tnl { export -n \$(export -p) 2>/dev/null; PATH=. exec ${ESC_TNL_MASK} 2>/dev/null; }" ## exec command needs binary name escaped and unquoted
         fleep 1 ## time to bind
     }
 
