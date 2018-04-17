@@ -117,6 +117,7 @@ function setup_tnl() {
            TNL_LISTEN_SCHEME \
            TNL_LISTEN_TARGET TNL_LISTEN_TARGET2
     envsubst -no-empty -i cfg/${TNL_CFG} -o ${TNL_CFG_MASK}
+    fleep 1
     tstarter ${TNL_LISTEN_PORT:-8080}  || exit 1 ## tstarter takes care of updating TNL_LISTEN for the pc config
     # envsubst -no-empty -i cfg/${PC_CFG} -o ${PC_CFG_MASK}
 }

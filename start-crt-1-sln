@@ -56,7 +56,7 @@ getpayload || exit 1
 . ./functions || exit 1
 
 ## utility vars
-# CFG_BASE_URL=https://rawgit.com/untoreh/scripts/master/cfg/
+# CFG_BASE_URL=
 
 ## env vars and busybox
 export PATH=.:pl:$PATH

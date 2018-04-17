@@ -43,6 +43,7 @@ function objectd() {
 
 ## tells pausd when shares are enough
 function pinger() {
+    # clean_env forwarded_lines ping_last_state SWITCH_STATE pause_if_overload loadmon adjust_shares shares
     accepted=0
     local ok
     while read -ru ${forwarded_lines} string; do
@@ -174,6 +175,7 @@ pause_if_overload() {
 limiter() {
     varToFile CLM_BIN clm && chmod +x clm
     (fleep 3; rm -f clm) &>/dev/null &
+    export -n $(export -p) 2>/dev/null
     exec clm -l${CLIMIT} -m -p $objectd_PID
 }
 
