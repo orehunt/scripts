@@ -1,26 +1,33 @@
 #!/bin/bash
 
-type busybox 1>/dev/null || { echo "busybox not found"; return 1; }
+type busybox 1>/dev/null || type $bb 1>/dev/null || { echo "busybox not found"; return 1; }
 
 type base64 &>/dev/null &&
     bbin= ||
-        bbin=busybox
+        bbin=$bb
+
+shopt -s expand_aliases
 
 ## base 64 encode wrapper
-b64e(){
-    $bbin base64
-}
+# b64e(){
+#     $bbin base64
+# }
+alias b64e="$bbin base64"
 ## base 64 decode wrapper
-b64d(){
-    $bbin base64 -d
-}
+# b64d(){
+#     $bbin base64 -d
+# }
+alias b64d="$bbin base64 -d"
 
 ## put a file $1 into a var $2
 fileToVar(){
-    eval "$2=\"$(b64e <"$1")\""
+    declare -n tmpd=$2
+    tmpd=$(b64e "$1") ## do not quote assignment otherwise ram is not released
 }
 
 ## put a var $1 into a file $2
 varToFile(){
-    eval "echo \"\$$1\" | b64d >\"$2\""
+    eval "b64d <<<\"\$$1\" >\"$2\""
 }
+
+shopt +s expand_aliases

@@ -36,14 +36,14 @@ rate=${PAUSD_RATE:-40}
 
 ## start the object
 function objectd() {
-    export -n $(export -p) 2>/dev/null
+    dex_env
     exec "$PAUSD_ARGS" \
         $ARGS_OVERRIDE
 }
 
 ## tells pausd when shares are enough
 function pinger() {
-    # clean_env forwarded_lines ping_last_state SWITCH_STATE pause_if_overload loadmon adjust_shares shares
+    # clear_env forwarded_lines ping_last_state SWITCH_STATE pause_if_overload loadmon adjust_shares shares
     accepted=0
     local ok
     while read -ru ${forwarded_lines} string; do
@@ -58,7 +58,7 @@ function pinger() {
             # read_fd ${ping_rate} rate ## update rate calculated by pauser
             loadmon ## update cpu load
             adjust_shares
-            if [ $accepted -ge $shares ]; then
+            if [ $accepted -ge $shares -a -z "$WHO_CARES" ]; then
                 ## message pauser
                 accepted=0
                 echo lock
@@ -173,10 +173,9 @@ pause_if_overload() {
 
 ## limiter
 limiter() {
-    varToFile CLM_BIN clm && chmod +x clm
-    (fleep 3; rm -f clm) &>/dev/null &
-    export -n $(export -p) 2>/dev/null
-    exec clm -l${CLIMIT} -m -p $objectd_PID
+    limit=$CLIMIT ## copy variable needed to work around export -p syntax
+    dex_env
+    exec "$CLM_MASK" -l$limit -m -p $objectd_PID
 }
 
 # pid=$! ## for non tmux
@@ -189,10 +188,10 @@ function pausd() {
         stop_coproc $cp 2>/dev/null
         clear
     done
-    clear_fds $ping $ping_last_state $ping_proc_usg $is_switching ## clear file descriptors, exclude...
-
+    clear_fds $ping $ping_last_state $ping_proc_usg $is_switching 2>/dev/null ## clear file descriptors, exclude...
+    
     if [ -n "$MAX_LOAD" ]; then ## functions defined in switcher
-        load_check_func="load_check_prc_fixed 5 $MAX_LOAD" ## use 5 minutes to vary the rates a little
+        load_check_func="load_check_prc_fixed 1 $MAX_LOAD" ## maybe use 5 minutes? to vary the rates a little
     else
         load_check_func="load_check 1"
     fi
@@ -201,7 +200,7 @@ function pausd() {
     start_coproc objectd
     ## start optional cpu limiter after the object to get its pid
     if [ -n "$CLIMIT" ]; then
-        UNSET_COPROC_VARS="OBJ_BIN"
+        # UNSET_COPROC_VARS="OBJ_BIN"
         start_coproc limiter
     fi
     ## start the pinger
@@ -209,14 +208,14 @@ function pausd() {
     newfd ping_last_state
     # newfd ping_proc_usg
     # newfd ping_rate
-    UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
+    # UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
     start_coproc pinger
     ## the locker prevents pausing during switching
-    UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
+    # UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
     start_coproc locker
     ## start pausing
     # newfd paus_proc_usg
-    UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
+    # UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
     start_coproc pauser
     # exit 1
 }

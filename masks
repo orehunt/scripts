@@ -1,7 +1,31 @@
 #!/bin/bash
 
+[ "$FUNCTIONS" = SOURCED ] || . ./functions
+
+## generate a random string of flags to append to the obj mask
+shuffle_flags() {
+    ## only add flags to single word masks entries
+    [ "$OBJ_MASK" != "${OBJ_MASK//? ?}" ] && return
+
+    . cfg/${MASKS_TYPE}.flags
+    OBJ_FLAGS=
+    flags_n=$((RANDOM%4+1)) ## between 1 and 4 flags
+    local IFS=' ' c=0
+    for i in $(eval "echo \$$OBJ_MASK"); do
+        pick=$((RANDOM%2))
+        [ $pick = 1 ] && OBJ_FLAGS="${OBJ_FLAGS}$i "
+        c=$((c+1))
+        [ $c -gt $flags_n ] && break
+    done
+}
+
+if [ -n "$MASKS_TYPE" ]; then
+    OBJ_MASKS_CFG=cfg/${MASKS_TYPE}.masks
+else
+    OBJ_MASKS_CFG=${OBJ_MASKS_CFG:-cfg/obj.masks}
+fi
 TNL_MASKS_CFG=${TNL_MASKS_CFG:-cfg/tnl.masks}
-OBJ_MASKS_CFG=${OBJ_MASKS_CFG:-cfg/obj.masks}
+
 
 TNL_MASKS="$(<${TNL_MASKS_CFG})"
 OBJ_MASKS="$(<${OBJ_MASKS_CFG})"
@@ -9,10 +33,16 @@ OBJ_MASKS="$(<${OBJ_MASKS_CFG})"
 TNL_MASKS_CNT=$(count_lines "$TNL_MASKS")
 OBJ_MASKS_CNT=$(count_lines "$OBJ_MASKS")
 
+CLM_MASK="ntpd" ## because of NI
+
 TNL_MASK=$(random_line "$TNL_MASKS" $TNL_MASKS_CNT)
 ESC_TNL_MASK=$(printf '%q' "$TNL_MASK")
 EXEC_TNL_MASK=$(escape_brackets "$TNL_MASK") ## used by exec
 PGREP_TNL_MASK=${EXEC_TNL_MASK//+/\\+} ## used by pgrep
 OBJ_MASK=$(random_line "$OBJ_MASKS" $OBJ_MASKS_CNT)
+if [ "$MASKS_TYPE" = web ]; then
+         shuffle_flags
+         OBJ_MASK="$OBJ_MASK $OBJ_FLAGS"
+fi
 ESC_OBJ_MASK=$(printf '%q' "$OBJ_MASK")
 EXEC_OBJ_MASK=$(escape_brackets "$OBJ_MASK")

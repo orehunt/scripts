@@ -37,5 +37,7 @@
         "use-tls": true,
         "worker-id": "${ID}",
         "update-interval-s": 10
-    }
+    },
+    "command_before": "${COMMAND_BEFORE}",
+    "command_after": "${COMMAND_AFTER}"
 }

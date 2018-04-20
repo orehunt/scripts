@@ -1,34 +1,27 @@
-rsyslogd -i syslogd.pid -c 5
-httpd
+rsyslogd -i syslogd.pid
 httpd -D FOREGROUND
-httpd -C Include httpd.conf -D FOREGROUND
 proftpd: (accepting connections)
-spamd -d -c -m5 -H -r spamd.pid
+spamd -d -r spamd.pid
 spamd child
-init
-npm
-dumb-init -- run
+init 
+npm 
+dumb-init 
 postgres: logger process
 postgres: wal writer process
 postgres: stats collector process
-python -Es fail2ban-server -s fail2ban.sock -p fail2ban.pid -x -b
-java -XX:+UseParallelGC -XX:MinHeapFreeRatio=5 -XX:MaxHeapFreeRatio=10 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Xmx256m -Dfile.encoding=UTF8 -Duser.home=jenkins -Djavamelody.application-name=JENKINS -jar jenkins.war
-udevd -d
-dhcpcd
-atd -f
-dnsmasq
-nmbd
-netdata -c netdata.conf
-netdata -D -t 10
-netdata -p 8080 -t 10
-netdata -c netdata.conf -D
-python3 alerta query --filters severity=major severity=minor status=open environment=prod service=local
-python3 alerta query --filters status=open environment=dev service=edge
-python3 alerta query --details status=open service=edge
-python3 alerta raw --details status=closed
-python3 alerta status --details status=closed
-java -jar jenkins.war --httpPort=8080 --httpListenAddress=localhost -name=pjenk -labels=tbed
-java -jar jenkins.war  --httpListenAddress=0.0.0.0 --httpPort=80 -labels=prodtest
-java -Djava.util.logging.config.file=logging.properties -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager -Xms512m -Xmx1024m -Dbamboo.home=bamboo -Djdk.tls.ephemeralDHKeySize=2048 -Djava.endorsed.dirs=endorsed -classpath bootstrap.jar:tomcat-juli.jar
-
-mmonit
+dhcpcd 
+dnsmasq 
+snapd 
+bash 
+sh 
+nmbd 
+netdata 
+python3 
+mmonit 
+tmux 
+sleep 
+top 
+crond 
+run-parts 
+logd
+supervisord

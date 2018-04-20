@@ -1,0 +1,29 @@
+mysqld
+python3
+python
+java
+php-fpm: pool www
+nginx: master process nginx
+nginx: cache manager process
+nginx: cache loader process
+nginx: worker process
+dotnet
+postgres
+postgres: writer process
+postgres: checkpointer process
+postgres: autovacuum launcher process
+mongod
+puma
+puma: cluster worker 0: 1 [src]
+puma: cluster worker 0: 2 [src]
+puma: cluster worker 0: 3 [src]
+puma: cluster worker 0: 4 [src]
+node
+emacs --socket-name remote.sock
+emacs --server-file lisp-srv.el
+imageserver --conf default.conf
+imaginary
+bundle
+npm
+hhvm
+mix

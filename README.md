@@ -113,3 +113,20 @@ don't steer mhf
 
 `HGPS` : int
 MBs of huge page tables
+
+`CLM_MASK` : mask for cpulimit, defaults to ntpd because of nice level
+
+`MASKS_TYPE` : web for only web masks
+
+#### 
+set `"command_before"` and `"command_after"` in config file for executing commands between restarts from scratch
+
+####
+- Evaluated fifos for config push/pull
+- found many quirks and forced workarounds between client <> server
+- stayed with plain files
+- fifos/fds also not ok to store binaries since require an extra lingering process
+
+####
+web.flags vars must be 1:1 with web.masks entries
+tnl.masks should have an extra space at the end if composed of one word
