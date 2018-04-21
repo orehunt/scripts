@@ -1,4 +1,7 @@
 #!/bin/sh
+set -e
+
+prevpath=$PWD
 
 ## distro pkgs
 if type apk; then
@@ -36,7 +39,13 @@ export CFLAGS=" -Ofast -Flto"
 export CPPFLAGS="$CFLAGS" CXXFLAGS="$CFLAGS" LDFLAGS="$CFLAGS"
 ## set build flags
 sed '/add_executable/iset(CMAKE_EXE_LINKER_FLAGS " -static '"$CFLAGS"'")' -i ../CMakeLists.txt
+sed -r '/target_link_libraries\(xmrigMiner xmrig_common/{n;s#(.*?)\)#\1 /usr/lib/libstdc++.a /usr/lib/libc.a )#}' -i ../CMakeLists.txt
 
-cmake ..
+cmake .. \
+-DWITH_CC_SERVER=OFF -DWITH_HTTPD=OFF \
+-DUV_LIBRARY=/usr/lib/libuv.a \
+-DOPENSSL_SSL_LIBRARY=/usr/lib/libssl.a \
+-DOPENSSL_CRYPTO_LIBRARY=/usr/lib/libcrypto.a
+
 make -j $jobs xmrigMiner
-mv xmrigMiner xmrig
+mv xmrigMiner $prevpath/xmrig
