@@ -36,3 +36,26 @@
          } else {
              LOG_ERR("[CC-Client] Unknown command received from CC Server.");
          }
+@@ -223,13 +227,21 @@
+     std::string requestUrl = "/client/setClientConfig?clientId=" + m_self->m_clientStatus.getClientId();
+ 
+     std::stringstream data;
++    
++    while (true) {
++        std::ifstream clientConfig(m_self->m_options->configFile());
++ 	if (clientConfig.good())
++            break;
++        else
++            sleep(1);
++    }
+     std::ifstream clientConfig(m_self->m_options->configFile());
+ 
+     if (clientConfig) {
+         data << clientConfig.rdbuf();
+         clientConfig.close();
+     }
+-
++    
+     if (data.tellp() > 0) {
+         rapidjson::Document document;
+         document.Parse(data.str().c_str());
