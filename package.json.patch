@@ -1,13 +1,13 @@
---- package.json        2018-04-07 07:10:02.661093289 +0000
-+++ package.json.patched        2018-04-07 07:09:57.300946336 +0000
-@@ -38,5 +38,9 @@
-   "optionalDependencies": {
-     "cryptoforknote-util": "git+https://github.com/MoneroOcean/node-cryptoforknote-util.git",
-     "cryptonight-hashing": "git+https://github.com/MoneroOcean/node-cryptonight-hashing.git"
+--- package.json	2018-04-30 19:22:23.192024130 +0000
++++ package.json.patched	2018-04-30 19:22:14.771737288 +0000
+@@ -41,6 +41,10 @@
+     "cryptonote-util": "git://github.com/turtlecoin/node-cryptonote-util.git",
+     "multi-hashing": "git://github.com/quangvu3/node-multi-hashing.git#Nan-2.0",
+     "cryptonight-hashing": "git+https://github.com/bobbieltd/node-cryptonight-hashing.git"
 +  },
 +  "bin": "server.js",
 +  "pkg": {
 +         "scripts": "lib/**/*.js"
    }
  }
-
+ 

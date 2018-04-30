@@ -1,0 +1,65 @@
+{
+    consul: {
+        address: "localhost:3424",
+    },
+    jobs: [{
+        name: "xnp{{.HIER}}",
+        restarts: "unlimited",
+        when: {
+            once: "exitSuccess",
+            source: "prestart",
+        },
+        exec: ["/opt/xnp/start.sh"],
+        port: 8480,
+        health: {
+            exec: "nc -z 127.0.0.1 8484",
+            // exec: "true",
+            interval: 10,
+            timeout: 10,
+            ttl: 30,
+        },
+        tags: [
+            "ports:8480,8482,8483,8484,8485,8486,8487,8488,8489,8490",
+            "{{.LOCA}}" // from /etc/network-environment
+        ],
+    },{
+        name: "prestart",
+        exec: [
+            "true",
+        ],
+    },{
+        name: "haproxy", // haproxy allows copi to access multiple consul agents
+        exec: [
+            "hpr", "-f", "hpr.cfg",
+        ],
+        restarts: "unlimited"
+    },{
+        name: "tun{{.HIER}}",
+        restarts: "unlimited",
+        when: {
+            once: "exitSuccess",
+            source: "prestart",
+        },
+        port: 80,
+        exec: ["/opt/gst/start.sh"],
+        health: {
+            // use 443 as the port or health checks becasue it is the most important
+            exec: "nc -z {{.IPv4}} 80",
+            // exec: "true",
+            interval: 5,
+            timeout: 5,
+            ttl: 15,
+        },
+        tags: [
+            "ports:80,443,8080,8443,123,2703,444,554",
+            "{{.LOCA}}"
+        ],
+    }],
+    watches: [{
+        name: "xnp{{.HIER}}",
+        interval: 10,
+    },{
+        name: "tun{{.HIER}}",
+        interval: 5,
+    }]
+}

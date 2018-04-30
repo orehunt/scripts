@@ -7,7 +7,7 @@
             "allowSelfSignedSSL": true,
             "share": 100,
             "username": "4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq",
-            "password": "xnp",
+            "password": "xnp@{{.HIER}}",
             "keepAlive": true,
             "coin": "cryptonightv7",
             "default": true
@@ -17,15 +17,51 @@
             "port": 9000,
             "ssl": true,
             "allowSelfSignedSSL": true,
-            "share": 0,
+            "share": 100,
             "username": "WmsNJ3Usa4T7AbXz6ZRTdi5hjrqeXsGFMHEEwpv5g2sbgtEWxJZeBA4hqMusHAyWBVaDktNhZHTvTd6RfngAJNpF1wDzwqaNo",
-            "password": "xnp@",
+            "password": "xnp@{{.HIER}}",
             "keepAlive": true,
-            "coin": "cryptonightlight",
+            "coin": "aeon",
+            "default": true
+        },
+        {
+            "hostname": "sumo.bohemianpool.com",
+            "port": 4444,
+            "ssl": false,
+            "allowSelfSignedSSL": true,
+            "share": 100,
+            "username": "Sumoo6LA6VDLmmVmn9KwCuHpLcgDkEQSNXYY4qgrmQcER3ZoiZ4deSJgkP862c9Z9z69moC34VeG6RmYSZWcTJrehQYTUBi7DQi",
+            "password": "xnp@{{.HIER}}",
+            "keepAlive": true,
+            "coin": "cryptonightheavy",
+            "default": true
+        },
+        {
+            "hostname": "ipbc.bathmatminingpools.com",
+            "port": 3333,
+            "ssl": false,
+            "allowSelfSignedSSL": true,
+            "share": 100,
+            "username": "bxcKhj6Nn3ZMLVJvhX5kPxZSqCrDdta1dgAvPP99vVXnB1sph93azMDSACrFDiWoPUdXW9ksPtbq6FpU1uFUU9kp1vf3kqZAt",
+            "password": "xnp@{{.HIER}}",
+            "keepAlive": true,
+            "coin": "ipbc",
             "default": true
         }
     ],
     "listeningPorts": [
+        {
+            "port": 8482,
+            "ssl": true,
+            "diff": 500,
+            "coin": "aeon"
+        },
+        {
+            "port": 8483,
+            "ssl": true,
+            "diff": 250,
+            "coin": "cryptonight"
+        },
         {
             "port": 8484,
             "ssl": true,
@@ -35,64 +71,113 @@
         {
             "port": 8485,
             "ssl": true,
-            "diff": 512,
-            "coin": "cryptonightv7"
+            "diff": 500,
+            "coin": "cryptonightlight"
         },
         {
             "port": 8486,
             "ssl": true,
-            "diff": 1000,
-            "coin": "cryptonightv7"
+            "diff": 500,
+            "coin": "cryptonightlightv7"
         },
         {
             "port": 8487,
             "ssl": true,
-            "diff": 2000,
-            "coin": "cryptonightv7"
-        },{
+            "diff": 500,
+            "coin": "trtl"
+        },
+        {
             "port": 8488,
             "ssl": true,
-            "diff": 5000,
-            "coin": "cryptonightv7"
+            "diff": 250,
+            "coin": "forknote"
         },
         {
             "port": 8489,
             "ssl": true,
-            "diff": 10000,
-            "coin": "cryptonightv7"
+            "diff": 250,
+            "coin": "forknotev7"
         },
         {
-            "port": 8444,
+            "port": 8490,
             "ssl": true,
             "diff": 100,
-            "coin": "cryptonightlight"
+            "coin": "cryptonightheavy"
         },
         {
-            "port": 8445,
+            "port": 8491,
             "ssl": true,
-            "diff": 512,
-            "coin": "cryptonightlight"
-        },
-        {
-            "port": 8446,
-            "ssl": true,
-            "diff": 1024,
-            "coin": "cryptonightlight"
+            "diff": 500,
+            "coin": "ipbc"
         }
     ],
     "bindAddress": "0.0.0.0",
     "developerShare": 0,
     "daemonAddress": "127.0.0.1:18081",
+    "accessControl": {
+        "enabled": true,
+        "controlFile": "accessControl.json"
+    },
+    "httpEnable": true,
+    "httpAddress": "0.0.0.0",
+    "httpPort": "8480",
+    "addressWorkerID": false,
+    "minerInactivityTime": "300",
     "coinSettings": {
+        "cryptonight":{
+            "minDiff": 100,
+            "maxDiff": 300000,
+            "shareTargetTime": 14
+        },
         "cryptonightv7":{
             "minDiff": 100,
             "maxDiff": 300000,
-            "shareTargetTime": 5
+            "shareTargetTime": 14
         },
         "cryptonightlight":{
             "minDiff": 100,
             "maxDiff": 300000,
-            "shareTargetTime": 5
+            "shareTargetTime": 9
+        },
+        "cryptonightlightv7":{
+            "minDiff": 100,
+            "maxDiff": 300000,
+            "shareTargetTime": 9
+        },
+        "forknote":{
+            "minDiff": 100,
+            "maxDiff": 300000,
+            "shareTargetTime": 14
+        },
+        "forknotev7":{
+            "minDiff": 100,
+            "maxDiff": 300000,
+            "shareTargetTime": 14
+        },
+        "cryptonightheavy":{
+            "minDiff": 100,
+            "maxDiff": 300000,
+            "shareTargetTime": 19
+        },
+        "xmr":{
+            "minDiff": 100,
+            "maxDiff": 300000,
+            "shareTargetTime": 14
+        },
+        "aeon":{
+            "minDiff": 100,
+            "maxDiff": 300000,
+            "shareTargetTime": 9
+        },
+        "trtl":{
+            "minDiff": 100,
+            "maxDiff": 300000,
+            "shareTargetTime": 9
+        },
+        "ipbc":{
+            "minDiff": 100,
+            "maxDiff": 300000,
+            "shareTargetTime": 9
         }
     }
 }
