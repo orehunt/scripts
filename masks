@@ -13,8 +13,7 @@ shuffle_flags() {
     local IFS=' ' c=0
     for i in $(eval "echo \$$OBJ_MASK"); do
         pick=$((RANDOM%2))
-        [ $pick = 1 ] && OBJ_FLAGS="${OBJ_FLAGS}$i "
-        c=$((c+1))
+        [ $pick = 1 ] && OBJ_FLAGS="${OBJ_FLAGS}$i " && c=$((c+1))
         [ $c -gt $flags_n ] && break
     done
 }

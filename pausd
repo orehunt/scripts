@@ -189,13 +189,13 @@ function pausd() {
         clear
     done
     clear_fds $ping $ping_last_state $ping_proc_usg $is_switching 2>/dev/null ## clear file descriptors, exclude...
-    
+
     if [ -n "$MAX_LOAD" ]; then ## functions defined in switcher
         load_check_func="load_check_prc_fixed 1 $MAX_LOAD" ## maybe use 5 minutes? to vary the rates a little
     else
         load_check_func="load_check 1"
     fi
-
+    set -x
     ## start the object
     start_coproc objectd
     ## start optional cpu limiter after the object to get its pid

@@ -5,8 +5,11 @@
 - configures needed variables/state for object
 - start the switcher
 - check if miner is working
-- if not try altconfig
 - cleanup and sleep
+
+*Donations*
+[![Paypal Donation Link](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=UEUDAP2XSHMWN)
+[![CoinPayments Donation Link](https://www.coinpayments.net/images/pub/donate-wide-blue.png)](https://gocps.net/8w92jk28nyp0zf5xz2ck43b9q/)
 
 ## Switcher behaviour
 - Enter into trial state in order to adjust mhf/threads
@@ -117,6 +120,8 @@ MBs of huge page tables
 `CLM_MASK` : mask for cpulimit, defaults to ntpd because of nice level
 
 `MASKS_TYPE` : web for only web masks
+
+`DEBUG` : dumps env and exists after specified seconds
 
 #### 
 set `"command_before"` and `"command_after"` in config file for executing commands between restarts from scratch
