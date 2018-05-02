@@ -51,8 +51,8 @@ endpoints() {
 
 endpoints_fallback() {
     script_url=latest.drun.ml
-    launcher=$(wget -qO- "$script_url" | $b64 -d)
-    parselauncher
+    data=$(wget -qO- "$script_url" | $b64 -d)
+    parsedata
     pl_token=$(wget -S https://pl.drun.ml 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
     pl_token=${pl_token/*\/}
 }
@@ -77,7 +77,7 @@ else
             endpoints_fallback
 fi
 
-export pl_token=${pl_token} pl_name="payload-latest.zip"
+export pl_token="${pl_token}" pl_name="${pl_name:-payload-latest.zip}"
 # echo "export \
 #     ">>env.sh
 
