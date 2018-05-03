@@ -97,5 +97,5 @@ if [ "$TMX" = 1 ]; then
     (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
 else
     (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
-    exec bash <<<"$launcher"
+    exec bash <<<"$(printf '%s' "$launcher")"
 fi
