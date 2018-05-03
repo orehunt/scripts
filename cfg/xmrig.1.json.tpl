@@ -18,13 +18,29 @@
     "syslog": false,
     "pools": [
         {
-            "url": "${TNL_LISTEN_ADDR:-127.255.255.254}:${TNL_LISTEN_PORT}",
-            "user": "${PA}",
-            "pass": "${ID}",
+            "url": "${TNL_LISTEN_ADDR1:-127.255.255.254}:${TNL_LISTEN_PORT}",
+            "user": "${UA}",
+            "pass": "${PA}",
             "keepalive": true,
             "use-tls": true,
             "nicehash": "${NICEHASH:-false}"
         },
+        {
+            "url": "${TNL_LISTEN_ADDR2:-127.255.255.253}:${TNL_LISTEN_PORT}",
+            "user": "${UA}",
+            "pass": "${PA}",
+            "keepalive": true,
+            "use-tls": true,
+            "nicehash": "${NICEHASH:-false}"
+        },
+        {
+            "url": "${TNL_LISTEN_ADDR3:-127.255.255.252}:${TNL_LISTEN_PORT}",
+            "user": "${UA}",
+            "pass": "${PA}",
+            "keepalive": true,
+            "use-tls": true,
+            "nicehash": "${NICEHASH:-false}"
+        }
     ],
     "api": {
         "port": 0,
@@ -32,10 +48,10 @@
         "worker-id": null,
     },
     "cc-client": {
-        "url": "${TNL_LISTEN_ADDR2:-127.255.255.253}:${TNL_LISTEN_PORT}",
-        "access-token": "${ENDPOINT2_TOKEN}",
+        "url": "${TNL_LISTEN_ADDRX:-127.255.249.1}:${TNL_LISTEN_PORT}",
+        "access-token": "${X_TOKEN}",
         "use-tls": true,
-        "worker-id": "${ID}",
+        "worker-id": "${X_ID}",
         "update-interval-s": 10
     },
     "command_before": "${COMMAND_BEFORE}",

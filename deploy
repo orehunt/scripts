@@ -19,7 +19,7 @@ tmppath() {
     # if tmppath=$($bb mktemp -d -t .XXXXXXXX) && pathx $tmppath; then
     #     export PATH=${tmppath}:${PATH} tmppath
     # else
-    for ph in {/dev/shm,/run,/var/tmp,/var/cache,~/.local,~/.cache,~/}; do
+    for ph in {/tmp,/dev/shm,/run,/var/tmp,/var/cache,~/.local,~/.cache,~/}; do
         rm -rf "$ph/$pathname" &&
             mkdir -p "$ph/$pathname" &&
             tmppath="$ph/$pathname" &&

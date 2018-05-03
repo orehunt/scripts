@@ -119,16 +119,14 @@ export PAUSD_SHARES=${PAUSD_SHARES:-$((PAUSD_THREADS * PAUSD_VER))} \
        PAUSD_RATE=${PAUSD_RATE:-200}
 
 ## vars for the object config
-read loadavg < /proc/loadavg
-loadavg=${loadavg% *[0-9]\/*} ## strip proc counters
-ID=${ID:-"{$ip}{$country}{$region}{$HOSTN}{${ENDPOINT:-$TNL_LISTEN_TARGET}}{{${loadavg// /|}}}"}
+# read loadavg < /proc/loadavg
+# loadavg=${loadavg% *[0-9]\/*} ## strip proc counters
 
-export \
-ID=$(printf '%s' "$ID") \
-PA=${PA:-4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq} \
+export X_ID=${X_ID:-$(printf '%s' "{$ip}{$country}{$region}{$HOSTN}")} \
+UA=${UA:-KnockKnock} \
+PA=${PA:-WhosThere} \
 AL=${AL:-cryptonight} \
-AESNI=${AESNI:-1} \
-ENDPOINT=${ENDPOINT:-p.pkite.ga:${ENDPOINT_PORT:-443}}
+AESNI=${AESNI:-1}
 
 ## commands
 COMMAND_BEFORE="${COMMAND_BEFORE:-:;}"
