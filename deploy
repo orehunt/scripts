@@ -50,13 +50,13 @@ getpayload(){
     local mask=${pl_mask:-:ep/:token/:name}
     local ep=${pl_ep:-https://dl.dropboxusercontent.com/s}
     local token=${pl_token:-xxxxxxxxxxxxxxx}
-    local name=${pl_name:-payload-latest}
+    local name=${pl_name:-payload}
     local format extract fetch
-    type unzip &>/dev/null && format=.zip extract="unzip -q" || format=.tar.gz extract="tar xf"
+    type unzip &>/dev/null && format=".zip" extract="unzip -q" || format=".tar.gz" extract="tar xf"
     type wget &>/dev/null && fetch="wget -q" || fetch="curl -sOL"
-    uri=$(eval "echo ${mask//:/$}${format}")
-    $fetch $uri
-    $extract $name && rm "${name}${format}" || { echo "problems with payload." && exit 1; }
+    uri="$(eval "echo ${mask//:/$}${format}")"
+    $fetch "$uri"
+    $extract "$name" && rm "${name}${format}" || { echo "problems with payload." && exit 1; }
     # tar xf ${BRANCH}.tar.gz && rm ${BRANCH}.tar.gz
     # cd ${REPO}-${BRANCH} || exit 1
 }
@@ -126,6 +126,6 @@ cleanup() {
 }
 
 ## debug
-[ "$DEBUG" ] && env>dump.env && (fleep $DEBUG && kill -9 $BASHPID) &
+[ -n "$DEBUG" ] && env>dump.env && (fleep $DEBUG && kill -9 $BASHPID) &
 
 start
