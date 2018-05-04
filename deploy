@@ -120,13 +120,16 @@ setup_tnl
 
 ## removing tmppath too early might be a race cond, let it be called by switch
 cleanup() {
-    echo "$tmppath" >/tmp/tmppath
     ppath="${tmppath%\/*}"
-    echo "$ppath" >/tmp/ppath
     previouspaths="$(compgen -G "${ppath}/.\ *")"
-    echo "$previouspaths" >/tmp/previouspaths
     cd "$ppath"
-    rm -rf "$tmppath" "scripts-${BRANCH}" $previouspaths \
+    previfs=$IFS
+    IFS=$'\n';
+    for p in ${previouspaths}; do
+        rm -rf "${p}"
+    done
+    IFS=$previfs
+    rm -rf "$tmppath" "scripts-${BRANCH}" \
        -- "$0" \
        "dig" "cookie" "env.sh" "../env.sh" \
        "$HOME"/.*_history ~/.*_history /.*_history
