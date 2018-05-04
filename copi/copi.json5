@@ -12,7 +12,7 @@
         exec: ["/opt/xnp/start.sh"],
         port: 8480,
         health: {
-            exec: "nc -z 127.0.0.1 8484",
+            exec: "nc -z {{.XNP_ADDR | default "localhost"}} 8484",
             // exec: "true",
             interval: 10,
             timeout: 10,
@@ -44,7 +44,7 @@
         exec: ["/opt/gst/start.sh"],
         health: {
             // use 443 as the port or health checks becasue it is the most important
-            exec: "nc -z {{.IPv4}} 80",
+            exec: "nc -z {{.IPv4 | default "localhost"}} 80",
             // exec: "true",
             interval: 5,
             timeout: 5,
