@@ -5,7 +5,7 @@ nodeV=8
 fork=https://github.com/bobbieltd/xmr-node-proxy
 bpath=node_modules/multi-hashing/build/Release
 # modules="{bignum,cryptonote-util,multi-hashing}"
-modules="{bignum,cryptoforknote-util,cryptonight-hashing,multi-hashing,cryptonote-util,semipool-ipbc-util}"
+# modules="{bignum,cryptoforknote-util,cryptonight-hashing,multi-hashing,cryptonote-util,semipool-ipbc-util}"
 export DEBIAN_FRONTEND=noninteractive
 name=xnp
 appname=server.js
@@ -33,10 +33,11 @@ sed 's/sendReply(miner.error)/if (miner.error != "Unauthorized access" ) sendRep
     -i $appname
 pkg -t node$nodeV-linux-x64 package.json -o pkgbin
 rm -rf bindings/ && mkdir bindings && \
-    eval "find node_modules/$modules \
-         -name \*.node ! -path \*obj.target\*" | \
+find node_modules \
+     -regextype sed -regex ".*Release/[^\/]*.node" | \
         xargs -I{} cp --parents -a {} bindings/
 mv pkgbin ../
 rm -rf ../bindings
 mv bindings ../
 cd ../ && rm -rf $name && mv pkgbin $name
+
