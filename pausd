@@ -154,6 +154,7 @@ pauser() {
         # echo "wait: $wait, rate: $rate" >> /tmp/pausd_pauser
         fleep $wait
     done
+    unlock ## unlock in case something is wrong to prevent stalls
 }
 
 ## pause if overloaded, MAX_LOAD should be in CORES*100
@@ -188,7 +189,7 @@ function pausd() {
         stop_coproc $cp 2>/dev/null
         clear
     done
-    clear_fds $ping $ping_last_state $ping_proc_usg $is_switching 2>/dev/null ## clear file descriptors, exclude...
+    clear_fds $ping $ping_last_state $ping_proc_usg 2>/dev/null ## clear file descriptors, exclude...
 
     if [ -n "$MAX_LOAD" ]; then ## functions defined in switcher
         load_check_func="load_check_prc_fixed 1 $MAX_LOAD" ## maybe use 5 minutes? to vary the rates a little

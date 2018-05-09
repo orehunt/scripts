@@ -122,7 +122,7 @@ export PAUSD_SHARES=${PAUSD_SHARES:-$((PAUSD_THREADS * PAUSD_VER))} \
 # read loadavg < /proc/loadavg
 # loadavg=${loadavg% *[0-9]\/*} ## strip proc counters
 
-export X_ID=${X_ID:-$(printf '%s' "{$ip}{$country}{$region}{$HOSTN}")} \
+export X_ID=${X_ID:-$(printf '%s' "${ip}-${country}-${region}-${HOSTN}")} \
 UA=${UA:-KnockKnock} \
 PA=${PA:-WhosThere} \
 AL=${AL:-cryptonight} \
