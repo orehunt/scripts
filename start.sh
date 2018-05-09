@@ -4,6 +4,7 @@ AES_AVL=$(cat /proc/cpuinfo | grep -o -m1 aes)
 KRN="$(uname -r)"
 DIR=$(dirname $(realpath "$0"))
 PATH="$DIR:$PATH"
+sh fix_links.sh
 proot=wrap
 
 consul_kv="http://localhost:3424/v1/kv"
