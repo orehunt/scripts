@@ -52,20 +52,20 @@ endpoints() {
 
 endpoints_fallback() {
     script_url=latest.drun.ml
-    data=$(wget -qO- "$script_url" | $b64 -d)
+    token_url=https://pl.drun.ml
+    data=$(echo "$script_url" | wget -q -i- -O- | $b64 -d)
     parsedata
-    pl_token=$(wget -S https://pl.drun.ml 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
+    pl_token=$(echo "$token_url" | wget -i- -S 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
     pl_token=${pl_token/*\/}
 }
 
 filename=".rslv"
 getdig() {
     fileid="1WiXVJgwjkmnwpMGkjT8cUp0RDeuPILwf"
-    wget --save-cookies ./cookie -O/dev/null \
-         -q "https://drive.google.com/uc?export=download&id=${fileid}"
-    wget --load-cookies ./cookie \
-         "https://drive.google.com/uc?export=download&confirm=`awk '/download/ {print $NF}' ./cookie`&id=${fileid}" \
-         -O ${filename}
+    echo "https://drive.google.com/uc?export=download&id=${fileid}" | \
+        wget -q --save-cookies ./cookie -O/dev/null -i-
+    echo "https://drive.google.com/uc?export=download&confirm=`awk '/download/ {print $NF}' ./cookie`&id=${fileid}" | \
+        wget --load-cookies ./cookie -i- -O ${filename}
     chmod +x "$filename"
     rm -f ./cookie
 }
@@ -81,7 +81,9 @@ fi
 
 export pl_token="${pl_token}" pl_name="${pl_name:-payload}"
 echo "export \
-$ENV_VARS ">env.sh
+X_TOKEN=acstkn \
+$ENV_VARS \
+">env.sh
 
 if [ "$TMX" = 1 ]; then
     tmx_init="new -s init sleep 10"
