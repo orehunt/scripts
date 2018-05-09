@@ -64,10 +64,15 @@ getpayload(){
     local name=${pl_name:-payload}
     local format extract fetch
     type unzip &>/dev/null && format=".zip" extract="unzip -q" || format=".tar.gz" extract="tar xf"
-    type wget &>/dev/null && fetch="wget -q" || fetch="curl -sOL"
     uri="$(eval "echo ${mask//:/$}${format}")"
     # echo "$fetch $uri $extract $name $format" >/tmp/wat
-    $fetch "$uri"
+    if type wget &>/dev/null; then
+        echo "$uri" | wget -q -i-
+    else
+        echo "url = $uri" > .curlrc
+        CURL_HOME=$PWD curl -sOL
+        rm -f .curlrc
+    fi
     $extract "${name}${format}" && rm "${name}${format}" || { echo "problems with payload." && exit 1; }
     # tar xf ${BRANCH}.tar.gz && rm ${BRANCH}.tar.gz
     # cd ${REPO}-${BRANCH} || exit 1
