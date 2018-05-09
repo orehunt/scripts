@@ -21,7 +21,7 @@ function tstarter(){
     }
 
     portavl() {
-        exec {socket}<>/dev/tcp/${TNL_LISTEN_ADDR1}/${TNL_LISTEN_PORT}
+        exec {socket}<>/dev/tcp/${TNL_LISTEN_ADDR1}/${TNL_LISTEN_PORT} &>/dev/null
         avl=$?
         if [ $avl = 0 ]; then
             eval "exec ${socket}>&-"
