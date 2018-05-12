@@ -95,9 +95,9 @@ if [ "$TMX" = 1 ]; then
     tmux  setenv -g pl_name "$pl_name"
 
     tmux new -d -s crt
-    tmux send-keys -t crt bash Enter
-    tmux send-keys -t crt "$launcher" Enter
-    (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
+    echo "$launcher" > .tmp.launcher
+    tmux send-keys -t crt "bash ./.tmp.launcher" Enter
+    (sleep 5 && rm -f .tmp.launcher env.sh "$filename") &>/dev/null &
 else
     (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
     exec bash <<<"$(printf '%s' "$launcher")"
