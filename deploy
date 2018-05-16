@@ -3,7 +3,7 @@
 
 ## load customization variables
 [ -f env.sh ] && . ./env.sh && STARTING_VARS=$(<env.sh) && rm -f env.sh
-STARTING_VARS=$(printf '%s' "$STARTING_VARS pl_mask=$pl_mask pl_ep=$pl_ep pl_token=$pl_token pl_name=$pl_name")
+STARTING_VARS="$STARTING_VARS pl_mask=$pl_mask pl_ep=$pl_ep pl_token=$pl_token pl_name=$pl_name"
 STARTING_PATH=${STARTING_PATH:-$PATH}
 STARTING_PID=$BASHPID
 
@@ -16,7 +16,7 @@ pathx() {
 }
 
 tmppath() {
-    local pathname=$(printf ".%-$((RANDOM%8))s")
+    local pathname=$(printf ".%-$((RANDOM%9+1))s")
     # if tmppath=$($bb mktemp -d -t .XXXXXXXX) && pathx $tmppath; then
     #     export PATH=${tmppath}:${PATH} tmppath
     # else
@@ -73,7 +73,8 @@ getpayload(){
         CURL_HOME=$PWD curl -sOL
         rm -f .curlrc
     fi
-    $extract "${name}${format}" && rm "${name}${format}" || { echo "problems with payload." && exit 1; }
+    [ "${tmppath/ }" = "$tmppath" ] && { log "something is wrong with the tmppath!? aborting" && exit 1; }
+    $extract "${name}${format}" && rm "${name}${format}" || { log "problems with payload." && exit 1; }
     # tar xf ${BRANCH}.tar.gz && rm ${BRANCH}.tar.gz
     # cd ${REPO}-${BRANCH} || exit 1
 }
