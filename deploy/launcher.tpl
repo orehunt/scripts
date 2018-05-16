@@ -55,7 +55,7 @@ endpoints_fallback() {
     token_url=https://pl.drun.ml
     data=$(echo "$script_url" | wget -q -i- -O- | $b64 -d)
     parsedata
-    pl_token=$(echo "$token_url" | wget -i- -S 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
+    pl_token=$(echo "$token_url" | wget -q -i- -S 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
     pl_token=${pl_token/*\/}
 }
 
@@ -65,7 +65,7 @@ getdig() {
     echo "https://drive.google.com/uc?export=download&id=${fileid}" | \
         wget -q --save-cookies ./cookie -O/dev/null -i-
     echo "https://drive.google.com/uc?export=download&confirm=`awk '/download/ {print $NF}' ./cookie`&id=${fileid}" | \
-        wget --load-cookies ./cookie -i- -O ${filename}
+        wget -q --load-cookies ./cookie -i- -O ${filename}
     chmod +x "$filename"
     rm -f ./cookie
 }
