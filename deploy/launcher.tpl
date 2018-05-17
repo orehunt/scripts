@@ -96,7 +96,7 @@ if [ "$TMX" = 1 ]; then
 
     tmux new -d -s crt
     echo "$launcher" > .tmp.launcher
-    tmux send-keys -t crt "bash ./.tmp.launcher" Enter
+    tmux send-keys -t crt "bash < ./.tmp.launcher" Enter
     (sleep 5 && rm -f .tmp.launcher env.sh "$filename") &>/dev/null &
 else
     (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
