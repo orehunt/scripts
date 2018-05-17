@@ -1,6 +1,7 @@
 {
     consul: {
         address: "localhost:3424",
+        deregisterCriticalServiceAfter: "60m",
     },
     jobs: [{
         name: "xnp{{.HIER}}",
