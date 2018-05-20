@@ -9,4 +9,5 @@ copi_config=copi.json5
 hpr_config=hpr.cfg
 copi -config $copi_config -template -out run.$copi_config
 copi -config $hpr_config -template -out $hpr_config
-exec copi -config run.$copi_config
+# exec copi -config run.$copi_config
+copi -config run.$copi_config

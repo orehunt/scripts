@@ -4,7 +4,7 @@ AES_AVL=$(cat /proc/cpuinfo | grep -o -m1 aes)
 KRN="$(uname -r)"
 DIR=$(dirname $(realpath "$0"))
 PATH="$DIR:$PATH"
-sh fix_links.sh
+sh "$DIR/fix_links.sh"
 proot=wrap
 
 consul_kv="http://localhost:3424/v1/kv"
@@ -29,7 +29,22 @@ fi
 cd $DIR
 if [ -n "$config" ]; then
     echo "$config" > config.json
-    containerpilot -template -config config.json -out config.json
+    if type containerpilot; then
+        copi=containerpilot
+    elif type copi; then
+        copi=copi
+    elif [ -x /opt/copi/containerpilot ]; then
+        copi=/opt/copi/containerpilot
+    elif [ -x /opt/copi/copi ]; then
+        copi=/opt/copi/copi
+    elif [ -x /opt/bin/containerpilot ]; then
+        copi=/opt/bin/containerpilot
+    elif [ -x /opt/bin/copi ]; then
+        copi=/opt/bin/copi
+    else
+        echo "containerpilot not found, check your path." && sleep 3 && exit
+    fi
+    $copi -template -config config.json -out config.json
 fi
 
 if [ -z "$AES_AVL" ]; then

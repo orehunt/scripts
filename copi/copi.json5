@@ -45,7 +45,7 @@
         exec: ["/opt/gst/start.sh"],
         health: {
             // use 443 as the port or health checks becasue it is the most important
-            exec: "nc -z {{.IPv4 | default "localhost"}} 80",
+            exec: ["nc", "-z", "{{.IPv4 | default "localhost"}}", "80"],
             // exec: "true",
             interval: 5,
             timeout: 5,
