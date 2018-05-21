@@ -1032,7 +1032,10 @@ choose_action() {
             start_coproc rmcfg
             ;;
         *)
-            echo "$l" >&${forwarded_lines} & ## this fd is created by pausd
+            ## eval because the fd might be recreated
+            # eval "echo \"\$l\" >&\${forwarded_lines}" ## this fd is created by pausd
+            ## put in background because it might stall and give it a timeout
+            timeout 5 echo "$l" >&${forwarded_lines} ## this fd is created by pausd
             ;;
     esac
 }

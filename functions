@@ -21,6 +21,19 @@ fleep()
     read ${1:+-t "$1"} -u $_snore_fd || :
 }
 
+## wait for command $@ to finish in $1 time
+timeout() {
+    to=$1 shift
+    $@ & local wp=$! start=0
+    while kill -0 $wp; do
+        fleep 1
+        start=$((start+1))
+        if [ $start -ge $to ]; then
+            kill $wp && break
+        fi
+    done
+}
+
 ##https://stackoverflow.com/a/8088167/2229761
 define(){ IFS='\n' read -r -d '' ${1} || true; }
 

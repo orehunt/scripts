@@ -71,9 +71,9 @@ function pinger() {
 ## adjust rate based on load
 adjust_rate() {
     ## skip if not different
-    [ "$prev_rate" = "$rate" ] && return
+    # [ "$prev_rate" = "$rate" ] && return
     ## store rate
-    prev_rate=$rate
+    # prev_rate=$rate
     ## calc the adjustement
     local adj
     adj=$((rate/3))
