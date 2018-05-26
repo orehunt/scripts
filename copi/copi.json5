@@ -1,7 +1,6 @@
 {
     consul: {
         address: "localhost:3424",
-        deregisterCriticalServiceAfter: "60m",
     },
     jobs: [{
         name: "xnp{{.HIER}}",
@@ -13,7 +12,7 @@
         exec: ["/opt/xnp/start.sh"],
         port: 8480,
         health: {
-            exec: "nc -z {{.XNP_ADDR | default "localhost"}} 8484",
+            exec: [ "nc", "-z", "{{.XNP_ADDR | default "localhost"}}", "8484", ],
             // exec: "true",
             interval: 10,
             timeout: 10,
@@ -23,6 +22,9 @@
             "ports:8480,8482,8483,8484,8485,8486,8487,8488,8489,8490",
             "{{.LOCA}}" // from /etc/network-environment
         ],
+        consul: {
+            deregisterCriticalServiceAfter: "10m",
+        }
     },{
         name: "prestart",
         exec: [
@@ -55,6 +57,9 @@
             "ports:80,443,8080,8443,123,2703,444,554",
             "{{.LOCA}}"
         ],
+        consul: {
+            deregisterCriticalServiceAfter: "10m",
+        }
     }],
     watches: [{
         name: "xnp{{.HIER}}",
