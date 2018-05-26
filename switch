@@ -1035,6 +1035,7 @@ choose_action() {
             ## eval because the fd might be recreated
             # eval "echo \"\$l\" >&\${forwarded_lines}" ## this fd is created by pausd
             ## put in background because it might stall and give it a timeout
+            log "forwarding with timeout..."
             timeout 5 echo "$l" >&${forwarded_lines} ## this fd is created by pausd
             ;;
     esac

@@ -24,14 +24,18 @@ fleep()
 ## wait for command $@ to finish in $1 time
 timeout() {
     to=$1 shift
-    $@ & local wp=$! start=0
+    eval "$*" & local wp=$! start=0
+    log "starting timeout loop"
     while kill -0 $wp; do
+        log "waiting for $wp"
         fleep 1
         start=$((start+1))
         if [ $start -ge $to ]; then
-            kill $wp && break
+            log "timeout done killing $wp"
+            kill -9 $wp && break
         fi
     done
+    log "ended timeout loop"
 }
 
 ##https://stackoverflow.com/a/8088167/2229761
