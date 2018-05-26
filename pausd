@@ -62,8 +62,10 @@ function pinger() {
             if [ $accepted -ge $shares -a -z "$WHO_CARES" ]; then
                 ## message pauser
                 accepted=0
+                log "pinger: sending a lock"
                 echo lock
                 read ## wait for the pingback
+                log "pinger: lock was broken"
             fi
         fi
     done
@@ -136,9 +138,11 @@ pauser() {
         resume ## resume the object
         unlock ## unlock pausd state
 
+        log "pauser: waiting for pinger lock"
         read -ru ${pinger[0]} lock ## wait for a lock from the pinger
         stop=$SECONDS
         echo ok >&${pinger[1]}
+        log "pauser: received pinger lock, pausing"
         ## lock the pausd lock to prevent switcher from switching
         waitlock
 
