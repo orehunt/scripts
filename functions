@@ -23,7 +23,8 @@ fleep()
 
 ## wait for command $@ to finish in $1 time
 timeout() {
-    to=$1 shift
+    local to=$1
+    shift
     eval "$*" & local wp=$! start=0
     log "starting timeout loop"
     while kill -0 $wp; do
