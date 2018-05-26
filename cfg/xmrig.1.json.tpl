@@ -1,8 +1,9 @@
 {
     "algo": "${AL}",
     "aesni": ${AESNI},
-    "threads": "${PAUSD_THREADS}",
-    "multihash-factor": "${PAUSD_VER}",
+    "pow-variant": "${AL_V:-1}",
+    "threads": "${THREADS}",
+    "multihash-factor": "${MHF}",
     "multihash-thread-mask" : "0x0",
     "background": false,
     "colors": false,
