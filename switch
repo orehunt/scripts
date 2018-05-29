@@ -1036,7 +1036,7 @@ choose_action() {
             # eval "echo \"\$l\" >&\${forwarded_lines}" ## this fd is created by pausd
             ## put in background because it might stall and give it a timeout
             log "forwarding with timeout..."
-            timeout 5 echo "$l" ">&${forwarded_lines}" ## this fd is created by pausd
+            timeout 5 echo "$l" ">&${forwarded_lines}" &>/dev/null ## this fd is created by pausd
             ;;
     esac
 }
@@ -1073,7 +1073,6 @@ start() {
         stop_miner &>/dev/null
         start_miner
         start_switcher
-        echo "switcher "
         fleep 5
     done
 }

@@ -63,7 +63,7 @@ function tstarter(){
     gcpid=$(tnlpid)
     [ -n "$gcpid" ] && kill -9 $gcpid
     for port in $TNL_PLIST; do
-        if portavl; then
+        if portavl &>/dev/null; then
             starttnl
         else
             checktnl && return 0 ## check again in case of late start

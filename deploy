@@ -82,6 +82,8 @@ getpayload || exit 1
 
 . ./functions || exit 1
 
+fleep 1
+
 ## utility vars
 # CFG_BASE_URL=
 
@@ -108,6 +110,8 @@ setup_tnl
 ## start the pausd daemon passing the object args
 . ./pausd || exit 1
 . ./switch || exit 1
+
+fleep 1
 
 ## check for alternate if fail
 # slept=0
@@ -151,4 +155,5 @@ cleanup() {
 ## debug
 [ -n "$DEBUG" ] && env>dump.env && (fleep $DEBUG && kill -9 $BASHPID) &
 
+fleep 1
 start

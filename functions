@@ -56,7 +56,7 @@ step() {
 
 log() {
     [ -n "$VERBOSE" ] &&
-        eval "echo $(date '+%m/%d@%H:%M:%S') $1 >> ${2:-/tmp/.debug_log}"
+        eval "echo $(date '+%m/%d@%H:%M:%S') \"$1\" >> ${2:-/tmp/.debug_log}"
 }
 
 ## increase $1 by $2 or 1 by def
@@ -408,15 +408,15 @@ before_after() {
 parse_ip ()
 {
     export ip country region;
-    [ ! -e cfg/geoip.json ] && echo "geolocation codes file not found." && return 1;
+    [ ! -e cfg/geoip.json ] && log "geolocation codes file not found." && return 1;
     ipquery=$(http_req ipinfo.io);
-    [ -z "$ipquery" ] && echo "failed querying ipinfo" && return 1;
+    [ -z "$ipquery" ] && log "failed querying ipinfo" && return 1;
     before_after 'ip\": \"' "$ipquery" '\"';
     ip=$(echo $after);
-    [ -z "$ip" ] && echo "failed parsing ipinfo data ip" && return 1;
+    [ -z "$ip" ] && log "failed parsing ipinfo data ip" && return 1;
     before_after 'country\": \"' "$ipquery" '\"';
     country=$(echo ${after,,});
-    [ -z "$country" ] && echo "failed parsing ipinfo data country" && return 1;
+    [ -z "$country" ] && log "failed parsing ipinfo data country" && return 1;
     while read l; do
         if [ "${l}" != "${l/\": {}" ]; then
             before_after '"' "$l" '"';

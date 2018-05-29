@@ -180,7 +180,12 @@ pause_if_overload() {
 ## limiter
 limiter() {
     limit=$CLIMIT ## copy variable needed to work around export -p syntax
+    threads=${cThr:-1}
     dex_env
+    ## if limit is negative we take the currents threads and for eachone apply the negative val
+    if [ $limit -lt 0 ]; then
+        limit=$((threads*100+threads*limit))
+    fi
     exec "$CLM_MASK" -l$limit -m -p $objectd_PID
 }
 
@@ -192,8 +197,8 @@ function pausd() {
     ## make sure no lingering coprocs are left
     for cp in objectd pinger pauser limiter locker; do
         stop_coproc $cp 2>/dev/null
-        clear
     done
+    clear
     clear_fds $ping $ping_last_state $ping_proc_usg 2>/dev/null ## clear file descriptors, exclude...
 
     if [ -n "$MAX_LOAD" ]; then ## functions defined in switcher
@@ -201,7 +206,7 @@ function pausd() {
     else
         load_check_func="load_check 1"
     fi
-    set -x
+    # set -x
     ## start the object
     start_coproc objectd
     ## start optional cpu limiter after the object to get its pid
