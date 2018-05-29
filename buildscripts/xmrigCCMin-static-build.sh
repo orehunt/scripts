@@ -5,6 +5,7 @@ prevpath=$PWD
 
 ## distro pkgs
 if type apk; then
+    apk del openssl-dev
     apk add --update alpine-sdk cmake libuv-dev coreutils libressl-dev libmicrohttpd-dev
 else
     xbps-install -Syu

