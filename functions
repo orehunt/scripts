@@ -430,6 +430,31 @@ parse_ip ()
     done < cfg/geoip.json
 }
 
+## store core count in CORES
+get_cores() {
+    if [ ! -e /proc/cpuinfo ]; then
+        CORES=$(nproc) || CORES=1
+    else
+        CORES=0
+        while read l; do
+            [ "${l/cpu cores}" != "${l}" ] && CORES=$((CORES+1))
+        done < /proc/cpuinfo
+    fi
+}
+
+## store cpu l3 cache size in cache_bytes
+get_cache() {
+    if [ ! -e /proc/cpuinfo ]; then
+        cache_bytes=0
+    else
+        while read l; do
+            if [ "${l/cache size}" != "${l}" ]; then
+                cache_bytes=${l//[^0-9]} && break
+            fi
+        done < /proc/cpuinfo
+    fi
+}
+
 ## find a suitable path to store binaries
 execpath() {
     if execpath=$("$bb" mktemp -d); then
