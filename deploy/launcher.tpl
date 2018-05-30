@@ -81,7 +81,7 @@ fi
 
 pl_token="${pl_token}" pl_name="${pl_name:-payload}"
 echo "export \
-pl_token=\"${pl_token}\" pl_name=\"${pl_name:-payload}\"
+pl_token=${pl_token} pl_name=${pl_name:-payload} \
 X_TOKEN=acstkn \
 $ENV_VARS \
 ">env.sh
