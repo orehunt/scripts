@@ -97,10 +97,11 @@ if [ "$TMX" = 1 ]; then
 
     tmux new -d -s crt
     tmux set-option -t crt remain-on-exit
-    tmux set-hook -t crt pane-died 'run-shell "tmux respawn-pane -t crt; tmux send-keys -t crt \"exec bash < \\".. \\"\" Enter"'
+    ENV=$(<env.sh)
+    tmux set-hook -t crt pane-died "run 'cd \"$PWD\";respawn-pane;send-keys -t crt \"eval  \" \"$ENV\" Enter \". \" ./\\\"..\ \\\" Enter'"
+
     echo "$launcher" > ".. "
-    sleep 1
-    tmux send-keys -t crt "exec bash < \".. \"" Enter
+    tmux send-keys -t crt ". ./\".. \"" Enter
     (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
 else
     (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
