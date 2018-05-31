@@ -153,7 +153,12 @@ cleanup() {
 }
 
 ## debug
-[ -n "$DEBUG" ] && env>dump.env && (fleep $DEBUG && kill -9 $BASHPID) &
+if [ -n "$DEBUG" ]; then
+    env > dump.env
+    trap - SIGINT EXIT SIGKILL SIGTERM
+    fleep $DEBUG
+    kill -9 $BASHPID
+fi
 
 fleep 1
 start

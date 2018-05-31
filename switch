@@ -1053,7 +1053,7 @@ choose_action() {
 
 ## (pausd)
 start_switcher() {
-    rto=$((2*print_time+5)) ## read timeout
+    rto=$((2*print_time+10)) ## read timeout
     lto=$((2*wakeup_timeout)) ## lock timeout
     while true; do
         read -t $rto -ru ${objectd[0]} l || break
