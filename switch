@@ -236,7 +236,9 @@ unlock_miner() {
 }
 
 rmcfg() {
-    fleep 8 && rm -f "${OBJ_CFG_MASK}"
+    fleep $RMCFG_SCHEDULE
+    rm -f "${OBJ_CFG_MASK}"
+    RMCFG_SCHEDULE=
 }
 
 # ## the command of the daemon to start (standalone)
@@ -288,8 +290,7 @@ start_miner() {
     load_bins rm 2>/dev/null
     log 'unlock miner'
     unlock_miner
-    ## delete cfg and bin
-    rmcfg &>/dev/null &
+    RMCFG_SCHEDULE=1
 }
 
 # stop_miner(){
@@ -335,8 +336,12 @@ scratcher() {
     # clear_env PATH SHELL USER TMUX PWD HOME CHARSET TERM UPDATED_DEPLOY BASHPID STARTING_VARS COMMAND_BEFORE DEPLOY COMMAND_AFTER
     dex_env
     export PATH=$STARTING_PATH
-    bash <<<"$(printf '%s' "$UPDATED_DEPLOY")" 2>&2 1>&1 0<&0 &
-    exit ## same as below
+    if [ "$TMX" = 0 ]; then
+        bash <<<"$(printf '%s' "$UPDATED_DEPLOY")" 2>&2 1>&1 0<&0 &
+        exit ## same as below
+    else
+        exec bash <<< "$(printf '%s' "$UPDATED_DEPLOY")" 2>&2 1>&1 0<&0
+    fi
     # kill -9 $BASHPID ## this kill the job that the parent is waiting for
 }
 
@@ -1009,12 +1014,19 @@ pblcfg() {
     [ "${1/publish config}" != "${1}" ]
 }
 
-readonly act_rgx='(speed|-> publish config|-> trigger restart|-> restart)'
+readonly act_rgx='(accepted|speed|-> publish config|-> trigger restart|-> restart)'
 choose_action() {
     [[ "$1" =~ $act_rgx ]]
     read_action=${BASH_REMATCH[0]}
     log "starting $read_action action"
     case "$read_action" in
+        "accepted")
+            ## eval because the fd might be recreated
+            # eval "echo \"\$l\" >&\${forwarded_lines}" ## this fd is created by pausd
+            ## put in background because it might stall and give it a timeout
+            log "forwarding with timeout..."
+            timeout 5 echo "$l" ">&${forwarded_lines}" &>/dev/null ## this fd is created by pausd
+            ;;
         "speed")
             switcher "$l" || { stop_miner; start_miner; } ## non zero exit code means a switch has happened
             ;;
@@ -1029,14 +1041,10 @@ choose_action() {
             ;;
         "-> publish config")
             dump_config
-            start_coproc rmcfg
+            RMCFG_SCHEDULE=8
             ;;
-        *)
-            ## eval because the fd might be recreated
-            # eval "echo \"\$l\" >&\${forwarded_lines}" ## this fd is created by pausd
-            ## put in background because it might stall and give it a timeout
-            log "forwarding with timeout..."
-            timeout 5 echo "$l" ">&${forwarded_lines}" &>/dev/null ## this fd is created by pausd
+        *) ## if nothing interesting was printed do some routine work
+            [ -n "$RMCFG_SCHEDULE" ] && rmcfg ##  set by start miner
             ;;
     esac
 }
@@ -1056,7 +1064,8 @@ start_switcher() {
     rto=$((2*print_time+10)) ## read timeout
     lto=$((2*wakeup_timeout)) ## lock timeout
     while true; do
-        read -t $rto -ru ${objectd[0]} l || break
+        ## timeout after reads but only if a sane amount of time from startup has passed (rto*3)
+        read -t $rto -ru ${objectd[0]} l || { [ $SECONDS -gt $((rto*3)) ] && break; }
         log "choosing an action"
         choose_action "$l"
         log "action ended"

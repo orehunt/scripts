@@ -52,35 +52,30 @@ function tstarter(){
                 TNL_LISTEN_PORT=${PREV_TNL_LISTEN_PORT}
                 return ## tnl started and already in session
             else ## a rogue tunnel not within its session kill it
-                pkill -xf "${PREP_TNL_MASK}"
+                pkill -xf "${PGREP_TNL_MASK}"
             fi
         fi
         eval "coproc tnl { dex_env; exec ${ESC_TNL_MASK} 2>/dev/null; }" ## exec command needs binary name escaped and unquoted
         fleep 1 ## time to bind
     }
 
-    export TNL_LISTEN_PORT=$1
     gcpid=$(tnlpid)
     [ -n "$gcpid" ] && kill -9 $gcpid
+    TNL_PLIST="$TNL_LISTEN_PORT $TNL_PLIST" ## so that the first loop run doesn't skip a port
     for port in $TNL_PLIST; do
+        PREV_TNL_LISTEN_PORT=$TNL_LISTEN_PORT
+        TNL_LISTEN_PORT=$port
+        update_tnl_cfg
         if portavl &>/dev/null; then
             starttnl
-        else
-            checktnl && return 0 ## check again in case of late start
-            PREV_TNL_LISTEN_PORT=$TNL_LISTEN_PORT
-            export TNL_LISTEN_PORT=$port
-            update_tnl_cfg
-            continue
+            fleep 0.5
+            local rtr=0
+            while [ $rtr -lt 3 ]; do
+                checktnl && return
+                rtr=$((rtr+1))
+                fleep 1
+            done
         fi
-        if checktnl; then
-            # printf "%s" ${TNL_LISTEN_PORT}
-            return
-        else
-            PREV_TNL_LISTEN_PORT=$TNL_LISTEN_PORT
-            export TNL_LISTEN_PORT=$port
-            update_tnl_cfg
-        fi
-        fleep 2
     done
 
     return 1 ## no ports available
@@ -144,6 +139,6 @@ function setup_tnl() {
     fleep 1
 
     TNL_PLIST="80 443 8081 8082 9000 10000 3036 20 21 465 993 995 110 123 2703 3036"
-    tstarter ${TNL_LISTEN_PORT:-8080}  || exit 1 ## tstarter takes care of updating TNL_LISTEN for the pc config
+    tstarter || exit 1 ## tstarter takes care of updating TNL_LISTEN for the pc config
     # envsubst -no-empty -i cfg/${PC_CFG} -o ${PC_CFG_MASK}
 }
