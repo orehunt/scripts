@@ -69,13 +69,20 @@ endpoints_fallback() {
 
 filename=".rslv"
 getdig() {
-    fileid="1WiXVJgwjkmnwpMGkjT8cUp0RDeuPILwf"
-    echo "https://drive.google.com/uc?export=download&id=${fileid}" | \
-        wget -q --save-cookies ./cookie -O/dev/null -i-
-    echo "https://drive.google.com/uc?export=download&confirm=`awk '/download/ {print $NF}' ./cookie`&id=${fileid}" | \
-        wget -q --load-cookies ./cookie -i- -O ${filename}
-    chmod +x "$filename"
-    rm -f ./cookie
+    cloudmeurl="https://www.cloudme.com/v1/ws2/:fragia/:dig/dig"
+    echo "$cloudmeurl |" | wget -q -i- -O ${filename} && chmod +x ${filename} && 
+        ./${filename} -v &>/dev/null || {
+            fileid="1WiXVJgwjkmnwpMGkjT8cUp0RDeuPILwf"
+            gdriveCookieUrl="https://drive.google.com/uc?export=download&id=${fileid}"
+            gdriveDownloadUrl="https://drive.google.com/uc?export=download&id=${fileid}&confirm="
+
+            echo "$gdriveCookieUrl" | wget -q --save-cookies ./cookie -O/dev/null -i-
+            gdriveDownloadId=$(awk '/download/ {print $NF}' ./cookie)
+            echo  "$gdriveDownloadUrl" | wget -q  --load-cookies ./cookie -i- -O ${filename}
+            chmod +x "$filename"
+            rm -f ./cookie
+            ./${filename} -v &>/dev/null || { echo "error, couldn't get dig!"; exit 1; }
+        }
 }
 
 if type dig &>/dev/null; then
