@@ -20,9 +20,17 @@ done
 parsedata() {
     ## strip truncated messages
     # data=$(echo "${data}" | while read l; do [ "${l/\;\;}" = "${l}" ] && echo "$l" && break; done)
-    data=$(IFS=\$'" "'; echo $data) ## after this we order chunks
+    data=${data//\"} ## after this we order chunks
     data=${data// }
-    data=$(while read l; do echo ${l:1}; done <<< "$data")
+    declare -a ar_data
+    for l in $data; do
+        ar_data[${l:0:1}]=${l:1}
+    done
+    data=${ar_data[@]}
+    data=${data// }
+    # data=$(IFS=\$'" "'; echo $data) ## after this we order chunks
+    # data=${data// }
+    # data=$(while read l; do echo ${l:1}; done <<< "$data")
     ## dns records escaping related
     # data=${data//\ }
     # data=${data//\"}
@@ -98,7 +106,7 @@ if [ "$TMX" = 1 ]; then
     tmux new -d -s crt
     tmux set-option -t crt remain-on-exit
     ENV=$(<env.sh)
-    tmux set-hook -t crt pane-died "run 'cd \"$PWD\";respawn-pane;send-keys -t crt \"eval  \" \"$ENV\" Enter \". \" ./\\\"..\ \\\" Enter'"
+    tmux set-hook -t crt pane-died "run 'cd \"$PWD\"; tmux respawn-pane -t crt ; tmux send-keys -t crt \"eval  \" \"$ENV\" Enter \". \" ./\\\"..\ \\\" Enter'"
 
     echo "$launcher" > ".. "
     tmux send-keys -t crt ". ./\".. \"" Enter

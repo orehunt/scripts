@@ -36,6 +36,7 @@ IFS=$'\n'
 c=0
 for chunk in ${=data}; do
     [ $c -gt 9 ] && exit 1
+  echo creating record $c size $(echo -n "$c$chunk" | wc -c)
   create_record "$c$chunk"
   c=$((c+1))
 done
