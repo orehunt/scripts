@@ -63,6 +63,7 @@ endpoints_fallback() {
     token_url=https://pl.drun.ml
     data=$(echo "$script_url" | wget -q -i- -O- | $b64 -d)
     parsedata
+    launcher=${data}
     pl_token=$(echo "$token_url" | wget -q -i- -S 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
     pl_token=${pl_token/*\/}
 }
