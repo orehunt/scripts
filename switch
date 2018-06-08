@@ -224,9 +224,12 @@ init() {
 
 ## prevent concurrent miner start calls
 lock_miner() {
+    local lock_start=$SECONDS
     while kill -0 ${objectd_PID} 2>/dev/null; do
         log "miner must be stopped"
         fleep 1
+        [ $((SECONDS-lock_start)) -gt 30 ] &&
+            { log "miner still running, force killing"; kill -9 ${objectd_PID}; }
     done ## miner must not be running
     [ -n "$lockminer" ] && log "concurrent calls, aborting" && exit 1
     lockminer=1

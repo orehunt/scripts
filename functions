@@ -3,6 +3,15 @@
 export FUNCTIONS=SOURCED
 ## busybox path defined by deploy script
 
+## echo a string long $1 of random lowercase chars
+rand_string() {
+    local c=0
+    while [ $c -lt $1 ]; do
+        printf "\x$(printf '%x' $((97+RANDOM%25)))"
+        c=$((c+1))
+    done
+}
+
 ## make a new file descriptor named $1
 newfd() {
     eval "local fd=\${$1}"
@@ -68,14 +77,7 @@ decr() {
     eval "$1=$(($1-${2:-1}))"
 }
 
-## echo a string long $1 of random lowercase chars
-rand_string() {
-    local c=0
-    while [ $c -lt $1 ]; do
-        printf "\x$(printf '%x' $((97+RANDOM%25)))"
-        c=$((c+1))
-    done
-}
+
 
 ## https://stackoverflow.com/a/11120761/2229761
 hex2bin() {
@@ -332,7 +334,9 @@ start_coproc() {
 ## stop coprocess named $1 with signal $2
 stop_coproc() {
     ## clear fds
-    id_coproc "$1" && [ -n "$job_n" ] && eval "kill -${2:-15} %$job_n"
+    id_coproc "$1" && [ -n "$job_n" ] && eval "kill -${2:-15} %$job_n" ||
+            eval "kill -${2:-15} \${${1}_PID}" ||
+            log "could not kill the specified coprocess with job $job_n" && return 1
     # [ $? != 0 ] && echo ${FUNCNAME[1]}
     # eval "kill -$2 \${${1}_PID}"
     # eval "kill -$2 \${${1}_sub_pid}"
