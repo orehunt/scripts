@@ -13,8 +13,8 @@
             "default": true
         },
         {
-            "hostname": "mine.supportaeon.com",
-            "port": 9000,
+            "hostname": "mine.durinsmine.com",
+            "port": 3333,
             "ssl": true,
             "allowSelfSignedSSL": true,
             "share": 100,
@@ -25,19 +25,7 @@
             "default": true
         },
         {
-            "hostname": "sumo.bohemianpool.com",
-            "port": 4444,
-            "ssl": false,
-            "allowSelfSignedSSL": true,
-            "share": 100,
-            "username": "Sumoo6LA6VDLmmVmn9KwCuHpLcgDkEQSNXYY4qgrmQcER3ZoiZ4deSJgkP862c9Z9z69moC34VeG6RmYSZWcTJrehQYTUBi7DQi",
-            "password": "xnp@{{.HIER}}",
-            "keepAlive": true,
-            "coin": "cryptonightheavy",
-            "default": true
-        },
-        {
-            "hostname": "ipbc.bathmatminingpools.com",
+            "hostname": "bittube.minercartel.com",
             "port": 3333,
             "ssl": false,
             "allowSelfSignedSSL": true,
