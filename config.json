@@ -5,27 +5,55 @@
             "port": 443,
             "ssl": true,
             "allowSelfSignedSSL": true,
-            "share": 100,
+            "share": 0,
             "username": "4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq",
             "password": "xnp@{{.HIER}}",
             "keepAlive": true,
-            "coin": "cryptonightv7",
-            "default": true
+            "algo": "cn/1",
+            "blob_type": "cryptonote",
+            "default": false
         },
         {
             "hostname": "mine.durinsmine.com",
             "port": 3333,
-            "ssl": true,
+            "ssl": false,
             "allowSelfSignedSSL": true,
             "share": 100,
             "username": "WmsNJ3Usa4T7AbXz6ZRTdi5hjrqeXsGFMHEEwpv5g2sbgtEWxJZeBA4hqMusHAyWBVaDktNhZHTvTd6RfngAJNpF1wDzwqaNo",
             "password": "xnp@{{.HIER}}",
             "keepAlive": true,
-            "coin": "aeon",
-            "default": true
+            "algo": "cn-lite/1",
+            "blob_type": "cryptonote",
+            "default": false
         },
         {
-            "hostname": "bittube.minercartel.com",
+            "hostname": "pool.electroneum.hashvault.pro",
+            "port": 443,
+            "ssl": true,
+            "allowSelfSignedSSL": true,
+            "share": 0,
+            "username": "etnjzTN92b94VL6jB5tBUgiZFuxVssXSwAMKjzod6vnC9E1Z31PfGf76F5SZvvQgcrHdomiypgvxvgmueYWD7FtU37aK1m886c",
+            "password": "xnp@{{.HIER}}",
+            "keepAlive": true,
+            "algo": "cn/1",
+            "blob_type": "cryptonote",
+            "default": false
+        },
+        {
+            "hostname": "bkc.go-mine.it",
+            "port": 3333,
+            "ssl": false,
+            "allowSelfSignedSSL": false,
+            "share": 0,
+            "username": "bkc1pfJvXEwW1BgiRsgWKZTc4sQZdRig7a38qQcQfJUKC8StWcBmshEEuVSs9FaqxS8NMck3kDTXZXGbatppqYKe9RcbUGLSUE",
+            "password": "xnp",
+            "keepAlive": true,
+            "algo": "cn/1",
+            "blob_type": "forknote2",
+            "default": false
+        },
+        {
+            "hostname": "tube.minercartel.com",
             "port": 3333,
             "ssl": false,
             "allowSelfSignedSSL": true,
@@ -33,73 +61,71 @@
             "username": "bxcKhj6Nn3ZMLVJvhX5kPxZSqCrDdta1dgAvPP99vVXnB1sph93azMDSACrFDiWoPUdXW9ksPtbq6FpU1uFUU9kp1vf3kqZAt",
             "password": "xnp@{{.HIER}}",
             "keepAlive": true,
-            "coin": "ipbc",
-            "default": true
+            "algo": "cn-lite/1",
+            "blob_type": "forknote2",
+            "default": false
+        },
+        {
+            "hostname": "haven.minercartel.com",
+            "port": 3333,
+            "ssl": false,
+            "allowSelfSignedSSL": true,
+            "share": 100,
+            "username": "hvxy16KdDkrbZKGBXsYMeYXg5HcY1U2iP1ydzbsXi7tp3phGA2atXiyh3bqpNfWu8kPrU9XXaWeGxitdYAh4UPyM16ss6MsHmn",
+            "password": "xnp@{{.HIER}}",
+            "keepAlive": true,
+            "algo": "cn-heavy",
+            "blob_type": "cryptonote",
+            "default": false
+        },
+        {
+            "hostname": "pool.trtl.cryptopool.space",
+            "port": 3333,
+            "ssl": false,
+            "allowSelfSignedSSL": true,
+            "share": 100,
+            "username": "TRTLuxtTMMELTkSTcShhwDE3Dmqm7xvDahDYQr143md5H77dFm62ygeLNBAewawoS3GPwh6sXps84Mt9tRrczK9e1yHsG6p2kVd",
+            "password": "xnp@{{.HIER}}",
+            "keepAlive": true,
+            "algo": "cn-lite/1",
+            "blob_type": "forknote2",
+            "default": false
+        },
+        {
+            "hostname": "mine.graftpool.net",
+            "port": 3333,
+            "ssl": false,
+            "allowSelfSignedSSL": true,
+            "share": 100,
+            "username": "GCpUw3Zyx45ZuPtuUZ3yG1Lqqj7Z4kisf8yhs9ChE1Nq7K6m7ocFgGGaCjn4jAb7jbPd7LSPvAbMqJxTZe6gGXv2HqBhrnC",
+            "password": "xnp@{{.HIER}}",
+            "keepAlive": true,
+            "algo": "cn/1",
+            "blob_type": "cryptonote",
+            "default": false
+        },
+        {
+            "hostname": "pool.xtl.cryptopool.space",
+            "port": 443,
+            "ssl": true,
+            "allowSelfSignedSSL": true,
+            "share": 100,
+            "username": "Se3zp78sWY7ay4CjWYsBTGhfBc3KZQJSSXwhJc5cLFQr65cK8Z24T7tQ6nFiyyLV4SFK4Q9ShUWtAKpLH8T53JqT2j2QK6q6T",
+            "password": "xnp@{{.HIER}}",
+            "keepAlive": true,
+            "algo": "cn/1",
+            "blob_type": "cryptonote",
+            "default": false
         }
     ],
     "listeningPorts": [
         {
-            "port": 8482,
-            "ssl": true,
-            "diff": 500,
-            "coin": "aeon"
-        },
-        {
-            "port": 8483,
-            "ssl": true,
-            "diff": 250,
-            "coin": "cryptonight"
-        },
-        {
             "port": 8484,
             "ssl": true,
-            "diff": 100,
-            "coin": "cryptonightv7"
-        },
-        {
-            "port": 8485,
-            "ssl": true,
-            "diff": 500,
-            "coin": "cryptonightlight"
-        },
-        {
-            "port": 8486,
-            "ssl": true,
-            "diff": 500,
-            "coin": "cryptonightlightv7"
-        },
-        {
-            "port": 8487,
-            "ssl": true,
-            "diff": 500,
-            "coin": "trtl"
-        },
-        {
-            "port": 8488,
-            "ssl": true,
-            "diff": 250,
-            "coin": "forknote"
-        },
-        {
-            "port": 8489,
-            "ssl": true,
-            "diff": 250,
-            "coin": "forknotev7"
-        },
-        {
-            "port": 8490,
-            "ssl": true,
-            "diff": 100,
-            "coin": "cryptonightheavy"
-        },
-        {
-            "port": 8491,
-            "ssl": true,
-            "diff": 500,
-            "coin": "ipbc"
+            "diff": 100
         }
     ],
-    "bindAddress": "0.0.0.0",
+    "bindAddress": "127.8.4.8",
     "developerShare": 0,
     "daemonAddress": "127.0.0.1:18081",
     "accessControl": {
@@ -109,63 +135,12 @@
     "httpEnable": true,
     "httpAddress": "0.0.0.0",
     "httpPort": "8480",
-    "addressWorkerID": false,
     "minerInactivityTime": "300",
     "coinSettings": {
-        "cryptonight":{
-            "minDiff": 100,
-            "maxDiff": 300000,
-            "shareTargetTime": 14
-        },
-        "cryptonightv7":{
-            "minDiff": 100,
-            "maxDiff": 300000,
-            "shareTargetTime": 14
-        },
-        "cryptonightlight":{
-            "minDiff": 100,
-            "maxDiff": 300000,
-            "shareTargetTime": 9
-        },
-        "cryptonightlightv7":{
-            "minDiff": 100,
-            "maxDiff": 300000,
-            "shareTargetTime": 9
-        },
-        "forknote":{
-            "minDiff": 100,
-            "maxDiff": 300000,
-            "shareTargetTime": 14
-        },
-        "forknotev7":{
-            "minDiff": 100,
-            "maxDiff": 300000,
-            "shareTargetTime": 14
-        },
-        "cryptonightheavy":{
-            "minDiff": 100,
-            "maxDiff": 300000,
-            "shareTargetTime": 19
-        },
         "xmr":{
             "minDiff": 100,
             "maxDiff": 300000,
-            "shareTargetTime": 14
-        },
-        "aeon":{
-            "minDiff": 100,
-            "maxDiff": 300000,
-            "shareTargetTime": 9
-        },
-        "trtl":{
-            "minDiff": 100,
-            "maxDiff": 300000,
-            "shareTargetTime": 9
-        },
-        "ipbc":{
-            "minDiff": 100,
-            "maxDiff": 300000,
-            "shareTargetTime": 9
+            "shareTargetTime": 15
         }
     }
 }

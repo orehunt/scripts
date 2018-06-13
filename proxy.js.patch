@@ -1,74 +1,13 @@
---- server.js   2018-04-07 07:13:55.275470997 +0000
-+++ server.js.patched   2018-04-07 07:17:49.877903762 +0000
-@@ -3,10 +3,11 @@
- const net = require('net');
- const tls = require('tls');
- const fs = require('fs');
-+const proc = require('process');
- const async = require('async');
- const uuidV4 = require('uuid/v4');
- const support = require('./lib/support.js')();
--global.config = require('./config.json');
-+//global.config = require('./config.json');
-
-
- /*
-@@ -136,7 +137,7 @@
-
- // Combined Functions
- function readConfig() {
--    let local_conf = JSON.parse(fs.readFileSync('config.json'));
-+    let local_conf = JSON.parse(fs.readFileSync(proc.cwd()+'/config.json'));
-     if (typeof global.config === 'undefined') {
-         global.config = {};
-     }
-@@ -145,9 +146,9 @@
-             global.config[key] = local_conf[key];
-         }
-     }
--    if (!cluster.isMaster) {
--        activatePorts();
--    }
-+    //if (!cluster.isMaster) {
-+    //    activatePorts();
-+    //}
+--- package.json        2018-06-11 15:45:20.737352234 +0000
++++ package.json.patched        2018-06-11 16:22:10.366699767 +0000
+@@ -28,5 +28,9 @@
+     "uuid": "3.0.1",
+     "cryptoforknote-util": "git+https://github.com/MoneroOcean/node-cryptoforknote-util.git#v1.0.0",
+     "cryptonight-hashing": "git+https://github.com/MoneroOcean/node-cryptonight-hashing.git#v2.0.0"
+-  }
++  },
++  "bin": "server.js",
++  "pkg": {
++         "scripts": "lib/**/*.js"
++   }
  }
-
- // Pool Definition
-@@ -640,11 +641,11 @@
-                 catch (e) {
-                     if (message.indexOf('GET /') === 0) {
-                         if (message.indexOf('HTTP/1.1') !== -1) {
--                            socket.end('HTTP/1.1' + httpResponse);
-+                            socket.end();
-                             break;
-                         }
-                         else if (message.indexOf('HTTP/1.0') !== -1) {
--                            socket.end('HTTP/1.0' + httpResponse);
-+                            socket.end();
-                             break;
-                         }
-                     }
-@@ -1036,11 +1037,11 @@
-                         catch (e) {
-                             if (message.indexOf('GET /') === 0) {
-                                 if (message.indexOf('HTTP/1.1') !== -1) {
--                                    socket.end('HTTP/1.1' + httpResponse);
-+                                    socket.end();
-                                     break;
-                                 }
-                                 else if (message.indexOf('HTTP/1.0') !== -1) {
--                                    socket.end('HTTP/1.0' + httpResponse);
-+                                    socket.end();
-                                     break;
-                                 }
-                             }
-@@ -1117,6 +1118,7 @@
-
- // System Init
-
-+readConfig();
- if (cluster.isMaster) {
-     let numWorkers;
-     try {
-
