@@ -1,14 +1,14 @@
 --- CCClient.cpp
 +++ CCClient.cpp.patched
-@@ -141,6 +141,7 @@
+@@ -143,6 +143,7 @@
+ 
  void CCClient::publishClientStatusReport()
  {
-     refreshUptime();
 +    bool skipCommand;
- 
      std::string requestUrl = "/client/setClientStatus?clientId=" + m_self->m_clientStatus.getClientId();
      std::string requestBuffer = m_self->m_clientStatus.toJsonString();
-@@ -156,9 +157,10 @@
+ 
+@@ -157,9 +158,10 @@
          ControlCommand controlCommand;
          if (controlCommand.parseFromJsonString(res->body)) {
              if (controlCommand.getCommand() == ControlCommand::START) {
@@ -21,26 +21,23 @@
              } else if (controlCommand.getCommand() == ControlCommand::STOP) {
                  if (Workers::isEnabled()) {
                      LOG_WARN("[CC-Client] Command: STOP received -> pause");
-@@ -174,9 +176,11 @@
-             } else if (controlCommand.getCommand() == ControlCommand::SHUTDOWN) {
+@@ -176,8 +178,10 @@
                  LOG_WARN("[CC-Client] Command: SHUTDOWN received -> shutdown");
              }
--
+ 
 -            m_self->m_async->data = reinterpret_cast<void*>(controlCommand.getCommand());
 -            uv_async_send(m_self->m_async);
-+	    
-+	    if (!skipCommand) {
-+            	m_self->m_async->data = reinterpret_cast<void*>(controlCommand.getCommand());
++            if (!skipCommand) {
++                m_self->m_async->data = reinterpret_cast<void*>(controlCommand.getCommand());
 +                uv_async_send(m_self->m_async);
-+	    }
++            }
          } else {
              LOG_ERR("[CC-Client] Unknown command received from CC Server.");
          }
-@@ -223,13 +227,21 @@
+@@ -224,6 +228,13 @@
      std::string requestUrl = "/client/setClientConfig?clientId=" + m_self->m_clientStatus.getClientId();
  
      std::stringstream data;
-+    
 +    while (true) {
 +        std::ifstream clientConfig(m_self->m_options->configFile());
 + 	if (clientConfig.good())
@@ -51,11 +48,3 @@
      std::ifstream clientConfig(m_self->m_options->configFile());
  
      if (clientConfig) {
-         data << clientConfig.rdbuf();
-         clientConfig.close();
-     }
--
-+    
-     if (data.tellp() > 0) {
-         rapidjson::Document document;
-         document.Parse(data.str().c_str());
