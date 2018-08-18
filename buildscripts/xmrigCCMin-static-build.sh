@@ -14,11 +14,11 @@ fi
 
 ## get void ; chroot void ...
 prevpath=${PWD}
-cd /
+cd ~/
 jobs=$(nproc || cat /proc/cpuinfo | grep -i "cpu cores" | wc -l)
 [ -z "$jobs" ] && jobs=1
 
-rm -rf /xmrigCC
+rm -rf xmrigCC
 git clone --depth=1 https://github.com/Bendr0id/xmrigCC
 mkdir xmrigCC/build && cd xmrigCC/build || exit 1
 

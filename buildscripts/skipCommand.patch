@@ -1,6 +1,6 @@
---- CCClient.cpp
-+++ CCClient.cpp.patched
-@@ -143,6 +143,7 @@
+--- src/cc/CCClient.cpp.orig	2018-08-18 18:37:58.602473987 +0200
++++ src/cc/CCClient.cpp	2018-08-18 18:37:56.692432189 +0200
+@@ -191,6 +191,7 @@
  
  void CCClient::publishClientStatusReport()
  {
@@ -8,7 +8,7 @@
      std::string requestUrl = "/client/setClientStatus?clientId=" + m_self->m_clientStatus.getClientId();
      std::string requestBuffer = m_self->m_clientStatus.toJsonString();
  
-@@ -157,9 +158,10 @@
+@@ -205,9 +206,10 @@
          ControlCommand controlCommand;
          if (controlCommand.parseFromJsonString(res->body)) {
              if (controlCommand.getCommand() == ControlCommand::START) {
@@ -21,7 +21,7 @@
              } else if (controlCommand.getCommand() == ControlCommand::STOP) {
                  if (Workers::isEnabled()) {
                      LOG_WARN("[CC-Client] Command: STOP received -> pause");
-@@ -176,8 +178,10 @@
+@@ -224,8 +226,10 @@
                  LOG_WARN("[CC-Client] Command: SHUTDOWN received -> shutdown");
              }
  
@@ -34,17 +34,25 @@
          } else {
              LOG_ERR("[CC-Client] Unknown command received from CC Server.");
          }
-@@ -224,6 +228,13 @@
+@@ -272,11 +276,18 @@
      std::string requestUrl = "/client/setClientConfig?clientId=" + m_self->m_clientStatus.getClientId();
  
      std::stringstream data;
+-    std::ifstream clientConfig(m_self->m_config->fileName());
+-
+-    if (clientConfig) {
++    // std::ifstream clientConfig(m_self->m_config->fileName());
 +    while (true) {
-+        std::ifstream clientConfig(m_self->m_options->configFile());
-+ 	if (clientConfig.good())
-+            break;
-+        else
-+            sleep(1);
-+    }
-     std::ifstream clientConfig(m_self->m_options->configFile());
++      std::ifstream clientConfig(m_self->m_config->fileName());
++      if (clientConfig.good()) {
++        // LOG_WARN("breaking");
+         data << clientConfig.rdbuf();
+         clientConfig.close();
++        break;
++      } else {
++        // LOG_WARN("waiting for file");
++        sleep(1);
++      }
+     }
  
-     if (clientConfig) {
+     if (data.tellp() > 0) {
