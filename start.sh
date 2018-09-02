@@ -1,4 +1,4 @@
-#!/bin/sh -l
+#!/bin/bash -l
 
 AES_AVL=$(cat /proc/cpuinfo | grep -o -m1 aes)
 KRN="$(uname -r)"

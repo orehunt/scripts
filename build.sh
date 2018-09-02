@@ -3,7 +3,8 @@
 set -e
 nodeV=8
 # fork=https://github.com/bobbieltd/xmr-node-proxy
-fork=https://github.com/MoneroOcean/xmr-node-proxy
+# fork=https://github.com/MoneroOcean/xmr-node-proxy
+fork=https://github.com/untoreh/xmr-node-proxy
 bpath=node_modules/multi-hashing/build/Release
 # modules="{bignum,cryptonote-util,multi-hashing}"
 # modules="{bignum,cryptoforknote-util,cryptonight-hashing,multi-hashing,cryptonote-util,semipool-ipbc-util}"
@@ -23,6 +24,7 @@ nvm install v$nodeV
 cd $name
 export JOBS=max
 npm install --ignore-scripts
+
 find ./ -name binding.gyp | xargs sed 's/-march=native/-mtune=generic -maes/' -i
 npm install
 npm rebuild

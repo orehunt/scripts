@@ -1,9 +1,9 @@
---- package.json        2018-06-11 15:45:20.737352234 +0000
-+++ package.json.patched        2018-06-11 16:22:10.366699767 +0000
-@@ -28,4 +28,8 @@
+--- package.json        2018-06-15 15:55:13.402554838 +0000
++++ package.json.patched        2018-06-15 15:55:37.493085463 +0000
+@@ -28,5 +28,9 @@
      "uuid": "3.0.1",
-     "cryptoforknote-util": "git+https://github.com/MoneroOcean/node-cryptoforknote-util.git#v1.0.0",
-     "cryptonight-hashing": "git+https://github.com/MoneroOcean/node-cryptonight-hashing.git#v2.0.0"
+     "cryptoforknote-util": "git+https://github.com/MoneroOcean/node-cryptoforknote-util.git#v2.0.0",
+     "cryptonight-hashing": "git+https://github.com/MoneroOcean/node-cryptonight-hashing.git#v2.2.0"
 -  }
 +  },
 +  "bin": "server.js",
