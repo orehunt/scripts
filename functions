@@ -18,28 +18,37 @@ newfd() {
     eval "exec $fd>&-" &>/dev/null
     local pp=".$(rand_string 8)"
     mkfifo $pp
+    unset "$1"
     eval "exec {$1}<>$pp"
     # unlink the named pipe
-    rm $pp
+    rm -f $pp
 }
 
 ## https://unix.stackexchange.com/a/407383/163931
 fleep()
 {
-    [[ -n "${_snore_fd:-}" ]] || newfd _snore_fd
-    read ${1:+-t "$1"} -u $_snore_fd || :
+    log "fleep called by ${FUNCNAME[1]}"
+    log "fleep checking fd"
+    [ -n "${_snore_fd}" ] ||
+        newfd _snore_fd
+    log "fleep starting waiting"
+    command >&${_snore_fd} &&
+        read ${1:+-t "$1"} -u $_snore_fd ||
+            :
 }
 
 ## wait for command $@ to finish in $1 time
 timeout() {
-    local to=$1
+    local to=${1:-10}
     shift
     eval "$*" & local wp=$! start=0
     log "starting timeout loop"
     while kill -0 $wp; do
         log "waiting for $wp"
         fleep 1
+        log "after fleep"
         start=$((start+1))
+        log "after start"
         if [ $start -ge $to ]; then
             log "timeout done killing $wp"
             kill -9 $wp && break
@@ -66,6 +75,11 @@ step() {
 log() {
     [ -n "$VERBOSE" ] &&
         eval "echo $(date '+%m/%d@%H:%M:%S') \"$1\" >> ${2:-/tmp/.debug_log}"
+}
+
+clear_log() {
+    [ -f "${1:-/tmp/.debug_log}" ] &&
+        echo '' >${1:-/tmp/.debug_log}
 }
 
 ## increase $1 by $2 or 1 by def
@@ -573,6 +587,62 @@ escape_brackets() {
     tmpstr=${tmpstr//\}/\\\}}
     echo "$tmpstr"
 }
+
+## output the content of a file with shuffled lines
+shuffle() {
+    local IFS=$'\n' tail=
+    while read l; do
+        if [ $((RANDOM%2)) = 1 ]; then
+            echo "$l"
+        else
+            tail="${tail}${l}\n"
+
+        fi
+    done < $1
+    printf "${tail}"
+}
+
+ushuffle() {
+    declare -a lines
+    local c=0
+    while read l; do
+        [ "$l" != '$\n' ] &&
+            {
+                lines[$c]=${l}
+                (( c++ ))
+            }
+    done < $1
+    randomize "${lines[@]}"
+}
+
+randomize()
+{
+    arguments=($@)
+    declare -a out
+    i="$#"
+    j="0"
+
+    while [[ $i -ge "0" ]] ; do
+        which=$(random_range "0" "$i")
+        out[j]="${arguments[$which]}"
+        arguments[$which]=${arguments[i]}
+        (( i-- ))
+        (( j++ ))
+    done
+    printf '%s\n' ${out[*]}
+}
+
+random_range()
+{
+    low=$1
+    range=$(($2 - $1))
+    if [[ range -ne 0 ]]; then
+        echo $(($low+$RANDOM % $range))
+    else
+        echo "$1"
+    fi
+}
+
 
 ## unset bash env apart excluded vars/funcs
 clear_env(){

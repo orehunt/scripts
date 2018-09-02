@@ -2,7 +2,7 @@
     "Debug": false,
     "Retries": 3,
     "ServeNodes": [
-        "${TNL_LISTEN_SCHEME:-tcp}://${TNL_LISTEN_ADDR:-127.255.255.254}:${TNL_LISTEN_PORT:-8080}/${TNL_LISTEN_TARGET}",
+        "${TNL_LISTEN_SCHEME:-tcp}://${TNL_LISTEN_ADDR1:-127.255.255.254}:${TNL_LISTEN_PORT:-8080}/${TNL_LISTEN_TARGET}",
         "${TNL_LISTEN_SCHEME:-tcp}://${TNL_LISTEN_ADDR2:-127.255.255.253}:${TNL_LISTEN_PORT:-8080}/${TNL_LISTEN_TARGET2}"
     ],
     "ChainNodes": [

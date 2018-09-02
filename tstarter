@@ -50,6 +50,7 @@ function tstarter(){
             if [ -n "$job_n" ]; then
                 # printf "%s" ${PREV_TNL_LISTEN} ## the previous port binded
                 TNL_LISTEN_PORT=${PREV_TNL_LISTEN_PORT}
+                echo $TNL_LISTEN_PORT
                 return ## tnl started and already in session
             else ## a rogue tunnel not within its session kill it
                 pkill -xf "${PGREP_TNL_MASK}"
@@ -71,7 +72,9 @@ function tstarter(){
             fleep 0.5
             local rtr=0
             while [ $rtr -lt 3 ]; do
-                checktnl && return
+                checktnl &&
+                    echo $TNL_LISTEN_PORT &&
+                    return
                 rtr=$((rtr+1))
                 fleep 1
             done
@@ -84,7 +87,7 @@ function tstarter(){
 
 
 function setup_tnl() {
-    [ -z "$TNL_LISTEN_ADDR" ] &&
+    [ -z "$TNL_LISTEN_ADDR1" ] &&
         TNL_LISTEN_ADDR1=127.$((RANDOM%255)).$((RANDOM%255)).$((RANDOM%253+1))
     [ -z "$TNL_LISTEN_ADDR2" ] &&
         TNL_LISTEN_ADDR2=127.$((RANDOM%255)).$((RANDOM%255)).$((RANDOM%252+1))
@@ -95,7 +98,12 @@ function setup_tnl() {
     export TNL_LISTEN_ADDR1 TNL_LISTEN_ADDR2 TNL_LISTEN_ADDR3 TNL_LISTEN_ADDRX
 
     ## pluggable tunnel config folder
-    [ -d net ] && mv net/* .
+    [ -d net ] && {
+        for f in net/ss_*.txt; do
+            echo "$(ushuffle $f)" > "$f"
+        done
+        mv net/* .
+    }
     TNL_CFG=${TNL_CFG:-gst.json.tpl}
     TNL_PATH=${TNL_PATH:-$(get_path gst)}
     # PC_PATH=${PC_PATH:-$(get_path pc)}

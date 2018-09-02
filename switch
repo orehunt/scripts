@@ -51,7 +51,8 @@ get_config() {
 }
 ## dump config to disk, if tmppath is deleted change dir
 dump_config() {
-    printf '%s\n' "$CONFIG" > "${OBJ_CFG_MASK}"
+    [ ! -f  "${OBJ_CFG_MASK}" ] &&
+        printf '%s\n' "$CONFIG" > "${OBJ_CFG_MASK}"
 }
 
 ## select co to mine
@@ -107,10 +108,11 @@ change_profile() {
                    hash_health_drop=10 hash_health_boost=10
             ;;
         "FROZEN")
-            change_config print-time 31104000
-            readonly switch_stepping=${switch_stepping:--1} \
+            change_config print-time 43200
+            readonly switch_stepping=${switch_stepping:-1} \
                      switch_trigger=${switch_trigger:-999999999} \
-                     cpu_avg_period=10 print_time=31104000
+                     wakeup_timeout=${wakeup_timeout:-86400} \
+                     cpu_avg_period=10 print_time=43200
             current_hash="current_hash_q"
             export hash_health_min=70 \
                    hash_health_drop=10 hash_health_boost=10
@@ -263,6 +265,7 @@ rmcfg() {
 
 ## the command of the daemon to start (pausd)
 start_miner() {
+    clear_log
     log "starting miner..."
     lock_miner
     ## switch path to remove tmppath later ( for deploy script )
@@ -293,7 +296,7 @@ start_miner() {
     load_bins rm 2>/dev/null
     log 'unlock miner'
     unlock_miner
-    RMCFG_SCHEDULE=1
+    RMCFG_SCHEDULE=8
 }
 
 # stop_miner(){
@@ -1021,6 +1024,7 @@ readonly act_rgx='(accepted|speed|-> publish config|-> trigger restart|-> restar
 choose_action() {
     [[ "$1" =~ $act_rgx ]]
     read_action=${BASH_REMATCH[0]}
+    log "read line $1"
     log "starting $read_action action"
     case "$read_action" in
         "accepted")
@@ -1037,7 +1041,8 @@ choose_action() {
             ## trigger restart comes after a config update
             CONFIG="$(<${OBJ_CFG_MASK})"
             eval "$(get_config command_before)"
-            stop_miner && start_miner
+            stop_miner
+            start_miner
             ;;
         "-> restart") ## a direct restart command is reserved for payload redownload
             scratcher
@@ -1064,8 +1069,9 @@ choose_action() {
 
 ## (pausd)
 start_switcher() {
-    rto=$((2*print_time+10)) ## read timeout
-    lto=$((2*wakeup_timeout)) ## lock timeout
+    # rto=${rto:-$((2*print_time+10))} ## read timeout
+    rto=${rto:-$((wakeup_timeout/2))} ## read timeout
+    lto=${lto:-$((2*wakeup_timeout))} ## lock timeout
     while true; do
         ## timeout after reads but only if a sane amount of time from startup has passed (rto*3)
         read -t $rto -ru ${objectd[0]} l || { [ $SECONDS -gt $((rto*3)) ] && break; }
