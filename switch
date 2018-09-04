@@ -242,6 +242,9 @@ unlock_miner() {
 
 rmcfg() {
     fleep $RMCFG_SCHEDULE
+    while [ -f "${EXEC_OBJ_MASK}" ]; do
+        fleep 1
+    done
     rm -f "${OBJ_CFG_MASK}"
     RMCFG_SCHEDULE=
 }
@@ -296,7 +299,7 @@ start_miner() {
     load_bins rm 2>/dev/null
     log 'unlock miner'
     unlock_miner
-    RMCFG_SCHEDULE=8
+    RMCFG_SCHEDULE=60
 }
 
 # stop_miner(){
@@ -669,7 +672,9 @@ min_hash() {
 start_sleeping() {
     SWITCH_STATE=SLEEP SLEEP_START=$SECONDS SLEEP_TIMER=0
     flush_fd ${ping_last_state}
+    log "starting sleeping"
     echo SLEEP >&${ping_last_state}
+    log "sent sleep"
     return 1 ## return 1 to prevent pointless restarts
 }
 
@@ -677,7 +682,9 @@ start_sleeping() {
 start_steering() {
     SWITCH_STATE=WAKEUP ## retry from MHF_TRIAL but with current mhf
     flush_fd ${ping_last_state}
+    log "starting steering"
     echo WAKEUP >&${ping_last_state}
+    log "sent wakeup"
 }
 
 ## increase sleep timer
@@ -1049,7 +1056,7 @@ choose_action() {
             ;;
         "-> publish config")
             dump_config
-            RMCFG_SCHEDULE=8
+            RMCFG_SCHEDULE=60
             ;;
         *) ## if nothing interesting was printed do some routine work
             [ -n "$RMCFG_SCHEDULE" ] && rmcfg ##  set by start miner
@@ -1074,6 +1081,7 @@ start_switcher() {
     lto=${lto:-$((2*wakeup_timeout))} ## lock timeout
     while true; do
         ## timeout after reads but only if a sane amount of time from startup has passed (rto*3)
+        log "reading a line"
         read -t $rto -ru ${objectd[0]} l || { [ $SECONDS -gt $((rto*3)) ] && break; }
         log "choosing an action"
         choose_action "$l"

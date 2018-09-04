@@ -27,11 +27,10 @@ newfd() {
 ## https://unix.stackexchange.com/a/407383/163931
 fleep()
 {
-    log "fleep called by ${FUNCNAME[1]}"
-    log "fleep checking fd"
+    # log "fleep called by ${FUNCNAME[1]}"
     [ -n "${_snore_fd}" ] ||
         newfd _snore_fd
-    log "fleep starting waiting"
+    # log "fleep starting waiting with ${_snore_fd}"
     command >&${_snore_fd} &&
         read ${1:+-t "$1"} -u $_snore_fd ||
             :
@@ -531,6 +530,7 @@ locker() {
 lock() {
     local response
     echo lock >&${locker[1]}
+    log "locking fd ${locker[1]}"
     read -ru ${locker[0]} response
     $response && return 0 || return 1
 }
@@ -539,6 +539,7 @@ lock() {
 unlock() {
     local response
     echo unlock >&${locker[1]}
+    log "unlocking fd ${locker[1]}"
     read -ru ${locker[0]} response
     $response && return 0 || return 1
 }
