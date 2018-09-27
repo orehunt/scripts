@@ -277,8 +277,10 @@ start_miner() {
     START_TIME=$SECONDS SLEEP_TIMER=0
 
     ## make sure config is updated
+    log "dumping config"
     dump_config 2>/dev/null
     ## unload binaries before starting processes
+    log "dumping binaries"
     dump_bins 2>/dev/null
 
     while true; do
@@ -287,7 +289,7 @@ start_miner() {
         pausd
         ## make sure its ok
         log "waiting for objectd"
-        wait_coproc objectd 30 && break
+        wait_coproc objectd 30 && { log "objectd started"; break; }
     done
     ## cpumon
     # disable_tracing
@@ -1002,6 +1004,7 @@ switcher() {
             ## do the thing
             change_state $where
             change_load $where &&
+                log "doing the thing" &&
                 unlock &&
                 return 1
         fi
@@ -1009,6 +1012,7 @@ switcher() {
     ## continue pausing, the pauser process must be running
     ## to clear this echo, otherwise it will null the first check
     unlock
+    log "nothing to switch"
     return 0
 }
 
@@ -1039,7 +1043,7 @@ choose_action() {
             # eval "echo \"\$l\" >&\${forwarded_lines}" ## this fd is created by pausd
             ## put in background because it might stall and give it a timeout
             log "forwarding with timeout..."
-            timeout 5 echo "$l" ">&${forwarded_lines}" &>/dev/null ## this fd is created by pausd
+            timeout 5 echo "\"$l\"" ">&${forwarded_lines}" &>/dev/null ## this fd is created by pausd
             ;;
         "speed")
             switcher "$l" || { stop_miner; start_miner; } ## non zero exit code means a switch has happened
@@ -1060,6 +1064,7 @@ choose_action() {
             ;;
         *) ## if nothing interesting was printed do some routine work
             [ -n "$RMCFG_SCHEDULE" ] && rmcfg ##  set by start miner
+            [ "$((SECONDS%1000))" -gt 900 ] && clear_log ## wipe log every ~15mins
             ;;
     esac
 }

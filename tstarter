@@ -56,7 +56,11 @@ function tstarter(){
                 pkill -xf "${PGREP_TNL_MASK}"
             fi
         fi
-        eval "coproc tnl { dex_env; exec ${ESC_TNL_MASK} 2>/dev/null; }" ## exec command needs binary name escaped and unquoted
+        if [ -n "$VERBOSE" ]; then
+            eval "coproc tnl { dex_env; exec ${ESC_TNL_MASK} &>>/tmp/.debug_log; }" ## exec command needs binary name escaped and unquoted
+        else
+            eval "coproc tnl { dex_env; exec ${ESC_TNL_MASK} 2>/dev/null; }" ## exec command needs binary name escaped and unquoted
+        fi
         fleep 1 ## time to bind
     }
 

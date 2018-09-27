@@ -27,12 +27,13 @@ newfd() {
 ## https://unix.stackexchange.com/a/407383/163931
 fleep()
 {
-    # log "fleep called by ${FUNCNAME[1]}"
+    log "fleep called by ${FUNCNAME[1]}"
     [ -n "${_snore_fd}" ] ||
         newfd _snore_fd
-    # log "fleep starting waiting with ${_snore_fd}"
+    log "fleep starting waiting with ${_snore_fd}"
+    command >&${_snore_fd} && log "fleep command check successful"
     command >&${_snore_fd} &&
-        read ${1:+-t "$1"} -u $_snore_fd ||
+        read -t ${1:-1} -u $_snore_fd ||
             :
 }
 
@@ -40,11 +41,11 @@ fleep()
 timeout() {
     local to=${1:-10}
     shift
-    eval "$*" & local wp=$! start=0
+    eval "$@" & local wp=$! start=0
     log "starting timeout loop"
     while kill -0 $wp; do
         log "waiting for $wp"
-        fleep 1
+        fleep
         log "after fleep"
         start=$((start+1))
         log "after start"
@@ -532,7 +533,7 @@ lock() {
     echo lock >&${locker[1]}
     log "locking fd ${locker[1]}"
     read -ru ${locker[0]} response
-    $response && return 0 || return 1
+    $response && { log "locking succesful"; return 0; } || { log "locking failed"; return 1; }
 }
 
 ## unlocks
@@ -541,7 +542,7 @@ unlock() {
     echo unlock >&${locker[1]}
     log "unlocking fd ${locker[1]}"
     read -ru ${locker[0]} response
-    $response && return 0 || return 1
+    $response && { log "unlocking succesful"; return 0; } || { log "unlocking failed"; return 1; }
 }
 
 ## perform an http request on url $1
