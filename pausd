@@ -67,6 +67,8 @@ function pinger() {
                 read ## wait for the pingback
                 log "pinger: lock was broken"
             fi
+        else
+            resume ## if state is not sleep, make sure objectd is resumed
         fi
     done
 }

@@ -124,6 +124,7 @@ change_profile() {
                      wakeup_timeout=${wakeup_timeout:-3600} \
                      cpu_avg_period=5 print_time=15
             current_hash="current_hash_m"
+            echo WAKEUP >&${ping_last_state}
             export hash_health_min=70 \
                    hash_health_drop=10 hash_health_boost=10
             ;;
@@ -837,9 +838,7 @@ change_state(){
                     ;;
                 "SLEEP")
                     if [ $SLEEP_TIMER -ge $wakeup_timeout ]; then
-                        SWITCH_STATE=WAKEUP ## retry from MHF_TRIAL but with current mhf
-                        flush_fd ${ping_last_state}
-                        echo WAKEUP >&${ping_last_state}
+                        start_steering ## retry from MHF_TRIAL but with current mhf
                     fi
                     ;;
             esac
@@ -953,9 +952,7 @@ change_state(){
                     ;;
                 "SLEEP")
                     if [ $SLEEP_TIMER -ge $wakeup_timeout ]; then
-                        SWITCH_STATE=WAKEUP
-                        flush_fd ${ping_last_state}
-                        echo WAKEUP >&${ping_last_state}
+                        start_steering
                     fi
                     ;;
             esac
