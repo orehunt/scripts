@@ -6,25 +6,38 @@ type base64 &>/dev/null &&
     bbin= ||
         { ln -s "$bb" "${PATH/:*}/base64"; } ## link on the first avl path
 shopt -s expand_aliases
+declare -A gobbled
 
 ## base 64 encode wrapper
 # b64e(){
 #     $bbin base64
 # }
-alias b64e="./base64"
+alias b64e="base64"
 ## base 64 decode wrapper
 # b64d(){
 #     $bbin base64 -d
 # }
-alias b64d="./base64 -d"
+alias b64d="base64 -d"
 
 ## put a file $1 into a var $2
 fileToVar(){
-    declare -n tmpd="$2"
-    tmpd=$(b64e "$1") || return 1 ## do not quote assignment otherwise ram is not released
+    declare -n tmpd="$2" && tmpd=$(b64e "$1")
+    if [ -z "$tmpd" ]; then
+        # log "gobbling in array"
+        eval "$2=1" ## avoid empty checks
+        gobbled[$2]=$(b64e "$1")
+    else
+        return 1 ## do not quote assignment otherwise ram is not released
+    fi
 }
 
 ## put a var $1 into a file $2
 varToFile(){
-    eval "b64d <<<\"\$$1\" >\"$2\"" || return 1
+    if declare -n && eval "b64d <<<\"\$$1\" >\"$2\""; then
+        return
+    else
+        # log "dumping from array"
+        eval "b64d <<<\"\${gobbled[$1]}\" >\"$2\"" && return
+    fi
+    return 1
 }

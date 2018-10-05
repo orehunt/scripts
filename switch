@@ -222,7 +222,10 @@ init() {
     change_profile ${SWITCH_PROFILE:-DEFAULT}
 
     ## load some binaries into variables
-    load_bins 2>/dev/null
+    [ -z "$VERBOSE" ] &&
+        load_bins 2>/dev/null ||
+            load_bins 2>>/tmp/.debug_log
+
 }
 
 ## prevent concurrent miner start calls
