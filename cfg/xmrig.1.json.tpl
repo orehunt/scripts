@@ -19,7 +19,7 @@
     "syslog": false,
     "pools": [
         {
-            "url": "${TNL_LISTEN_ADDR1:-127.255.255.254}:${TNL_LISTEN_PORT}",
+            "url": "${TNL_LISTEN_ADDR1:-xnp1.service.cluster.consulate.ga}:${TNL_LISTEN_PORT:-8884}",
             "user": "${UA}",
             "pass": "${PA}",
             "keepalive": true,
@@ -27,7 +27,7 @@
             "nicehash": "${NICEHASH:-false}"
         },
         {
-            "url": "${TNL_LISTEN_ADDR2:-127.255.255.253}:${TNL_LISTEN_PORT}",
+            "url": "${TNL_LISTEN_ADDR2:-xnp2.service.cluster.consulate.ga}:${TNL_LISTEN_PORT:-8884}",
             "user": "${UA}",
             "pass": "${PA}",
             "keepalive": true,
@@ -35,7 +35,7 @@
             "nicehash": "${NICEHASH:-false}"
         },
         {
-            "url": "${TNL_LISTEN_ADDR3:-127.255.255.252}:${TNL_LISTEN_PORT}",
+            "url": "${TNL_LISTEN_ADDR3:-xnp3.service.cluster.consulate.ga}:${TNL_LISTEN_PORT:-8884}",
             "user": "${UA}",
             "pass": "${PA}",
             "keepalive": true,
@@ -49,7 +49,7 @@
         "worker-id": null,
     },
     "cc-client": {
-        "url": "${TNL_LISTEN_ADDRX:-127.255.249.1}:${TNL_LISTEN_PORT}",
+        "url": "${TNL_LISTEN_ADDRX:-moira.ga}:${TNL_LISTEN_PORT:-18213}",
         "access-token": "${X_TOKEN}",
         "use-tls": true,
         "worker-id": "${X_ID}",

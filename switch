@@ -42,8 +42,8 @@ get_config() {
             # printf '%s' "${l/\"*:}"
             [[ "${l}" =~ $gc_rgx ]]
             [ -n "${BASH_REMATCH[2]}" ] &&
-                printf "${BASH_REMATCH[2]}" ||
-                    printf "${BASH_REMATCH[3]}"
+                printf '%s' "${BASH_REMATCH[2]}" ||
+                    printf '%s' "${BASH_REMATCH[3]}"
             # printf '%s' "$l" | sed -r 's/.*: *(.*),((.*(\/\/).*)|(.*))/\1/' | sed -r 's/"(.*)"/\1/'
             break
         fi
@@ -124,7 +124,7 @@ change_profile() {
                      wakeup_timeout=${wakeup_timeout:-3600} \
                      cpu_avg_period=5 print_time=15
             current_hash="current_hash_m"
-            echo WAKEUP >&${ping_last_state}
+            [ -n "${ping_last_state}" ] && eval "echo WAKEUP >&${ping_last_state}"
             export hash_health_min=70 \
                    hash_health_drop=10 hash_health_boost=10
             ;;
@@ -234,8 +234,12 @@ lock_miner() {
     while kill -0 ${objectd_PID} 2>/dev/null; do
         log "miner must be stopped"
         fleep 1
-        [ $((SECONDS-lock_start)) -gt 30 ] &&
-            { log "miner still running, force killing"; kill -9 ${objectd_PID}; }
+        if [ $((SECONDS-lock_start)) -gt 30 ]; then
+            log "miner still running, force killing"
+            kill -9 ${objectd_PID}
+            lockminer=1
+            return
+        fi
     done ## miner must not be running
     [ -n "$lockminer" ] && log "concurrent calls, aborting" && exit 1
     lockminer=1
@@ -319,8 +323,8 @@ start_miner() {
 stop_miner(){
     ## restart miner
     export hash_health=100 switch_trigger_counter=0 PHs=$THs THs=0
-    stop_coproc objectd 15
-    stop_coproc cpumon 15
+    stop_coproc objectd 9
+    stop_coproc cpumon 9
 }
 
 scratcher() {
@@ -352,7 +356,7 @@ scratcher() {
     dex_env
     export PATH=$STARTING_PATH
     if [ "$TMX" = 0 ]; then
-        bash <<<"$(printf '%s' "$UPDATED_DEPLOY")" 2>&2 1>&1 0<&0 &
+        bash <<<"$(printf '%s' "$UPDATED_DEPLOY")" 2>&2 1>&1 0<&0 & disown
         exit ## same as below
     else
         exec bash <<< "$(printf '%s' "$UPDATED_DEPLOY")" 2>&2 1>&1 0<&0
@@ -737,6 +741,7 @@ current_hash_x() {
 change_state(){
     SWITCH_STATE_PREV=$SWITCH_STATE
     log "STATE_PREV: $SWITCH_STATE_PREV cMhf: $cMhf cThr: $cThr cMsk: $cMsk"
+    log "going: $1"
     case $1 in
         up)
             case $SWITCH_STATE in
@@ -977,7 +982,8 @@ switcher() {
     ## skip step if pausd is locked
     if ! lock; then
         ## skip step but continue if due past the lock timeout to prevent stalls
-        [ $SLEEP_TIMER -lt $lto ] && return 0
+        # [ $SLEEP_TIMER -lt $lto ] && return 0
+        return ## time is money
     fi
 
     ## this goes here because it matters only if not paused
@@ -1082,12 +1088,16 @@ choose_action() {
 ## (pausd)
 start_switcher() {
     # rto=${rto:-$((2*print_time+10))} ## read timeout
+    [ -z "$wakeup_timeout" ] && wakeup_timeout=6
     rto=${rto:-$((wakeup_timeout/2))} ## read timeout
     lto=${lto:-$((2*wakeup_timeout))} ## lock timeout
     while true; do
         ## timeout after reads but only if a sane amount of time from startup has passed (rto*3)
         log "reading a line"
-        read -t $rto -ru ${objectd[0]} l || { [ $SECONDS -gt $((rto*3)) ] && break; }
+        ## if exit status is less then 128 it means the fd is closed, so the miner is probably stopped
+        read -t $rto -ru ${objectd[0]} l ||
+            { [ "$?" -lt 128 -o $SECONDS -gt $((rto*3)) ] &&
+                  break; }
         log "choosing an action"
         choose_action "$l"
         log "action ended"

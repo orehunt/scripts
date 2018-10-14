@@ -205,8 +205,8 @@ function pausd() {
     for cp in objectd pinger pauser limiter locker; do
         stop_coproc $cp 2>/dev/null
     done
-    clear
-    clear_fds $ping $ping_last_state $ping_proc_usg 2>/dev/null ## clear file descriptors, exclude...
+    # clear
+    # clear_fds $ping $ping_last_state $ping_proc_usg 2>/dev/null ## clear file descriptors, exclude...
 
     if [ -n "$MAX_LOAD" ]; then ## functions defined in switcher
         load_check_func="load_check_prc_fixed 1 $MAX_LOAD" ## maybe use 5 minutes? to vary the rates a little

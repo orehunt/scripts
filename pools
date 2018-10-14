@@ -1,0 +1,24 @@
+#!/bin/bash
+
+pool=$(cat <<'POOL'
+{
+    \"url\": \"${URL}\",
+    \"user\": \"${UA}\",
+    \"pass\": \"${PA}\",
+    \"keepalive\": true,
+    \"use-tls\": true,
+    \"nicehash\": \"${NICEHASH:-false}\"
+}
+POOL
+    )
+
+#declare -A POOLS
+export POOLS
+p=0
+for URL in $(<net/forwarders); do
+    POOLS="${POOLS}$(eval "printf '%s\n' \"$pool,\"")"
+    p=$((p+1))
+done
+
+echo "${POOLS}"
+./pl/envsubst -no-empty -i "cfg/xmrig_tnl_skip.1.json.tpl" -o "config.json"

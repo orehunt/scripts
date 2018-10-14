@@ -21,9 +21,9 @@ alias b64d="base64 -d"
 
 ## put a file $1 into a var $2
 fileToVar(){
-    declare -n tmpd="$2" && tmpd=$(b64e "$1")
+    declare -n tmpd="$2" && tmpd=$(b64e "$1") && return
     if [ -z "$tmpd" ]; then
-        # log "gobbling in array"
+        log "gobbling in array"
         eval "$2=1" ## avoid empty checks
         gobbled[$2]=$(b64e "$1")
     else

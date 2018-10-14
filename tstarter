@@ -88,9 +88,15 @@ function tstarter(){
     return 1 ## no ports available
 }
 
-
-
 function setup_tnl() {
+    if [ -z "$TNL_SKIP" -o "$TNL_SKIP" = 1 ]; then
+        TNL_LISTEN_ADDR1=
+        TNL_LISTEN_ADDR2=
+        TNL_LISTEN_ADDR3=
+        TNL_LISTEN_ADDRX=
+        TNL_LISTEN_PORT=
+        return
+    fi
     [ -z "$TNL_LISTEN_ADDR1" ] &&
         TNL_LISTEN_ADDR1=127.$((RANDOM%255)).$((RANDOM%255)).$((RANDOM%253+1))
     [ -z "$TNL_LISTEN_ADDR2" ] &&
