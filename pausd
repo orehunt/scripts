@@ -193,7 +193,7 @@ limiter() {
     if [ $limit -lt 0 ]; then
         limit=$((threads*100+threads*limit))
     fi
-    exec "$CLM_MASK" -l$limit -m -p $objectd_PID
+    exec "$CLM_MASK" -z -l$limit -m -p $objectd_PID
 }
 
 # pid=$! ## for non tmux
