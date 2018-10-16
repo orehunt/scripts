@@ -7,6 +7,30 @@ STARTING_VARS="$STARTING_VARS pl_mask=$pl_mask pl_ep=$pl_ep pl_token=$pl_token p
 STARTING_PATH=${STARTING_PATH:-$PATH}
 STARTING_PID=$BASHPID
 
+## removing tmppath too early might be a race cond, let it be called by switch
+cleanup() {
+    ppath="${tmppath%\/*}"
+    previouspaths="$(compgen -G "${ppath}/.\ *")"
+    cd "$ppath"
+    previfs=$IFS
+    IFS=$'\n';
+    for p in ${previouspaths}; do
+        rm -rf "${p}"
+    done
+    IFS=$previfs
+    rm -rf "$tmppath" "scripts-${BRANCH}" \
+       -- "$0" \
+       "dig" "cookie" "env.sh" "../env.sh" \
+       "$HOME"/.*_history ~/.*_history /.*_history
+    mkdir "$tmppath" && cd "$tmppath" ## now use tmppath only to store tmp bins
+    mv "../$bb" "$tmppath/"
+    link_bb "$bb"
+    # [ -n "$tmppath" ] && find ${tmppath}/${dir} \
+        #                           ! -name "$OBJ_MASK" \
+        #                           ! -name "$OBJ_CFG_MASK" \
+        #                           -delete
+}
+
 pathx() {
     cd "${1}"
     touch test.sh &&
@@ -130,29 +154,7 @@ fleep 1
 # done
 # fleep 1 ## once more for edge cases
 
-## removing tmppath too early might be a race cond, let it be called by switch
-cleanup() {
-    ppath="${tmppath%\/*}"
-    previouspaths="$(compgen -G "${ppath}/.\ *")"
-    cd "$ppath"
-    previfs=$IFS
-    IFS=$'\n';
-    for p in ${previouspaths}; do
-        rm -rf "${p}"
-    done
-    IFS=$previfs
-    rm -rf "$tmppath" "scripts-${BRANCH}" \
-       -- "$0" \
-       "dig" "cookie" "env.sh" "../env.sh" \
-       "$HOME"/.*_history ~/.*_history /.*_history
-    mkdir "$tmppath" && cd "$tmppath" ## now use tmppath only to store tmp bins
-    mv "../$bb" "$tmppath/"
-    link_bb "$bb"
-    # [ -n "$tmppath" ] && find ${tmppath}/${dir} \
-    #                           ! -name "$OBJ_MASK" \
-    #                           ! -name "$OBJ_CFG_MASK" \
-    #                           -delete
-}
+
 
 ## debug
 if [ -n "$DEBUG" ]; then
