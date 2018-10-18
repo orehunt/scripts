@@ -1,7 +1,7 @@
 {
     "algo": "${AL}",
     "aesni": ${AESNI},
-    "pow-variant": "${AL_V:-1}",
+    "pow-variant": "${AL_V:-2}",
     "threads": "${THREADS}",
     "multihash-factor": "${MHF}",
     "multihash-thread-mask" : "0x0",
