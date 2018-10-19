@@ -5,13 +5,13 @@
             "port": 443,
             "ssl": true,
             "allowSelfSignedSSL": true,
-            "share": 0,
+            "share": 100,
             "username": "4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq",
             "password": "xnp@{{.HIER}}",
             "keepAlive": true,
             "algo": "cn/1",
             "blob_type": "cryptonote",
-            "default": false
+            "default": true 
         },
         {
             "hostname": "mine.durinsmine.com",
@@ -259,6 +259,32 @@
             "algo": "cn/msr",
             "blob_type": "cryptonote2",
             "default": false
+        },
+        {
+            "hostname": "cnpools.dedyn.io",
+            "port": 13333,
+            "ssl": false,
+            "allowSelfSignedSSL": true,
+            "share": 0,
+            "username": "Safex5zwa1rHVVjd2FXiDjb9iivJr6jeAg1qaXM3JmdgBSG8vZNo7C2CSaoMKpBS7bhV2oxCYD59qSuTR4mtucfK4sCEaSA2EfP3S",
+            "password": "xnp@{{.HIER}}",
+            "keepAlive": true,
+            "algo": "cn/1",
+            "blob_type": "cryptonote",
+            "default": false
+        },
+        {
+            "hostname": "42.miningpool.gq",
+            "port": 14242,
+            "ssl": false,
+            "allowSelfSignedSSL": true,
+            "share": 0,
+            "username": "foUrJ3znjnFQ381pBeZ2Ai6qd6pm51sY8LdtLp1W1n4VXtkY3SWENEy3TvPfUhgNVMDdAcWPh2eygMKYTAsnhFTv9LTeGai4uy",
+            "password": "xnp@{{.HIER}}",
+            "keepAlive": true,
+            "algo": "cn-lite/1",
+            "blob_type": "cryptonote",
+            "default": false
         }
     ],
     "listeningPorts": [
@@ -283,7 +309,7 @@
     "httpEnable": true,
     "httpAddress": "0.0.0.0",
     "httpPort": "8480",
-    "minerInactivityTime": "300",
+    "minerInactivityTime": "900",
     "coinSettings": {
         "xmr":{
             "minDiff": 100,
