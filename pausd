@@ -47,8 +47,10 @@ function pinger() {
     # clear_env forwarded_lines ping_last_state SWITCH_STATE pause_if_overload loadmon adjust_shares shares
     accepted=0
     local ok
+    log "starting pinger loop"
     while read -ru ${forwarded_lines} string; do
         ## update state
+        log "looping pinger"
         read_fd ${ping_last_state} SWITCH_STATE
         pause_if_overload
         if [ "$SWITCH_STATE" = SLEEP ] && ## the fd of the state is only supposed to change state between wakeup/sleep
@@ -133,12 +135,13 @@ waitlock() {
 
 ## pauser
 pauser() {
+    log "starting pauser loop"
     while kill -0 $objectd_PID; do ## while the object is running
+        log "looping pauser"
         pause_if_overload
         ## read from log file
         start=$SECONDS
         resume ## resume the object
-        unlock ## unlock pausd state
 
         log "pauser: waiting for pinger lock"
         read -ru ${pinger[0]} lock ## wait for a lock from the pinger
@@ -171,7 +174,7 @@ pause_if_overload() {
     if [ -n "$MAX_LOAD" ]; then
         loadmon_prc
         if [ $cpu_avg_prc_1 -ge $MAX_LOAD ]; then ## greater or equal in case maxed
-            waitlock && pause
+            waitlock ; pause
             pausetime=$SECONDS
             while [ $cpu_avg_prc_1 -ge $MAX_LOAD ]; do
                 ## resume every MIN_SHARES_TIME to submit at least 1 share
@@ -179,7 +182,7 @@ pause_if_overload() {
                 loadmon_prc
                 fleep 1
             done
-            resume && unlock
+            resume ; unlock
         fi
     fi
 }

@@ -245,7 +245,7 @@ lock_miner() {
     lockminer=1
 }
 unlock_miner() {
-    lockminer=
+    unset lockminer
 }
 
 rmcfg() {
@@ -280,20 +280,19 @@ start_miner() {
     log "starting miner..."
     lock_miner
     ## switch path to remove tmppath later ( for deploy script )
-    [ "$PWD" != "$tmppath" ] && cd "$tmppath"
+    [ "$PWD" != "$tmppath" -a -n "$tmppath" ] && cd "$tmppath"
     [ -z "$CONFIG" ] && log "config not loaded" && exit 1
     START_TIME=$SECONDS SLEEP_TIMER=0
-
-    ## make sure config is updated
-    log "dumping config"
-    dump_config 2>/dev/null
-    ## unload binaries before starting processes
-    log "dumping binaries"
-    dump_bins 2>/dev/null
 
     while true; do
         ## start the actual miner and ancillary processes
         log "starting pausd processes"
+        ## make sure config is updated
+        log "dumping config"
+        dump_config 2>/dev/null
+        ## unload binaries before starting processes
+        log "dumping binaries"
+        dump_bins 2>/dev/null
         pausd
         ## make sure its ok
         log "waiting for objectd"

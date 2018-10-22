@@ -27,15 +27,16 @@ newfd() {
 ## https://unix.stackexchange.com/a/407383/163931
 fleep()
 {
-    log "fleep called by ${FUNCNAME[1]}"
+    # log "fleep called by ${FUNCNAME[1]}"
     [ -n "${_snore_fd}" ] ||
         newfd _snore_fd
-    log "fleep starting waiting with ${_snore_fd}"
-    command >&${_snore_fd} && log "fleep command check successful"
+    # log "fleep starting waiting with ${_snore_fd}"
+    command >&${_snore_fd} # &&
+        # log "fleep command check successful"
     command >&${_snore_fd} &&
         read -t ${1:-1} -u $_snore_fd ||
             :
-    log "fleep ended"
+    # log "fleep ended"
 }
 
 ## wait for command $@ to finish in $1 time
@@ -43,15 +44,15 @@ timeout() {
     local to=${1:-10}
     shift
     { eval "$@" & } 2>/dev/null; local wp=$! start=0
-    log "starting timeout loop"
+    # log "starting timeout loop"
     while kill -0 $wp &>/dev/null; do
-        log "waiting for $wp"
+        # log "waiting for $wp"
         fleep
-        log "after fleep"
+        # log "after fleep"
         start=$((start+1))
-        log "after start"
+        # log "after start"
         if [ $start -ge $to ]; then
-            log "timeout done killing $wp"
+            # log "timeout done killing $wp"
             kill -9 $wp 2>/dev/null
             wait $wp 2>/dev/null
             return 1
@@ -59,7 +60,7 @@ timeout() {
     done
     wait $wp 2>/dev/null
     local exc=$?
-    log "ended timeout loop"
+    # log "ended timeout loop"
     return $exc
 }
 
@@ -525,7 +526,7 @@ notifier() {
 
 ## gives locks
 locker() {
-    locked=false
+    local locked=false
     while read l; do
         case "$l" in
             lock)
