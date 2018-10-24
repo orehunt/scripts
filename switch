@@ -1047,8 +1047,9 @@ choose_action() {
             ## eval because the fd might be recreated
             # eval "echo \"\$l\" >&\${forwarded_lines}" ## this fd is created by pausd
             ## put in background because it might stall and give it a timeout
-            log "forwarding with timeout..."
+            log "forwarding with timeout...echo \"$l\" >&${forwarded_lines}"
             timeout 5 echo "\"$l\"" ">&${forwarded_lines}" &>/dev/null ## this fd is created by pausd
+            log "forwarded with timeout"
             ;;
         "speed")
             switcher "$l" || { stop_miner; start_miner; } ## non zero exit code means a switch has happened

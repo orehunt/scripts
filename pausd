@@ -172,7 +172,11 @@ pauser() {
 pause_if_overload() {
     local pausetime
     if [ -n "$MAX_LOAD" ]; then
-        loadmon_prc
+        if [ -n "$MAX_USG" ]; then
+            usgmon_prc 1 5
+        else
+            loadmon_prc
+        fi
         if [ $cpu_avg_prc_1 -ge $MAX_LOAD ]; then ## greater or equal in case maxed
             waitlock ; pause
             pausetime=$SECONDS

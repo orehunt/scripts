@@ -44,7 +44,7 @@ timeout() {
     local to=${1:-10}
     shift
     { eval "$@" & } 2>/dev/null; local wp=$! start=0
-    # log "starting timeout loop"
+    log "starting timeout loop"
     while kill -0 $wp &>/dev/null; do
         # log "waiting for $wp"
         fleep
@@ -60,7 +60,7 @@ timeout() {
     done
     wait $wp 2>/dev/null
     local exc=$?
-    # log "ended timeout loop"
+    log "ended timeout loop"
     return $exc
 }
 
@@ -189,6 +189,40 @@ get_pid_stats(){
             c=$((c+1));
         done
     uptimet=${pupt/.} && uptime=${uptimet/ *}
+}
+
+## for host total cpu usage monitoring every interval $1 for $2 times outputs value 0-100
+## improved from https://rosettacode.org/wiki/Linux_CPU_utilization#UNIX_Shell
+usgmon_prc(){
+    local PREV_TOTAL=0 PREV_IDLE=0 c=0
+    export cpu_avg_1 cpu_avg_5 cpu_avg_10
+    while [ $c -lt "${2:-3}" ]; do
+        unset CPU
+        local CPU
+        read -a CPU < /proc/stat
+        CPU=${CPU[@]:1}
+
+        # Get the total CPU statistics, discarding the 'cpu ' prefix.
+        IDLE=${CPU[4]} # Just the idle CPU time.
+
+        # Calculate the total CPU time.
+        TOTAL=0
+        for VALUE in "${CPU[@]:1}"; do
+            let "TOTAL=$TOTAL+$VALUE"
+        done
+
+        # Calculate the CPU usage since we last checked.
+        let "DIFF_IDLE=$IDLE-$PREV_IDLE"
+        let "DIFF_TOTAL=$TOTAL-$PREV_TOTAL"
+        let "DIFF_USAGE=(1000*($DIFF_TOTAL-$DIFF_IDLE)/$DIFF_TOTAL+5)/10"
+
+        # Remember the total and idle CPU times for the next check.
+        PREV_TOTAL="$TOTAL"
+        PREV_IDLE="$IDLE"
+        fleep ${1:-1}
+        c=$((c+1))
+    done
+    cpu_avg_prc_1=$DIFF_USAGE cpu_avg_prc_5=$DIFF_USAGE cpu_avg_prc_10=$DIFF_USAGE
 }
 
 # calc an unit of cpu usage with interval $1
@@ -337,18 +371,21 @@ id_job() {
 start_coproc() {
     local unset
     # eval "coproc $1 { $* & newfd ${1}_fd ; echo \$! >; wait; }"
-    if [ "$1" = exec ]; then
-        coproc_name="$2"
-    else
-        coproc_name="$1"
-    fi
+    while :; do
+        if [ "$1" = exec ]; then
+            coproc_name="$2"
+        else
+            coproc_name="$1"
+        fi
 
-    if [ -n "$UNSET_COPROC_VARS" ]; then
-        unset="unset $UNSET_COPROC_VARS;"
-    fi
+        if [ -n "$UNSET_COPROC_VARS" ]; then
+            unset="unset $UNSET_COPROC_VARS;"
+        fi
 
-    eval "coproc $coproc_name { $unset $*; }" # 2>/dev/null
-    unset UNSET_COPROC_VARS
+        eval "coproc $coproc_name { $unset $*; }" # 2>/dev/null
+        unset UNSET_COPROC_VARS
+        wait_coproc "$coproc_name" 3 && break
+    done
     # eval "read -ru \${$1[0]} ${coproc_name}_sub_pid"
 }
 
@@ -383,14 +420,13 @@ clear_fds() {
 
 ## wait for a coprocess named $1 to start
 wait_coproc() {
-    id_coproc "$1" && local jn=$job_n
     local passed=0
     local timeout=${2:-10}
-    [ -z "$jn" ] && return 1
     while :; do
-        eval "kill -0 %$jn" && return 0
+        id_coproc "$1"
+        [ -n "$job_n" ] && eval "kill -0 %$job_n" && return 0
         passed=$((passed+1))
-        [ $time -ge $timeout ] && return 1
+        [ $passed -ge $timeout ] && return 1
         fleep 1
     done
 }
@@ -527,7 +563,8 @@ notifier() {
 ## gives locks
 locker() {
     local locked=false
-    while read l; do
+    while true; do
+        read l
         case "$l" in
             lock)
                 if $locked; then
@@ -582,7 +619,7 @@ unlock() {
             { log "unlocking succesful"; return 0; } ||
                 { log "unlocking failed"; return 1; }
     else
-        { log "unlocking failed"; return 1; }
+        { log "unlocking timed out"; return 1; }
     fi
 }
 
