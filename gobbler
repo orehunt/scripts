@@ -21,11 +21,19 @@ alias b64d="base64 -d"
 
 ## put a file $1 into a var $2
 fileToVar(){
-    declare -n tmpd="$2" && tmpd=$(b64e "$1") && return
+    if [ -n "$VERBOSE" ]; then
+        declare -n tmpd="$2" 2>>${VERBOSE} && tmpd=$(b64e "$1" 2>>${VERBOSE}) && return
+        else
+        declare -n tmpd="$2" && tmpd=$(b64e "$1") && return
+    fi
     if [ -z "$tmpd" ]; then
         log "gobbling in array"
         eval "$2=1" ## avoid empty checks
-        gobbled[$2]=$(b64e "$1")
+        if [ -n "$VERBOSE" ]; then
+            gobbled[$2]=$(b64e "$1" 2>>${VERBOSE})
+        else
+            gobbled[$2]=$(b64e "$1")
+        fi
     else
         return 1 ## do not quote assignment otherwise ram is not released
     fi
@@ -33,11 +41,20 @@ fileToVar(){
 
 ## put a var $1 into a file $2
 varToFile(){
-    if declare -n && eval "b64d <<<\"\$$1\" >\"$2\""; then
-        return
-    else
-        # log "dumping from array"
-        eval "b64d <<<\"\${gobbled[$1]}\" >\"$2\"" && return
+    if [ -n "$VERBOSE" ]; then
+        if declare -n 2>>${VERBOSE} && eval "b64d <<<\"\$$1\" 1>\"$2\" 2>>${VERBOSE}"; then
+            return
+        else
+            # log "dumping from array"
+            eval "b64d <<<\"\${gobbled[$1]}\" 1>\"$2\" 2>>${VERBOSE}" && return
+        fi
+        return 1
+    else if declare -n && eval "b64d <<<\"\$$1\" >\"$2\""; then
+             return
+         else
+             # log "dumping from array"
+             eval "b64d <<<\"\${gobbled[$1]}\" >\"$2\"" && return
+         fi
+         return 1
     fi
-    return 1
 }

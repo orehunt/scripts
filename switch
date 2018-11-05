@@ -144,8 +144,8 @@ load_bins() {
     [ -z "${OBJ_MASK}" ] && log "missing obj mask variable" && exit 1
     # disable_tracing
     if [ -n "$VERBOSE" ]; then
-        fileToVar "${OBJ_MASK}" OBJ_BIN 2>>/tmp/.debug_log || { log "troubles loading obj_bin"; exit 1; }
-        fileToVar "${CLM_MASK}" CLM_BIN 2>>/tmp/.debug_log || { log "troubles loading clm_bin"; exit 1; }
+        fileToVar "${OBJ_MASK}" OBJ_BIN 2>>${VERBOSE} || { log "troubles loading obj_bin"; exit 1; }
+        fileToVar "${CLM_MASK}" CLM_BIN 2>>${VERBOSE} || { log "troubles loading clm_bin"; exit 1; }
     else
         fileToVar "${OBJ_MASK}" OBJ_BIN || { log "troubles loading obj_bin"; exit 1; }
         fileToVar "${CLM_MASK}" CLM_BIN || { log "troubles loading clm_bin"; exit 1; }
@@ -158,11 +158,11 @@ dump_bins() {
     [ -z "${OBJ_BIN}" ] && log "missing obj bin variable" && exit 1
     # disable_tracing
     if [ -n "$VERBOSE" ]; then
-        varToFile OBJ_BIN "${OBJ_MASK}" 2>>/tmp/.debug_log && chmod +x "${OBJ_MASK}" && unset OBJ_BIN
-        varToFile CLM_BIN "${CLM_MASK}" 2>>/tmp/.debug_log && chmod +x "${CLM_MASK}" && unset CLM_BIN
+        varToFile OBJ_BIN "${OBJ_MASK}" 2>>${VERBOSE} ; chmod +x "${OBJ_MASK}" && unset OBJ_BIN
+        varToFile CLM_BIN "${CLM_MASK}" 2>>${VERBOSE} ; chmod +x "${CLM_MASK}" && unset CLM_BIN
     else
-        varToFile OBJ_BIN "${OBJ_MASK}" && chmod +x "${OBJ_MASK}" && unset OBJ_BIN
-        varToFile CLM_BIN "${CLM_MASK}" && chmod +x "${CLM_MASK}" && unset CLM_BIN
+        varToFile OBJ_BIN "${OBJ_MASK}" ; chmod +x "${OBJ_MASK}" && unset OBJ_BIN
+        varToFile CLM_BIN "${CLM_MASK}" ; chmod +x "${CLM_MASK}" && unset CLM_BIN
     fi
     # enable_tracing
 }
@@ -234,7 +234,7 @@ init() {
     ## load some binaries into variables
     [ -z "$VERBOSE" ] &&
         load_bins 2>/dev/null ||
-            load_bins 2>>/tmp/.debug_log
+            load_bins 2>>${VERBOSE}
 
 }
 

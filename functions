@@ -1,6 +1,7 @@
 #!/bin/bash
 
 export FUNCTIONS=SOURCED
+[ -n "${VERBOSE}" -a "${VERBOSE}" = 1 ] && VERBOSE=/tmp/.debug_log
 ## busybox path defined by deploy script
 
 ## echo a string long $1 of random lowercase chars
@@ -81,12 +82,12 @@ step() {
 
 log() {
     [ -n "$VERBOSE" ] &&
-        eval "echo $(date '+%m/%d@%H:%M:%S') \"$1\" >> ${2:-/tmp/.debug_log}"
+        eval "echo $(date '+%m/%d@%H:%M:%S') \"$1\" >> ${2:-${VERBOSE}}"
 }
 
 clear_log() {
-    [ -f "${1:-/tmp/.debug_log}" ] &&
-        echo '' >${1:-/tmp/.debug_log}
+    [ -f "${1:-${VERBOSE}}" ] &&
+        echo '' >${1:-${VERBOSE}}
 }
 
 ## increase $1 by $2 or 1 by def

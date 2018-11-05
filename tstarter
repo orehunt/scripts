@@ -57,7 +57,7 @@ function tstarter(){
             fi
         fi
         if [ -n "$VERBOSE" ]; then
-            eval "coproc tnl { dex_env; exec ${ESC_TNL_MASK} &>>/tmp/.debug_log; }" ## exec command needs binary name escaped and unquoted
+            eval "coproc tnl { dex_env; exec ${ESC_TNL_MASK} &>>${VERBOSE}; }" ## exec command needs binary name escaped and unquoted
         else
             eval "coproc tnl { dex_env; exec ${ESC_TNL_MASK} 2>/dev/null; }" ## exec command needs binary name escaped and unquoted
         fi
