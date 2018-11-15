@@ -50,29 +50,36 @@ function pinger() {
     log "starting pinger loop"
     while read -ru ${forwarded_lines} string; do
         ## update state
-        log "looping pinger"
+        log "pinger: reading switch state"
         read_fd ${ping_last_state} SWITCH_STATE
+        log "pinger: pausing if overload"
         pause_if_overload
+        log "pinger: checking accepted string"
         if [ "$SWITCH_STATE" = SLEEP ] && ## the fd of the state is only supposed to change state between wakeup/sleep
                [ "${string/accepted}" != "${string}" ]; then
             accepted=$((accepted + 1))
             # echo "accepted shares: $accepted, max shares: $shares" >> /tmp/pausd_pinger
             ## adjust shares
             # read_fd ${ping_rate} rate ## update rate calculated by pauser
+            log "pinger: monitoring load"
             loadmon ## update cpu load
+            log "pinger: adjusting shares"
             adjust_shares
             if [ $accepted -ge $shares -a -z "$WHO_CARES" ]; then
                 ## message pauser
                 accepted=0
-                log "pinger: sending a lock"
+                log "pinger: sending lock"
                 echo lock
+                log "pinger: reading unlock"
                 read ## wait for the pingback
                 log "pinger: lock was broken"
             fi
         else
+            log "pinger: resuming"
             resume ## if state is not sleep, make sure objectd is resumed
         fi
     done
+    log "pinger: done"
 }
 
 ## adjust rate based on load
@@ -175,22 +182,30 @@ pause_if_overload() {
     local pausetime
     if [ -n "$MAX_LOAD" ]; then
         if [ -n "$MAX_USG" ]; then
+            log "pifo: usgmon"
             usgmon_prc 1 5
         else
+            log "pifo: loadmon"
             loadmon_prc
         fi
         if [ $cpu_avg_prc_1 -ge $MAX_LOAD ]; then ## greater or equal in case maxed
+            log "pifo: waitlock and pause"
             waitlock ; pause
             pausetime=$SECONDS
+            log "pifo: sleeping until within load"
             while [ $cpu_avg_prc_1 -ge $MAX_LOAD ]; do
                 ## resume every MIN_SHARES_TIME to submit at least 1 share
                 [ $((SECONDS-pausetime)) -gt ${MIN_SHARES_TIME:-60} ] && break
+                log "pifo: loadmon within sleep"
                 loadmon_prc
+                log "pifo: sleep"
                 fleep 1
             done
+            log "pifo: resume and unlock"
             resume ; unlock
         fi
     fi
+    log "pifo: done"
 }
 
 ## limiter
@@ -237,13 +252,13 @@ function pausd() {
     ## start the pinger
     newfd forwarded_lines
     newfd ping_last_state
+    ## the locker prevents pausing during switching
+    # UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
+    start_coproc locker
     # newfd ping_proc_usg
     # newfd ping_rate
     # UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
     start_coproc pinger
-    ## the locker prevents pausing during switching
-    # UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
-    start_coproc locker
     ## start pausing
     # newfd paus_proc_usg
     # UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
