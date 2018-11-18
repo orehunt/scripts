@@ -1117,12 +1117,17 @@ start_switcher() {
         ## timeout after reads but only if a sane amount of time from startup has passed (rto*3)
         log "reading a line"
         ## if exit status is less then 128 it means the fd is closed, so the miner is probably stopped
-        read -t $rto -ru ${objectd[0]} l ||
-            { [ "$?" -lt 128 -o $SECONDS -gt $((rto*3)) ] &&
-                  break; }
-        log "choosing an action"
-        choose_action "$l"
-        log "action ended"
+        if kill -0 ${objectd_PID}; then
+            read -t $rto -ru ${objectd[0]} l ||
+                { [ "$?" -lt 128 -o $SECONDS -gt $((rto*3)) ] &&
+                      break; }
+            log "choosing an action"
+            choose_action "$l"
+            log "action ended"
+        else
+            ## no miner, restart it
+            break
+        fi
     done
     log "line read timeout!"
     fleep 1
