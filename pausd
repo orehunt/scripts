@@ -125,12 +125,12 @@ adjust_shares() {
 
 ## wrapper for resume command
 resume(){
-    echo r >&${objectd[1]} ## resume
+    echofd ${objectd[1]} r ## resume
 }
 
 ## wrapper for pause command
 pause() {
-    echo p >&${objectd[1]} ## resume
+    echofd ${objectd[1]} p ## resume
 }
 
 ## wraper for the lock
@@ -153,7 +153,7 @@ pauser() {
         log "pauser: waiting for pinger lock"
         read -ru ${pinger[0]} lock ## wait for a lock from the pinger
         stop=$SECONDS
-        echo ok >&${pinger[1]}
+        echofd ${pinger[1]} ok
         log "pauser: received pinger lock, pausing"
         ## lock the pausd lock to prevent switcher from switching
         waitlock

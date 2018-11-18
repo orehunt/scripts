@@ -124,7 +124,7 @@ change_profile() {
                      wakeup_timeout=${wakeup_timeout:-3600} \
                      cpu_avg_period=5 print_time=15
             current_hash="current_hash_m"
-            [ -n "${ping_last_state}" ] && eval "echo WAKEUP >&${ping_last_state}"
+            [ -n "${ping_last_state}" ] && echofd ${ping_last_state} WAKEUP
             export hash_health_min=70 \
                    hash_health_drop=10 hash_health_boost=10
             ;;
@@ -703,7 +703,7 @@ start_sleeping() {
     SWITCH_STATE=SLEEP SLEEP_START=$SECONDS SLEEP_TIMER=0
     flush_fd ${ping_last_state}
     log "starting sleeping"
-    echo SLEEP >&${ping_last_state}
+    echofd ${ping_last_state} SLEEP
     log "sent sleep"
     return 1 ## return 1 to prevent pointless restarts
 }
@@ -713,7 +713,7 @@ start_steering() {
     SWITCH_STATE=WAKEUP ## retry from MHF_TRIAL but with current mhf
     flush_fd ${ping_last_state}
     log "starting steering"
-    echo WAKEUP >&${ping_last_state}
+    echofd ${ping_last_state} WAKEUP
     log "sent wakeup"
 }
 
@@ -1069,7 +1069,8 @@ choose_action() {
             # eval "echo \"\$l\" >&\${forwarded_lines}" ## this fd is created by pausd
             ## put in background because it might stall and give it a timeout
             log "forwarding with timeout...echo \"$l\" >&${forwarded_lines}"
-            timeout 5 echo "\"$l\"" ">&${forwarded_lines}" &>/dev/null ## this fd is created by pausd
+            echofd ${forwarded_lines} "$l" ## this fd is created by pausd
+            # timeout 5 echo "\"$l\"" ">&${forwarded_lines}" &>/dev/null ## this fd is created by pausd
             log "forwarded with timeout"
             ;;
         "speed")

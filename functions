@@ -32,7 +32,7 @@ fleep()
     [ -n "${_snore_fd}" ] ||
         newfd _snore_fd
     # log "fleep starting waiting with ${_snore_fd}"
-    command >&${_snore_fd} # &&
+    # command >&${_snore_fd} # &&
         # log "fleep command check successful"
     command >&${_snore_fd} &&
         read -t ${1:-1} -u $_snore_fd ||
@@ -63,6 +63,13 @@ timeout() {
     local exc=$?
     log "ended timeout loop"
     return $exc
+}
+
+## checks an fd $1 before echoing into it a string $@
+echofd() {
+    local fd=${1}; shift
+    command >&${fd} &&
+        echo "$@"
 }
 
 ##https://stackoverflow.com/a/8088167/2229761
