@@ -302,7 +302,7 @@ start_miner() {
         dump_config 2>/dev/null
         ## unload binaries before starting processes
         log "dumping binaries"
-        dump_bins 2>/dev/null
+        dump_bins
         pausd
         ## make sure its ok
         log "waiting for objectd"
@@ -760,8 +760,8 @@ current_hash_x() {
 ## select state depending on positive/negative hashrate
 change_state(){
     SWITCH_STATE_PREV=$SWITCH_STATE
-    log "STATE_PREV: $SWITCH_STATE_PREV cMhf: $cMhf cThr: $cThr cMsk: $cMsk"
-    log "going: $1"
+    log "change_state: $SWITCH_STATE_PREV cMhf $cMhf, cThr $cThr, cMsk $cMsk"
+    log "change_state: going $1"
     case $1 in
         up)
             case $SWITCH_STATE in
@@ -851,7 +851,7 @@ change_state(){
                     start_sleeping
                     ;;
                 "WAKEUP") ## from wakeup try to go up again, figuring where it left off
-                    log "waking up"
+                    log "change_state: waking up"
                     if [ $cMsk != 0x0 ] &&
                            [ $cThr -gt 1 ] &&
                            [ $cMhf -gt 1 ]; then
@@ -958,7 +958,7 @@ change_state(){
                     start_sleeping
                     ;;
                 "WAKEUP") ## since wakeup starts from max hash we go backwards (B) with the logic, mask->threads->mhf
-                    log "waking up"
+                    log "change_state: waking up"
                     if [ $cMsk != 0x1 ] &&
                            [ $cThr -gt 1 ] &&
                            [ $cMhf -gt 1 ]; then
@@ -987,7 +987,7 @@ change_state(){
             ;;
     esac
     pQ=$1
-    log "STATE_AFTER: $SWITCH_STATE cMhf: $cMhf cThr: $cThr cMsk: $cMsk"
+    log "change_state: $SWITCH_STATE cMhf $cMhf, cThr $cThr, cMsk $cMsk"
 }
 
 ## switch config and state depending on hashrate read from $1
@@ -996,49 +996,61 @@ switcher() {
     ## status updates
     loadmon 2>/dev/null
     sleep_timer
-    log "sleep timer is $SLEEP_TIMER"
-    log "switch state is $SWITCH_STATE"
+    log "switcher: sleep timer is $SLEEP_TIMER"
+    log "switcher: switch state is $SWITCH_STATE"
 
     ## skip step if pausd is locked
+    log "switcher: trying to lock"
     if ! lock; then
         ## skip step but continue if due past the lock timeout to prevent stalls
         # [ $SLEEP_TIMER -lt $lto ] && return 0
+        log "switcher: couldn't lock returning"
         return ## time is money
     fi
 
     ## this goes here because it matters only if not paused
+    log "switcher: reading cpumon"
     read_coproc cpumon PROC_USG
     # eval "echo $PROC_USG >&${ping_proc_usg}" ## forward to pinger to adjust rate/shares
     # eval "echo $PROC_USG >&${paus_proc_usg}" ## forward to pauser to adjust rate/shares
 
+    log "switcher: stepping"
     if step switchC $switch_stepping; then ## stepping triggered
         ## updated hash vars and sleep timer
+        log "switcher: calculating hashes"
         max_hash
         min_hash
         prev_hash
         $current_hash "$1"
         ## is hashrate healthy or sick
+        log "switcher: healthcheck"
         hash_check $XHs $CHs $PHs \
             && decr hash_health $hash_health_drop \
                 || incr hash_health $hash_health_boost
         incr switch_trigger_counter
+        log "switcher: evaluating trigger"
         if [ $switch_trigger_counter -ge $switch_trigger ]; then
             ## compare sickness ratio and decide what to do
+            log "switcher: deciding direction"
             [ $hash_health -le $hash_health_min ] \
                 && where=down \
                     || where=up
             ## do the thing
+            log "switcher: changing state"
             change_state $where
+            log "switcher: changing load"
             change_load $where &&
-                log "doing the thing" &&
-                unlock &&
-                return 1
+                { log "switcher: unlocking"
+                  unlock;
+                  log "switcher: return 1"
+                  return 1; }
         fi
     fi
     ## continue pausing, the pauser process must be running
     ## to clear this echo, otherwise it will null the first check
+    log "switcher: unlocking"
     unlock
-    log "nothing to switch"
+    log "switcher: return 0"
     return 0
 }
 
@@ -1111,7 +1123,7 @@ choose_action() {
 start_switcher() {
     # rto=${rto:-$((2*print_time+10))} ## read timeout
     [ -z "$wakeup_timeout" ] && wakeup_timeout=6
-    rto=${rto:-$((wakeup_timeout/2))} ## read timeout
+    rto=${rto:-$((print_time*3))} ## read timeout
     lto=${lto:-$((2*wakeup_timeout))} ## lock timeout
     while true; do
         ## timeout after reads but only if a sane amount of time from startup has passed (rto*3)
@@ -1137,10 +1149,15 @@ start_switcher() {
 start() {
     init
     cleanup ## after init we shouldn't need the payload anymore
+    log "main: starting main loop"
     while true; do
+        log "main: stopping miner"
         stop_miner &>/dev/null
+        log "main: starting miner"
         start_miner
+        log "main: starting switcher loop"
         start_switcher
+        log "main: switcher loop broke, restarting miner"
         fleep 5
     done
 }

