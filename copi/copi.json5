@@ -33,7 +33,7 @@
     },{
         name: "haproxy", // haproxy allows copi to access multiple consul agents
         exec: [
-            "hpr", "-f", "hpr.cfg",
+            "hpr", "-f", "run.hpr.cfg",
         ],
         restarts: "unlimited"
     },{
