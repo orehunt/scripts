@@ -570,9 +570,9 @@ notifier() {
 
 ## gives locks
 locker() {
-    local locked=false
+    locked=false
     while true; do
-        read l
+        read -s l
         case "$l" in
             lock)
                 if $locked; then
@@ -600,11 +600,11 @@ locker() {
 ## locks
 lock() {
     local response
-    command >&${locker[1]} &&
-        eval "echo lock >&${locker[1]}"
+    eval "echo lock >&${locker[1]}"
     log "locking fd ${locker[1]}"
-    read -t 0 -ru ${locker[0]} &&
-        eval "read -t 10 -ru ${locker[0]} response"
+    # read -t 0 -u ${locker[0]} ## do a read to avoid races
+    eval "read -t 10 -u ${locker[0]} response" ||
+        eval "read -t 10 -u ${locker[0]} response"
     if [ "$?" -lt 128 ]; then
         [ "$response" = yes ] && { log "locking succesful"; return 0; }
         [ "$response" = no ] && { log "locking failed"; return 1; }
@@ -617,11 +617,11 @@ lock() {
 ## unlocks
 unlock() {
     local response
-    command >&${locker[1]} &&
-        eval "echo unlock >&${locker[1]}"
+    eval "echo unlock >&${locker[1]}"
     log "unlocking fd ${locker[1]}"
-    read -t 0 ${locker[0]} &&
-        eval "read -t 10 -ru ${locker[0]} response"
+    # read -t 0 -u ${locker[0]} ## do a read to avoid races
+    eval "read -t 10 -u ${locker[0]} response" ||
+        eval "read -t 10 -u ${locker[0]} response"
     if [ "$?" -lt 128 ]; then
         [ "$response" = yes ] && { log "unlocking succesful"; return 0; } ||
         [ "$response" = no ] && { log "unlocking failed"; return 1; }
