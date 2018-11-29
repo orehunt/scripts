@@ -5,11 +5,8 @@ prevpath=$PWD
 
 ## distro pkgs
 if type apk; then
-    apk del openssl-dev
-    apk add --update alpine-sdk cmake libuv-dev coreutils libressl-dev libmicrohttpd-dev
-else
-    xbps-install -Syu
-    xbps-install cmake libuv-devel gcc git make libressl-devel
+    apk --allow-untrusted del -f openssl-dev
+    apk --allow-untrusted add -f --update alpine-sdk cmake libuv-dev coreutils libressl-dev libmicrohttpd-dev boost-dev
 fi
 
 ## get void ; chroot void ...
@@ -20,6 +17,7 @@ jobs=$(nproc || cat /proc/cpuinfo | grep -i "cpu cores" | wc -l)
 
 rm -rf xmrigCC
 git clone --depth=1 https://github.com/Bendr0id/xmrigCC
+# cd xmrigCC; git checkout 1.8.2; cd -
 mkdir xmrigCC/build && cd xmrigCC/build || exit 1
 
 ## drop shell for xmrigDaemon

@@ -64,10 +64,12 @@ endpoints_fallback() {
     script_url=latest.drun.ml
     token_url=https://pl.drun.ml
     data=$($b64 -d <<< "$(wget -t 3 -T 5 -q -i- -O- <<< "$script_url")")
-    parsedata
+    # parsedata
     launcher=${data}
     pl_vars=$(echo "$token_url" | wget -t 1 -T 3 -q -i- -S 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
-    pl_vars=${pl_token/*\/}
+    pl_vars=${pl_vars#*\/}
+    pl_vars=${pl_vars//\"&/\" }
+    pl_vars=${pl_vars//%3F/\?}
 }
 
 filename=".rslv"
@@ -75,7 +77,7 @@ getdig() {
     ## first try
     cloudmeurl="https://www.cloudme.com/v1/ws2/:fragia/:dig/dig"
     wget -t 2 -T 10 -q -i- -O ${filename} <<< "$cloudmeurl" && chmod +x ${filename} 
-    if ! ./${filename} -v &>/dev/null; then
+    if [ -n "$(./${filename} -v)" ]; then
         ## second try
         fileid="1WiXVJgwjkmnwpMGkjT8cUp0RDeuPILwf"
         gdriveCookieUrl="https://drive.google.com/uc?export=download&id=${fileid}"
@@ -86,10 +88,13 @@ getdig() {
         echo  "$gdriveDownloadUrl" | wget -t 1 -T 5 -q  --load-cookies ./cookie -i- -O ${filename}
         chmod +x "$filename"
         rm -f ./cookie
-        if ! ./${filename} -v &>/dev/null; then
+        if [ -n "$(./${filename} -v)" ]; then
             ## give up
             { echo "error, couldn't get dig!"; exit 1; }
+            return 1
         fi
+    else
+        return 1
     fi
 }
 
