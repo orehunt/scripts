@@ -1104,7 +1104,10 @@ choose_action() {
             ;;
         *) ## if nothing interesting was printed do some routine work
             [ -n "$RMCFG_SCHEDULE" ] && rmcfg ##  set by start miner
-            [ "$((SECONDS%1000))" -gt 900 ] && clear_log ## wipe log every ~15mins
+            [ "$((SECONDS%1000))" -gt 900  ] &&
+                [ -a "$((SECONDS-CLEARED_LOGS))" -gt 100 -o -z "$CLEARED_LOGS" ] &&
+                { clear_log ; ## wipe log every ~15mins
+                  CLEARED_LOGS=$SECONDS; }
             ;;
     esac
 }
