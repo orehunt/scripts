@@ -29,7 +29,7 @@ newfd() {
 fleep()
 {
     # log "fleep called by ${FUNCNAME[1]}"
-    [ -n "${_snore_fd}" ] ||
+    [ -n "${_snore_fd}" -a "$1" != 0 ] ||
         newfd _snore_fd
     # log "fleep starting waiting with ${_snore_fd}"
     # command >&${_snore_fd} # &&
