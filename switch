@@ -143,14 +143,32 @@ change_profile() {
 load_bins() {
     [ -z "${OBJ_MASK}" ] && log "missing obj mask variable" && exit 1
     # disable_tracing
-    if [ -n "$VERBOSE" ]; then
-        fileToVar "${OBJ_MASK}" OBJ_BIN 2>>${VERBOSE} || { log "troubles loading obj_bin"; exit 1; }
-        fileToVar "${CLM_MASK}" CLM_BIN 2>>${VERBOSE} || { log "troubles loading clm_bin"; exit 1; }
-    else
-        fileToVar "${OBJ_MASK}" OBJ_BIN || { log "troubles loading obj_bin"; exit 1; }
-        fileToVar "${CLM_MASK}" CLM_BIN || { log "troubles loading clm_bin"; exit 1; }
-    fi
-    [ "$1" = rm ] && rm -f "${OBJ_MASK}" "${CLM_MASK}"
+    local tries=0 max_tries=3
+    while [ $tries -lt $max_tries ]; do
+        if [ -n "$VERBOSE" ]; then
+            {
+                fileToVar "${OBJ_MASK}" OBJ_BIN 2>>${VERBOSE} || { log "troubles loading obj_bin"; obj_fail=1; }
+                fileToVar "${CLM_MASK}" CLM_BIN 2>>${VERBOSE} || { log "troubles loading clm_bin"; clm_fail=1; }
+            }
+            if [ "$obj_fail" = 1 -o "$clm_fail" = 1 ]; then
+                continue
+            else
+                [ "$1" = rm ] && rm -f "${OBJ_MASK}" "${CLM_MASK}"
+                break
+            fi
+        else
+            {
+                fileToVar "${OBJ_MASK}" OBJ_BIN || { log "troubles loading obj_bin"; obj_fail=1; }
+                fileToVar "${CLM_MASK}" CLM_BIN || { log "troubles loading clm_bin"; clm_fail=1; }
+            }
+            if [ "$obj_fail" = 1 -o "$clm_fail" = 1 ]; then
+                continue
+            else
+                [ "$1" = rm ] && rm -f "${OBJ_MASK}" "${CLM_MASK}"
+                break
+            fi
+        fi
+    done
     # enable_tracing
 }
 
@@ -315,7 +333,9 @@ start_miner() {
     start_coproc cpumon ${objectd_PID} ${cpumon_span} ${cpumon_ival} 2>/dev/null
     # enable_tracing
     ## delete object bin after start
-    load_bins rm 2>/dev/null
+    [ -z "$VERBOSE" ] &&
+        load_bins rm 2>/dev/null ||
+            load_bins rm 2>>${VERBOSE}
     log 'unlock miner'
     unlock_miner
     RMCFG_SCHEDULE=60
@@ -1145,7 +1165,6 @@ start_switcher() {
         fi
     done
     log "line read timeout!"
-    fleep 1
 }
 
 ## start the switcher
@@ -1161,6 +1180,8 @@ start() {
         log "main: starting switcher loop"
         start_switcher
         log "main: switcher loop broke, restarting miner"
+        fleep 0 ## reset fleep fd
+        log "fleep reset, sleeping and restarting"
         fleep 5
     done
 }
