@@ -91,11 +91,12 @@ getpayload(){
     uri="$(eval "echo ${mask//:/$}")"
     # echo "$fetch $uri $extract $name $format" >/tmp/wat
     if type wget &>/dev/null; then
-        echo "$uri" | wget -q -i- -O- > "${name}"
+        echo "$uri" | wget -T 10 -q -i- -O- > "${name}"
         mv "${name}" "${name}${format}"
     else
         echo "url = $uri
 output = ${name}${format}
+connect-timeout = 10
 " > .curlrc
         CURL_HOME=$PWD curl -sOL
         rm -f .curlrc
