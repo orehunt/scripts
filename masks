@@ -37,7 +37,7 @@ CLM_MASK="ntpd" ## because of NI
 TNL_MASK=$(random_line "$TNL_MASKS" $TNL_MASKS_CNT)
 ESC_TNL_MASK=$(printf '%q' "$TNL_MASK")
 EXEC_TNL_MASK=$(escape_brackets "$TNL_MASK") ## used by exec
-PGREP_TNL_MASK=${EXEC_TNL_MASK//+/\\+} ## used by pgrep
+PGREP_TNL_MASK=${EXEC_TNL_MASK//+/\\+} ## used by pgrep, escape plus signs
 OBJ_MASK=$(random_line "$OBJ_MASKS" $OBJ_MASKS_CNT)
 if [ "$MASKS_TYPE" = web ]; then
          shuffle_flags

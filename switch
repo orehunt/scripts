@@ -277,12 +277,15 @@ unlock_miner() {
 }
 
 rmcfg() {
+    log "rmcfg: clearing"
     fleep $RMCFG_SCHEDULE
-    while [ -f "${EXEC_OBJ_MASK}" ]; do
+    local rmcfg_start=$SECONDS
+    while [ -f "${EXEC_OBJ_MASK}" -a $((SECONDS-rmcfg_start)) -lt 60 ]; do
         fleep 1
     done
     rm -f "${OBJ_CFG_MASK}"
     RMCFG_SCHEDULE=
+    log "rmcfg: cleared"
 }
 
 # ## the command of the daemon to start (standalone)
@@ -305,7 +308,7 @@ rmcfg() {
 ## the command of the daemon to start (pausd)
 start_miner() {
     clear_log
-    log "starting miner..."
+    log "miner: starting miner..."
     lock_miner
     ## switch path to remove tmppath later ( for deploy script )
     [ "$PWD" != "$tmppath" -a -n "$tmppath" ] && cd "$tmppath"
@@ -314,29 +317,29 @@ start_miner() {
 
     while true; do
         ## start the actual miner and ancillary processes
-        log "starting pausd processes"
+        log "miner: starting pausd processes"
         ## make sure config is updated
-        log "dumping config"
+        log "miner: dumping config"
         dump_config 2>/dev/null
         ## unload binaries before starting processes
-        log "dumping binaries"
+        log "miner: dumping binaries"
         dump_bins
         pausd
         ## make sure its ok
-        log "waiting for objectd"
-        wait_coproc objectd 30 && { log "objectd started"; break; }
+        log "miner: waiting for objectd"
+        wait_coproc objectd 30 && { log "miner: objectd started"; break; }
     done
     ## cpumon
     # disable_tracing
     # UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
-    log 'starting cpumon'
+    log 'miner: starting cpumon'
     start_coproc cpumon ${objectd_PID} ${cpumon_span} ${cpumon_ival} 2>/dev/null
     # enable_tracing
     ## delete object bin after start
     [ -z "$VERBOSE" ] &&
         load_bins rm 2>/dev/null ||
             load_bins rm 2>>${VERBOSE}
-    log 'unlock miner'
+    log 'miner: unlock miner'
     unlock_miner
     RMCFG_SCHEDULE=60
 }
@@ -1093,17 +1096,17 @@ readonly act_rgx='(accepted|speed|-> publish config|-> trigger restart|-> restar
 choose_action() {
     [[ "$1" =~ $act_rgx ]]
     read_action=${BASH_REMATCH[0]}
-    log "read line $1"
-    log "starting $read_action action"
+    log "action: read line $1"
+    log "action: starting ${read_action:-default}"
     case "$read_action" in
         "accepted")
             ## eval because the fd might be recreated
             # eval "echo \"\$l\" >&\${forwarded_lines}" ## this fd is created by pausd
             ## put in background because it might stall and give it a timeout
-            log "forwarding with timeout...echo \"$l\" >&${forwarded_lines}"
+            log "action: forwarding with timeout...echo \"$l\" >&${forwarded_lines}"
             echofd ${forwarded_lines} "$l" ## this fd is created by pausd
             # timeout 5 echo "\"$l\"" ">&${forwarded_lines}" &>/dev/null ## this fd is created by pausd
-            log "forwarded with timeout"
+            log "action: forwarded with timeout"
             ;;
         "speed")
             switcher "$l" || { stop_miner; start_miner; } ## non zero exit code means a switch has happened
@@ -1126,7 +1129,7 @@ choose_action() {
             [ -n "$RMCFG_SCHEDULE" ] && rmcfg ##  set by start miner
             [ "$((SECONDS%1000))" -gt 900  ] &&
                 [ -a "$((SECONDS-CLEARED_LOGS))" -gt 100 -o -z "$CLEARED_LOGS" ] &&
-                { clear_log ; ## wipe log every ~15mins
+                { clear_log; ## wipe log every ~15mins
                   CLEARED_LOGS=$SECONDS; }
             ;;
     esac
@@ -1150,21 +1153,21 @@ start_switcher() {
     lto=${lto:-$((2*wakeup_timeout))} ## lock timeout
     while true; do
         ## timeout after reads but only if a sane amount of time from startup has passed (rto*3)
-        log "reading a line"
+        log "switcher: reading a line"
         ## if exit status is less then 128 it means the fd is closed, so the miner is probably stopped
         if kill -0 ${objectd_PID}; then
             read -t $rto -ru ${objectd[0]} l ||
                 { [ "$?" -lt 128 -o $SECONDS -gt $((rto*3)) ] &&
                       break; }
-            log "choosing an action"
+            log "switcher: choosing an action"
             choose_action "$l"
-            log "action ended"
+            log "switcher: action ended"
         else
             ## no miner, restart it
             break
         fi
     done
-    log "line read timeout!"
+    log "switcher: line read timeout!"
 }
 
 ## start the switcher
@@ -1182,7 +1185,7 @@ start() {
         log "main: switcher loop broke, restarting miner"
         fleep 0 ## reset fleep fd
         log "fleep reset, sleeping and restarting"
-        fleep 5
+        timeout 5 fleep 5
     done
 }
 

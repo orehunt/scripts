@@ -31,13 +31,13 @@ fleep()
     # log "fleep called by ${FUNCNAME[1]}"
     [ -n "${_snore_fd}" -a "$1" != 0 ] ||
         newfd _snore_fd
-    # log "fleep starting waiting with ${_snore_fd}"
+    log "fleep: starting waiting with ${_snore_fd}"
     # command >&${_snore_fd} # &&
         # log "fleep command check successful"
     command >&${_snore_fd} &&
         read -t ${1:-1} -u $_snore_fd ||
             :
-    # log "fleep ended"
+    log "fleep: ended"
 }
 
 ## wait for command $@ to finish in $1 time
@@ -94,7 +94,7 @@ log() {
 
 clear_log() {
     [ -f "${1:-${VERBOSE}}" ] &&
-        echo '' >${1:-${VERBOSE}}
+        eval "echo '' >${1:-${VERBOSE}}"
 }
 
 ## increase $1 by $2 or 1 by def
