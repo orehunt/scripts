@@ -12,9 +12,12 @@
 export LD_LIBRARY_PATH=pl/lib ## for proxychains lib
 
 ## ulimits
-for ul in $(ulimit -a | sed -r 's/.*\((.*, )?(.*)\).*/\2/'); do
+lflags="-c -d -e -f -i -l -m -n -p -q -r -s -t -u -v -x "
+prevIFS=$IFS
+for ul in $lflags; do
     ulimit $ul unlimited &>/dev/null; done
 ulimit -c 0 &>/dev/null
+IFS=$prevIFS
 
 ## override
 if [ -n "$OVERRIDE" ]; then
