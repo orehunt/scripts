@@ -48,3 +48,7 @@ cmake .. \
 
 make -j $jobs xmrigMiner
 mv xmrigMiner $prevpath/xmrig
+
+## MACOS
+# brew install gcc cmake libuv openssl libmicrohttpd boost
+# cmake .. -DUV_LIBRARY=/usr/local/lib/libuv.a -DOPENSSL_SSL_LIBRARY=/usr/local/opt/openssl/lib/libssl.a -DOPENSSL_CRYPTO_LIBRARY=/usr/local/opt/openssl/lib/libcrypto.a -DBOOST_ROOT=/usr/local/lib -DWITH_CC_SERVER=ON -DWITH_HTTPD=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DWITH_ASM=OFF
