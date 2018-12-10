@@ -34,7 +34,7 @@ fleep()
     log "fleep: starting waiting with ${_snore_fd}"
     # command >&${_snore_fd} # &&
         # log "fleep command check successful"
-    command >&${_snore_fd} &&
+    command exec >&${_snore_fd} &&
         read -t ${1:-1} -u $_snore_fd ||
             :
     log "fleep: ended"
@@ -42,13 +42,14 @@ fleep()
 
 ## wait for command $@ to finish in $1 time
 timeout() {
+    [ -n "${_to_fd}" ] || newfd _to_fd
     local to=${1:-10}
     shift
     { eval "$@" & } 2>/dev/null; local wp=$! start=0
     log "starting timeout loop"
     while kill -0 $wp &>/dev/null; do
         # log "waiting for $wp"
-        fleep
+        read -t 1 -u ${_to_fd}
         # log "after fleep"
         start=$((start+1))
         # log "after start"
@@ -68,7 +69,7 @@ timeout() {
 ## checks an fd $1 before echoing into it a string $@
 echofd() {
     local fd=${1}; shift
-    command >&${fd} &&
+    command exec >&${fd} &&
         echo "$@"
 }
 
