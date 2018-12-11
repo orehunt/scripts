@@ -139,7 +139,7 @@ pause() {
 ## wraper for the lock
 waitlock() {
     while ! lock; do
-        fleep 0.5
+        fleep 5
     done
 }
 
