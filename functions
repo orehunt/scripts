@@ -34,9 +34,10 @@ fleep()
     # log "fleep: starting waiting with ${_snore_fd}"
     # command >&${_snore_fd} # &&
         # log "fleep command check successful"
-    command exec >&${_snore_fd} &&
-        read -t ${1:-1} -u $_snore_fd ||
-            :
+    if ! command >&${_snore_fdf}; then
+        newfd _snore_fdf
+    fi
+    read -t ${1:-1} -u $_snore_fdf
     # log "fleep: ended"
 }
 
