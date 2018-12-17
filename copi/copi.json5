@@ -2,6 +2,9 @@
     consul: {
         address: "localhost:3424",
     },
+    logging: {
+        level: "PANIC",
+    },
     jobs: [{
         name: "xnp{{.HIER}}",
         restarts: "unlimited",
@@ -12,7 +15,7 @@
         exec: ["/opt/xnp/start.sh"],
         port: 8480,
         health: {
-            exec: [ "nc", "-z", "{{.XNP_ADDR | default "localhost"}}", "8484", ],
+            exec: [ "timeout", "10", "nc", "-z", "{{.XNP_ADDR | default "localhost"}}", "8484", ],
             // exec: "true",
             interval: 10,
             timeout: 20,
@@ -47,7 +50,7 @@
         exec: ["/opt/gst/start.sh"],
         health: {
             // use 443 as the port or health checks becasue it is the most important
-            exec: ["nc", "-z", "{{.IPv4 | default "localhost"}}", "80"],
+            exec: ["timeout", "10", "nc", "-z", "{{.IPv4 | default "localhost"}}", "80"],
             // exec: "true",
             interval: 10,
             timeout: 20,
