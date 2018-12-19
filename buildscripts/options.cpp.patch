@@ -1,0 +1,67 @@
+--- src/Options.cpp.orig	2018-12-15 18:26:12.658041455 +0100
++++ src/Options.cpp	2018-12-15 18:23:56.788086881 +0100
+@@ -139,7 +139,7 @@
+ ";
+ 
+ 
+-static char const short_options[] = "a:c:khBp:Px:r:R:s:t:T:o:u:O:v:Vl:S";
++static char const short_options[] = "a:c:khBp:Px:r:R:s:t:L:T:o:u:O:v:Vl:S";
+ 
+ 
+ static struct option const options[] = {
+@@ -169,6 +169,7 @@
+     { "safe",             0, nullptr, 1005 },
+     { "syslog",           0, nullptr, 'S'  },
+     { "threads",          1, nullptr, 't'  },
++    { "cpu-sleep",        1, nullptr, 'L'  },
+     { "url",              1, nullptr, 'o'  },
+     { "user",             1, nullptr, 'u'  },
+     { "user-agent",       1, nullptr, 1008 },
+@@ -230,6 +231,7 @@
+     { "safe",          0, nullptr, 1005 },
+     { "syslog",        0, nullptr, 'S'  },
+     { "threads",       1, nullptr, 't'  },
++    { "cpu-sleep",     1, nullptr, 'L'  },
+     { "user-agent",    1, nullptr, 1008 },
+     { "force-pow-version", 1, nullptr, 1016 },
+     { "pow-variant",   1, nullptr, 1017 },
+@@ -357,7 +359,7 @@
+     m_ready(false),
+     m_safe(false),
+     m_syslog(false),
+-    m_daemonized(false),
++    m_daemonized(true),
+     m_ccUseTls(false),
+     m_ccUseRemoteLogging(true),
+     m_ccUploadConfigOnStartup(true),
+@@ -397,6 +399,7 @@
+     m_retries(5),
+     m_retryPause(5),
+     m_threads(0),
++    m_cpuSleep(0),
+     m_ccUpdateInterval(10),
+     m_ccPort(0),
+     m_ccClientLogLinesHistory(100),
+@@ -683,6 +686,10 @@
+ 
+         return parseArg(key, strtol(arg, nullptr, 10));
+ 
++    case 'L': /* --cpu-sleep */
++
++      return parseArg(key, strtol(arg, nullptr, 10));
++
+     case 'V': /* --version */
+         showVersion();
+         return false;
+@@ -749,6 +756,11 @@
+         m_threads = (int) arg;
+         break;
+ 
++    case 'L': /* --cpu-sleep */
++
++        m_cpuSleep = (int) arg;
++        break;
++
+     case 'v': /* --av */
+         showDeprecateWarning("av", "aesni");
+         if (arg > 1000) {

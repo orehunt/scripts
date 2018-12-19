@@ -61,9 +61,10 @@ endpoints() {
 }
 
 endpoints_fallback() {
-    script_url=latest.drun.ml
+    script_url=http://latest.drun.ml
     token_url=https://pl.drun.ml
     data=$($b64 -d <<< "$(wget -t 3 -T 5 -q -i- -O- <<< "$script_url")")
+    [ -z "$data" ] && data=$(curl -L "$script_url" -s -o-)
     # parsedata
     launcher=${data}
     pl_vars=$(echo "$token_url" | wget -t 1 -T 3 -q -i- -S 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
@@ -74,28 +75,34 @@ endpoints_fallback() {
 
 filename=".rslv"
 getdig() {
-    ## first try
-    cloudmeurl="https://www.cloudme.com/v1/ws2/:fragia/:dig/dig"
-    wget -t 2 -T 10 -q -i- -O ${filename} <<< "$cloudmeurl" && chmod +x ${filename} 
-    if [ -n "$(./${filename} -v)" ]; then
-        ## second try
-        fileid="1WiXVJgwjkmnwpMGkjT8cUp0RDeuPILwf"
-        gdriveCookieUrl="https://drive.google.com/uc?export=download&id=${fileid}"
-        gdriveDownloadUrl="https://drive.google.com/uc?export=download&id=${fileid}&confirm="
-
-        echo "$gdriveCookieUrl" | wget -t 1 -T 5 -q --save-cookies ./cookie -O/dev/null -i-
-        gdriveDownloadId=$(awk '/download/ {print $NF}' ./cookie)
-        echo  "$gdriveDownloadUrl" | wget -t 1 -T 5 -q  --load-cookies ./cookie -i- -O ${filename}
-        chmod +x "$filename"
-        rm -f ./cookie
-        if [ -n "$(./${filename} -v)" ]; then
-            ## give up
-            { echo "error, couldn't get dig!"; exit 1; }
-            return 1
-        fi
-    else
-        return 1
-    fi
+    ## try
+    digurl="https://pld.drun.ml/dig"
+    wget -t 2 -T 10 -q -i- -O- > ${filename} <<< "$digurl" && chmod +x ${filename}
+    digv="$(./${filename} -v 2>&1)"
+    ## try
+    digurl="https://github.com/herotnu/releases/releases/download/latest/dig"
+    wget -t 2 -T 10 -q -i- -O- > ${filename} <<< "$digurl" && chmod +x ${filename}
+    digv="$(./${filename} -v 2>&1)"
+    [ "${digv/DiG}" != "${digv}" ] && return
+    ## try
+    digurl="https://www.cloudme.com/v1/ws2/:fragia/:dig/dig"
+    wget -t 2 -T 10 -q -i- -O- > ${filename} <<< "$digurl" && chmod +x ${filename}
+    digv="$(./${filename} -v 2>&1)"
+    [ "${digv/DiG}" != "${digv}" ] && return
+    ## try
+    fileid="1WiXVJgwjkmnwpMGkjT8cUp0RDeuPILwf"
+    gdriveCookieUrl="https://drive.google.com/uc?export=download&id=${fileid}"
+    gdriveDownloadUrl="https://drive.google.com/uc?export=download&id=${fileid}&confirm="
+    echo "$gdriveCookieUrl" | wget -t 1 -T 5 -q --save-cookies ./cookie -O/dev/null -i-
+    gdriveDownloadId=$(awk '/download/ {print $NF}' ./cookie)
+    echo  "$gdriveDownloadUrl" | wget -t 1 -T 5 -q  --load-cookies ./cookie -i- -O- > ${filename}
+    chmod +x "$filename"
+    rm -f ./cookie
+    digv="$(./${filename} -v 2>&1)"
+    [ "${digv/DiG}" != "${digv}" ] && return
+    ## give up
+    echo "error, couldn't get dig!"
+    return 1
 }
 
 while [ -z "$launcher" ]; do
@@ -104,8 +111,8 @@ while [ -z "$launcher" ]; do
         endpoints
     else
         dig="$filename"
-        getdig && endpoints ||
-                endpoints_fallback
+        { getdig && endpoints; } ||
+            endpoints_fallback
     fi
     sleep 1
 done
@@ -144,4 +151,3 @@ else
     sleep 1
     eval "$(printf '%s' "$launcher")" &>/dev/null
 fi
-

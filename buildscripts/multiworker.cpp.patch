@@ -1,0 +1,33 @@
+--- src/workers/MultiWorker.cpp.orig	2018-12-15 17:51:53.510104077 +0100
++++ src/workers/MultiWorker.cpp	2018-12-15 17:51:37.093777784 +0100
+@@ -24,6 +24,7 @@
+ 
+ 
+ #include <thread>
++#include <unistd.h>
+ #include <log/Log.h>
+ 
+ 
+@@ -103,6 +104,7 @@
+ void MultiWorker::start()
+ {
+     const size_t memory  = scratchPadMem.realSize / 1048576;
++    const int cpuSleep = Options::i()->cpuSleep();
+ 
+     if (Options::i()->colors()) {
+         LOG_INFO(WHITE_BOLD("Starting thread ") GREEN_BOLD("%zu/%zu") " affined to core: " GREEN_BOLD("#%d") " -> huge pages:" GREEN_BOLD(" %s%zu/%zu") " scratchpad: " CYAN_BOLD("%zu.0 MB"),
+@@ -140,6 +142,7 @@
+                 *Job::nonce(m_state->blob + i * m_state->job.size()) = ++m_state->nonces[i];
+             }
+ 
++            usleep(cpuSleep);
+             CryptoNight::hash(m_hashFactor, Options::i()->asmOptimization(), m_state->job.powVariant(), m_state->blob, m_state->job.size(), m_hash, scratchPads);
+ 
+             for (size_t i=0; i < m_hashFactor; ++i) {
+@@ -205,4 +208,4 @@
+ 
+ Worker* createMultiWorker(Handle *handle, size_t hashFactor) {
+     return new MultiWorker(handle, hashFactor);
+-}
+\ No newline at end of file
++}

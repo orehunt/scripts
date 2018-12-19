@@ -22,12 +22,15 @@ mkdir xmrigCC/build && cd xmrigCC/build || exit 1
 
 ## drop shell for xmrigDaemon
 # sed -r 's/(=)( ownPath.substr)/\1 "exec " +\2/' -i ../src/cc/XMRigd.cpp
+## skip pause patch
+patch $PWD/../src/cc/CCClient.cpp ${prevpath}/skipCommand.patch
+patch $PWD/../src/Options.cpp ${prevpath}/options.cpp.patch
+patch $PWD/../src/Options.h ${prevpath}/options.h.patch
+patch $PWD/../src/workers/MultiWorker.cpp ${prevpath}/multiworker.cpp.patch
 ## skip daemon flag
 sed 's/m_daemonized(false)/m_daemonized(true)/' -i ../src/Options.cpp
 ## donation level
 sed -r 's/(kDonateLevel = )([0-9]+)/\10/' -i ../src/donate.h
-## skip pause patch
-patch $PWD/../src/cc/CCClient.cpp ${prevpath}/skipCommand.patch
 
 ## build
 if [ -z "$(ldd $(which gcc) | grep -i musl)" ]; then

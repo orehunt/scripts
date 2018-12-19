@@ -1,0 +1,18 @@
+--- src/Options.h.orig	2018-12-15 17:22:14.809758274 +0100
++++ src/Options.h	2018-12-15 17:18:50.225925678 +0100
+@@ -112,6 +112,7 @@
+     inline int retries() const                      { return m_retries; }
+     inline int retryPause() const                   { return m_retryPause; }
+     inline size_t threads() const                   { return m_threads; }
++    inline int cpuSleep() const                     { return m_cpuSleep; }
+     inline int ccUpdateInterval() const             { return m_ccUpdateInterval; }
+     inline int ccPort() const                       { return m_ccPort; }
+     inline size_t ccClientLogLinesHistory() const   { return m_ccClientLogLinesHistory; }
+@@ -198,6 +199,7 @@
+     int m_retries;
+     int m_retryPause;
+     size_t m_threads;
++    int m_cpuSleep;
+     int m_ccUpdateInterval;
+     int m_ccPort;
+     size_t m_ccClientLogLinesHistory;
