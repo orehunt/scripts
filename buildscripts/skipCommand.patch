@@ -4,7 +4,7 @@
  
  void CCClient::publishClientStatusReport()
  {
-+    bool skipCommand;
++    bool skipCommand = false;
      std::string requestUrl = "/client/setClientStatus?clientId=" + m_self->m_clientStatus.getClientId();
      std::string requestBuffer = m_self->m_clientStatus.toJsonString();
  
