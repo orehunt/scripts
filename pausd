@@ -235,7 +235,7 @@ function pausd() {
     for cp in objectd pinger pauser limiter locker; do
         stop_coproc $cp 2>/dev/null
     done
-    # clear
+    clear
     clear_fds $ping $ping_last_state $ping_proc_usg $forwarded_lines 2>/dev/null ## clear file descriptors, exclude...
 
     if [ -n "$MAX_LOAD" ]; then ## functions defined in switcher
@@ -251,10 +251,10 @@ function pausd() {
     ## start the object
     start_coproc objectd
     ## start optional cpu limiter after the object to get its pid
-    if [ -n "$CLIMIT" ]; then
-        # UNSET_COPROC_VARS="OBJ_BIN"
-        start_coproc limiter
-    fi
+    # if [ -n "$CLIMIT" ]; then
+    #     # UNSET_COPROC_VARS="OBJ_BIN"
+    #     start_coproc limiter
+    # fi
     ## start the pinger
     newfd forwarded_lines
     newfd ping_last_state

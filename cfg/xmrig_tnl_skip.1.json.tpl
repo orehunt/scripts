@@ -3,6 +3,7 @@
     "aesni": ${AESNI},
     "pow-variant": "${AL_V:-2}",
     "threads": "${THREADS}",
+    "cpu-sleep": "${CSLEEP:-0}",
     "multihash-factor": "${MHF}",
     "multihash-thread-mask" : "0x0",
     "background": false,

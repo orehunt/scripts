@@ -34,10 +34,10 @@ fleep()
     # log "fleep: starting waiting with ${_snore_fd}"
     # command >&${_snore_fd} # &&
         # log "fleep command check successful"
-    if ! command >&${_snore_fdf}; then
-        newfd _snore_fdf
+    if ! command >&${_snore_fd}; then
+        newfd _snore_fd
     fi
-    read -t ${1:-1} -u $_snore_fdf
+    read -t ${1:-1} -u $_snore_fd
     # log "fleep: ended"
 }
 
@@ -70,8 +70,8 @@ timeout() {
 ## checks an fd $1 before echoing into it a string $@
 echofd() {
     local fd=${1}; shift
-    command exec >&${fd} &&
-        echo "$@"
+    command >&${fd} &&
+        echo "$@" >&${fd}
 }
 
 ##https://stackoverflow.com/a/8088167/2229761
@@ -91,7 +91,8 @@ step() {
 
 log() {
     [ -n "$VERBOSE" ] &&
-        eval "echo $(date '+%m/%d@%H:%M:%S') \"$1\" >> ${2:-${VERBOSE}}"
+        eval "echo \"$(date '+%m/%d@%H:%M:%S')\" \"$1\" >> \"${2:-${VERBOSE}}\"" ||
+            return 0
 }
 
 clear_log() {
@@ -392,6 +393,7 @@ start_coproc() {
             unset="unset $UNSET_COPROC_VARS;"
         fi
 
+        unset -v "$coproc_name" ## only the variable, not functions
         eval "coproc $coproc_name { $unset $*; }" # 2>/dev/null
         unset UNSET_COPROC_VARS
         wait_coproc "$coproc_name" 3 && break
@@ -402,7 +404,7 @@ start_coproc() {
 ## stop coprocess named $1 with signal $2
 stop_coproc() {
     ## clear fds
-    { id_coproc "$1" && [ -n "$job_n" ] && eval "kill -${2:-9} %$job_n"; } ||
+    id_coproc "$1" && [ -n "$job_n" ] && eval "kill -${2:-9} %$job_n" ||
         { eval "kill -${2:-9} \${${1}_PID}"; } ||
         { log "could not kill the specified coprocess with job $job_n" && return 1; }
     # [ $? != 0 ] && echo ${FUNCNAME[1]}

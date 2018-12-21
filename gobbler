@@ -21,19 +21,11 @@ alias b64d="base64 -d"
 
 ## put a file $1 into a var $2
 fileToVar(){
-    if [ -n "$VERBOSE" ]; then
-        declare -n tmpd="$2" 2>>${VERBOSE} && tmpd=$(b64e "$1" 2>>${VERBOSE}) && return
-        else
-        declare -n tmpd="$2" && tmpd=$(b64e "$1") && return
-    fi
+    declare -n tmpd="$2" && tmpd=$(b64e "$1") && return
     if [ -z "$tmpd" ]; then
         log "gobbling in array"
         eval "$2=1" ## avoid empty checks
-        if [ -n "$VERBOSE" ]; then
-            gobbled[$2]=$(b64e "$1" 2>>${VERBOSE})
-        else
-            gobbled[$2]=$(b64e "$1")
-        fi
+        gobbled[$2]=$(b64e "$1")
     else
         return 1 ## do not quote assignment otherwise ram is not released
     fi
