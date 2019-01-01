@@ -371,8 +371,9 @@ id_job() {
     unset job_n
     while read j; do
         if [ "$j" != "${j/${1}}" ]; then
-            tmpstr=${j/\[}
-            job_n=${tmpstr/\]*}
+            tmpstr="${j/\[}"
+            job_n="${tmpstr/\]*}"
+            break
         fi
     done <<< "$(jobs -r)"
 }
@@ -393,6 +394,7 @@ start_coproc() {
             unset="unset $UNSET_COPROC_VARS;"
         fi
 
+        log "starting coproc $coproc_name"
         unset -v "$coproc_name" ## only the variable, not functions
         eval "coproc $coproc_name { $unset $*; }" # 2>/dev/null
         unset UNSET_COPROC_VARS
@@ -435,6 +437,7 @@ wait_coproc() {
     local passed=0
     local timeout=${2:-10}
     while :; do
+        log "waiting coproc $1"
         id_coproc "$1 " ## note the space at the end to avoid ambiguity, (but not at the beginning!)
         [ -n "$job_n" ] && eval "kill -0 %$job_n" && return 0
         passed=$((passed+1))

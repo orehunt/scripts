@@ -320,8 +320,8 @@ start_miner() {
         log "miner: starting pausd processes"
         ## make sure config is updated
         log "miner: dumping config"
-        dump_config 2>/dev/null
         [ -z "$CONFIG" ] && log "config not loaded"
+        dump_config 2>/dev/null
         ## unload binaries before starting processes
         log "miner: dumping binaries"
         dump_bins || { log "failed dumping binaries, no point continuing, scratching..."; scratcher; }
@@ -663,11 +663,11 @@ usg_check() {
     [ $PROC_USG -gt $((cThr*100-${1:-20})) ]
 }
 
-## true if total host cpu usage is < $2 (1-100)
+## true if total host cpu usage is < $1 (1-100)
 ## usage calculate average in the last three seconds each second
 host_usg_check() {
     usgmon_prc 1 3
-    [ $cpu_avg_prc_1 -lt ${2:-100} ]
+    [ $cpu_avg_prc_1 -lt ${1:-100} ]
 }
 
 cpu_check() {
