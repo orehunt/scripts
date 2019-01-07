@@ -1,31 +1,52 @@
 #!/bin/bash
 
+rand_string() {
+    local c=0
+    while [ $c -lt $1 ]; do
+        printf "\x$(printf '%x' $((97+RANDOM%25)))"
+        c=$((c+1))
+    done
+}
+
 ## make sure repo is configured with access rights
-repopath=/opt/thirstycake
-cd "$repopath"
+repos="/opt/ci/repos/travis"
+b=master
+maxtags=24
 
 tagger(){
-    for b in $(git branch -r | sed 's/.*\///'); do
-        git reset --hard
-        git checkout "$b"
-        git reset --hard "origin/$b"
-        git pull --force
-        if [ "$(git tag | wc -l)" -gt 24 ]; then
-            git tag -l | xargs -n 1 git push --delete origin
-            git tag -l | xargs git tag -d
-        fi
-        tag="$(date +%M%H%d%Y)"
-        git tag "$tag"
-        git push origin "$tag"
-    done
+    git reset --hard
+    git checkout "$b"
+    git reset --hard "origin/$b"
+    git pull --force
+    git reset --soft HEAD~1
+    git commit -m"$(rand_string 8)" --allow-empty
+    git push origin --force
 }
 
 main(){
     while :; do
-        git fetch --all
-        tagger
-        sleep 2700
+        for r in $repos/*; do
+            cd "$r"
+            git fetch --all
+            tagger
+        done
+        sleep $((RANDOM%300+14400))
     done
 }
 
 main
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+-

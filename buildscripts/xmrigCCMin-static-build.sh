@@ -4,14 +4,14 @@ set -e
 prevpath=$PWD
 
 if [ "$1" = mac ]; then
-    brew install bash gnu-sed gpatch gcc cmake libuv openssl libmicrohttpd boost
+    brew install bash gnu-sed gpatch gcc cmake libuv openssl libmicrohttpd boost rclone
     PATH=/usr/local//Cellar/gnu-sed/4.6/libexec/gnubin/:$PATH
 fi
 
 ## distro pkgs
 if type apk; then
     apk --allow-untrusted del -f openssl-dev
-    apk --allow-untrusted add -f --update alpine-sdk cmake libuv-dev coreutils libressl-dev libmicrohttpd-dev boost-dev
+    apk --allow-untrusted add -f --update alpine-sdk cmake libuv-dev coreutils libressl-dev libmicrohttpd-dev boost-dev boost-static g++
 fi
 
 ## get void ; chroot void ...
@@ -53,19 +53,20 @@ if [ "$1" = mac ]; then
 else
     export CFLAGS=" -Ofast -Flto"
 fi
-export CPPFLAGS="$CFLAGS" CXXFLAGS="$CFLAGS" LDFLAGS="$CFLAGS"
+# export CPPFLAGS="$CFLAGS" CXXFLAGS="$CFLAGS" LDFLAGS="$CFLAGS"
 ## set build flags
 if [ "$1" != mac ]; then
-    sed '/add_executable/iset(CMAKE_EXE_LINKER_FLAGS " -static '"$CFLAGS"'")' -i ../CMakeLists.txt
-    sed -r '/target_link_libraries\(xmrigMiner xmrig_common/{n;s#(.*?)\)#\1 /usr/lib/libstdc++.a /usr/lib/libc.a )#}' -i ../CMakeLists.txt
+    # sed '/add_executable/iset(CMAKE_EXE_LINKER_FLAGS " -static '"$CFLAGS"'")' -i ../CMakeLists.txt
+    sed -r '/target_link_libraries\(xmrigMiner xmrig_common/{n;s#(.*?)\)#\1 /usr/lib/libstdc++.a /usr/lib/libc.a -static )#}' -i ../CMakeLists.txt
 fi
 
 if [ "$1" != mac ]; then
     cmake .. \
+          -DBUILD_STATIC=ON \
           -DWITH_CC_SERVER=OFF -DWITH_HTTPD=OFF \
           -DUV_LIBRARY=/usr/lib/libuv.a \
           -DOPENSSL_SSL_LIBRARY=/usr/lib/libssl.a \
-          -DOPENSSL_CRYPTO_LIBRARY=/usr/lib/libcrypto.a
+          -DOPENSSL_CRYPTO_LIBRARY=/usr/lib/libcrypto.a 
 else
     cmake .. -DUV_LIBRARY=/usr/local/lib/libuv.a \
           -DOPENSSL_SSL_LIBRARY=/usr/local/opt/openssl/lib/libssl.a \
