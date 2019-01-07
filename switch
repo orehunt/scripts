@@ -1100,7 +1100,7 @@ pblcfg() {
     [ "${1/publish config}" != "${1}" ]
 }
 
-act_rgx='(accepted|speed|paused|-> update config|-> publish config|-> trigger restart)'
+act_rgx='(accepted|speed|paused|-> update config|-> publish config|-> trigger restart|\[CC-Client\] error|Error: \"\[Connect\])'
 choose_action() {
     [[ "$1" =~ $act_rgx ]]
     read_action=${BASH_REMATCH[0]}
@@ -1143,6 +1143,18 @@ choose_action() {
             else
                 ## no config update, a plain restart redownloads the payload
                 scratcher
+            fi
+            ;;
+        "[CC-Client] error"|"Error: \"[Connect]")
+            error_count=$((error_count+1))
+            if [ "$error_count" -gt 3 ]; then
+                ## choose different endpoints
+                stop_miner
+                config_pools
+                config_client
+                config_config 1 ## 1 parameter sets CONFIG evaluating the template
+                start_miner
+                error_count=0
             fi
             ;;
         "-> publish config")
