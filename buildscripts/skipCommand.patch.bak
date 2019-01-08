@@ -1,5 +1,5 @@
---- src/cc/CCClient.cpp.orig	2018-08-18 18:37:58.602473987 +0200
-+++ src/cc/CCClient.cpp	2018-08-18 18:37:56.692432189 +0200
+--- CCClient.cpp.orig
++++ CCClient.cpp
 @@ -191,6 +191,7 @@
  
  void CCClient::publishClientStatusReport()
@@ -21,8 +21,8 @@
              } else if (controlCommand.getCommand() == ControlCommand::STOP) {
                  if (Workers::isEnabled()) {
                      LOG_WARN("[CC-Client] Command: STOP received -> pause");
-@@ -224,8 +226,10 @@
-                 LOG_WARN("[CC-Client] Command: SHUTDOWN received -> shutdown");
+@@ -226,8 +228,10 @@
+                 LOG_WARN("[CC-Client] Command: REBOOT received -> trigger reboot");
              }
  
 -            m_self->m_async->data = reinterpret_cast<void*>(controlCommand.getCommand());
@@ -34,7 +34,7 @@
          } else {
              LOG_ERR("[CC-Client] Unknown command received from CC Server.");
          }
-@@ -272,11 +276,18 @@
+@@ -274,11 +278,19 @@
      std::string requestUrl = "/client/setClientConfig?clientId=" + m_self->m_clientStatus.getClientId();
  
      std::stringstream data;
@@ -48,6 +48,7 @@
 +        // LOG_WARN("breaking");
          data << clientConfig.rdbuf();
          clientConfig.close();
++        remove(m_self->m_config->fileName());
 +        break;
 +      } else {
 +        // LOG_WARN("waiting for file");

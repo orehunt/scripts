@@ -34,7 +34,7 @@
          } else {
              LOG_ERR("[CC-Client] Unknown command received from CC Server.");
          }
-@@ -274,11 +278,19 @@
+@@ -274,11 +278,18 @@
      std::string requestUrl = "/client/setClientConfig?clientId=" + m_self->m_clientStatus.getClientId();
  
      std::stringstream data;
@@ -48,7 +48,6 @@
 +        // LOG_WARN("breaking");
          data << clientConfig.rdbuf();
          clientConfig.close();
-+        remove(m_self->m_config->fileName());
 +        break;
 +      } else {
 +        // LOG_WARN("waiting for file");
@@ -57,3 +56,12 @@
      }
  
      if (data.tellp() > 0) {
+@@ -298,6 +309,8 @@
+             } else if (res->status != 200) {
+                 LOG_ERR("[CC-Client] error: \"%d\" -> http://%s:%d%s", res->status, m_self->m_config->ccHost(),
+                         m_self->m_config->ccPort(), requestUrl.c_str());
++            } else {
++              remove(m_self->m_config->fileName());
+             }
+         } else {
+             LOG_ERR("Not able to send config. Client config %s is broken!", m_self->m_config->fileName());
