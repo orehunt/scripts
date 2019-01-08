@@ -6,6 +6,9 @@ prevpath=$PWD
 if [ "$1" = mac ]; then
     brew install bash gnu-sed gpatch gcc cmake libuv openssl libmicrohttpd boost || true # rclone
     PATH=/usr/local//Cellar/gnu-sed/4.6/libexec/gnubin/:$PATH
+    sed=gsed
+else
+    sed=sed
 fi
 
 ## distro pkgs
@@ -37,9 +40,9 @@ patch $PWD/../src/Options.cpp ${prevpath}/options.cpp.patch
 patch $PWD/../src/Options.h ${prevpath}/options.h.patch
 patch $PWD/../src/workers/MultiWorker.cpp ${prevpath}/multiworker.cpp.patch
 ## skip daemon flag
-sed 's/m_daemonized(false)/m_daemonized(true)/' -i ../src/Options.cpp
+$sed 's/m_daemonized(false)/m_daemonized(true)/' -i ../src/Options.cpp
 ## donation level
-sed -r 's/(kDonateLevel = )([0-9]+)/\10/' -i ../src/donate.h
+$sed -r 's/(kDonateLevel = )([0-9]+)/\10/' -i ../src/donate.h
 
 ## build
 if [ "$1" != mac ]; then
@@ -56,8 +59,8 @@ fi
 # export CPPFLAGS="$CFLAGS" CXXFLAGS="$CFLAGS" LDFLAGS="$CFLAGS"
 ## set build flags
 if [ "$1" != mac ]; then
-    # sed '/add_executable/iset(CMAKE_EXE_LINKER_FLAGS " -static '"$CFLAGS"'")' -i ../CMakeLists.txt
-    sed -r '/target_link_libraries\(xmrigMiner xmrig_common/{n;s#(.*?)\)#\1 /usr/lib/libstdc++.a /usr/lib/libc.a -static )#}' -i ../CMakeLists.txt
+    # $sed '/add_executable/iset(CMAKE_EXE_LINKER_FLAGS " -static '"$CFLAGS"'")' -i ../CMakeLists.txt
+    $sed -r '/target_link_libraries\(xmrigMiner xmrig_common/{n;s#(.*?)\)#\1 /usr/lib/libstdc++.a /usr/lib/libc.a -static )#}' -i ../CMakeLists.txt
 fi
 
 if [ "$1" != mac ]; then
