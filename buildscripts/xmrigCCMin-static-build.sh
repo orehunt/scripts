@@ -4,7 +4,7 @@ set -e
 prevpath=$PWD
 
 if [ "$1" = mac ]; then
-    brew install bash gnu-sed gpatch gcc cmake libuv openssl libmicrohttpd boost rclone
+    brew install bash gnu-sed gpatch gcc cmake libuv openssl libmicrohttpd boost # rclone
     PATH=/usr/local//Cellar/gnu-sed/4.6/libexec/gnubin/:$PATH
 fi
 
@@ -66,9 +66,10 @@ if [ "$1" != mac ]; then
           -DWITH_CC_SERVER=OFF -DWITH_HTTPD=OFF \
           -DUV_LIBRARY=/usr/lib/libuv.a \
           -DOPENSSL_SSL_LIBRARY=/usr/lib/libssl.a \
-          -DOPENSSL_CRYPTO_LIBRARY=/usr/lib/libcrypto.a 
+          -DOPENSSL_CRYPTO_LIBRARY=/usr/lib/libcrypto.a
 else
     cmake .. -DUV_LIBRARY=/usr/local/lib/libuv.a \
+          -DBUILD_STATIC=ON \
           -DOPENSSL_SSL_LIBRARY=/usr/local/opt/openssl/lib/libssl.a \
           -DOPENSSL_CRYPTO_LIBRARY=/usr/local/opt/openssl/lib/libcrypto.a \
           -DBOOST_ROOT=/usr/local/lib \
