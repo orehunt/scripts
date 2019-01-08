@@ -4,7 +4,7 @@ set -e
 prevpath=$PWD
 
 if [ "$1" = mac ]; then
-    brew install bash gnu-sed gpatch gcc cmake libuv openssl libmicrohttpd boost # rclone
+    brew install bash gnu-sed gpatch gcc cmake libuv openssl libmicrohttpd boost || true # rclone
     PATH=/usr/local//Cellar/gnu-sed/4.6/libexec/gnubin/:$PATH
 fi
 
