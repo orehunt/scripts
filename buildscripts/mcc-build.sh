@@ -72,7 +72,6 @@ if [ "$1" != mac ]; then
           -DOPENSSL_CRYPTO_LIBRARY=/usr/lib/libcrypto.a
 else
     cmake .. -DUV_LIBRARY=/usr/local/lib/libuv.a \
-          -DBUILD_STATIC=ON \
           -DOPENSSL_SSL_LIBRARY=/usr/local/opt/openssl/lib/libssl.a \
           -DOPENSSL_CRYPTO_LIBRARY=/usr/local/opt/openssl/lib/libcrypto.a \
           -DBOOST_ROOT=/usr/local/lib \
