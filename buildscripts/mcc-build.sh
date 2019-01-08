@@ -82,4 +82,9 @@ else
 fi
 
 make -j $jobs xmrigMiner
-mv xmrigMiner $prevpath/mcc
+
+if [ "$1" != mac ]; then
+    mv xmrigMiner $prevpath/mcc
+else
+    mv xmrigMiner $prevpath/mcc_osx
+fi
