@@ -79,4 +79,4 @@ else
 fi
 
 make -j $jobs xmrigMiner
-mv xmrigMiner $prevpath/xmrig
+mv xmrigMiner $prevpath/mcc

@@ -65,5 +65,5 @@ mkdir -p dashboard
 cp /xmrigCC/index.html dashboard/index.html
 
 ln -sr "$MYLDPATH" "$MYLIBPATH/$LINKER"
-tar czf xmrig.tar.gz ../xmrigCCServer "$MYLIBPATH"
-mv xmrig.tar.gz $prevpath
+tar czf mccsrv.tar.gz ../xmrigCCServer "$MYLIBPATH"
+mv mccsrv.tar.gz $prevpath/
