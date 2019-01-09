@@ -15,8 +15,9 @@ lv=$(</var/log/repomonitor_lv.log)
 while :; do
     nlv=$(last_version $repo)
     if [ "$nlv" != "$lv" ]; then
-        wget -qO- --post-data="token=${HOOK_TOKEN}&ref=""${HOOK_REF}" "${HOOK_URL}"
+        wget -qO- --post-data="token=${HOOK_TOKEN}&ref=""${HOOK_REF}" -i- <<< "${HOOK_URL}"
         lv=$nlv
         echo "$lv" > /var/log/repomonitor_lv.log
     fi
+    sleep 3600
 done
