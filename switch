@@ -440,7 +440,7 @@ change_threads() {
     [ "$THREADS_FIXED" ] && return 1
     case "$1" in
         up)
-            if [ $cThr -lt $MAX_THREADS ]; then ## never use more than MAX_THREADS
+            if [ $cThr -lt "$MAX_THREADS" ]; then ## never use more than MAX_THREADS
                 nThr=$((cThr+1))
             else
                 return 1
@@ -454,7 +454,7 @@ change_threads() {
             fi
             ;;
         *)
-            if [ -n "$1" ]; then
+            if [ -n "$1" -a "$1" -lt "$MAX_THREADS" ]; then
                 [ $pThr != 0 ] && pThr=$cThr ## skip in case of init (previous is zero)
                 cThr="$1"
                 change_config threads $cThr
