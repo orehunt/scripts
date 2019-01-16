@@ -1,0 +1,44 @@
+#!/bin/bash
+
+REPO_ROOT=${REPO_ROOT:-/opt/ci/repos}
+
+[ -z "$REPO_USER" ] && {
+    echo insert user:
+    read REPO_USER
+}
+REPO_USER=${REPO_USER//@/%40}
+
+[ -z "$REPO_EMAIL" ] && {
+    echo insert email
+    read REPO_EMAIL
+}
+
+[ -n "$REPO_TOKEN" ] && REPO_PASS=$REPO_TOKEN
+[ -z "$REPO_PASS" ] && {
+    echo insert pass:
+    read REPO_PASS
+}
+
+[ -z "$REPO_EP" ] && {
+    echo insert ep:
+    read REPO_EP
+}
+
+[ -z "$REPO_NAME" ] && {
+    echo insert repo:
+    read REPO_NAME
+}
+
+[ -z "$REPO_CI" ] && {
+    echo insert ci:
+    read REPO_CI
+}
+
+REPO_URL="https://$REPO_USER:$REPO_PASS@${REPO_EP:-github.com}/${REPO_USER/%40*}/$REPO_NAME"
+REPO_DIR="$(basename $REPO_NAME)"
+
+git clone "$REPO_URL" "$REPO_ROOT/$REPO_CI/$REPO_DIR"
+
+cd "$REPO_ROOT/$REPO_CI/$REPO_DIR"
+git config user.name "$REPO_USER"
+git config user.email "$REPO_EMAIL"

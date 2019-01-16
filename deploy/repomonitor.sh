@@ -37,7 +37,7 @@ function trigger_build(){
 
 lv=$(</var/log/repomonitor_lv.log)
 while :; do
-    if [ "$nlv" != "$lv" ]; then
+    if [ "$nlv" != "$lv" -o -z "$lv" ]; then
         check_version
         trigger_build "${CI:-gh}"
         lv=$nlv
