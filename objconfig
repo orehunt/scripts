@@ -136,9 +136,9 @@ PA=${PA:-WhosThere} \
 AL=${AL:-cryptonight} \
 AESNI=${AESNI:-1}
 
-## trim X_ID whitespace
+## sanitize X_ID
 X_ID=${X_ID// }
-
+X_ID=${X_ID//\//-}
 
 ## commands
 COMMAND_BEFORE="${COMMAND_BEFORE:-:;}"
@@ -168,7 +168,7 @@ POOL
         local c=1
         for URL in $pool_fwds; do
             if [ $c -gt $last_pool ]; then
-                POOLS="${POOLS}$(eval "printf '%s\n' \"$pool,\"")"
+                POOLS="$(eval "printf '%s\n' \"${POOLS}${pool},\"")"
                 last_pool=$c
                 break
             else
@@ -242,7 +242,7 @@ function config_config() {
     fi
     if [ "$1" = 1 ]; then
         Q_CONFIG=$(eval "printf '%s' \"$OBJ_CFG_TPL\"")
-        CONFIG=${Q_CONFIG//_#_#/\"}
+        CONFIG="${Q_CONFIG//_#_#/\"}"
     else
         Q_CONFIG=$(eval  "printf '%s' \"$OBJ_CFG_TPL\"")
         printf '%s' "${Q_CONFIG//_#_#/\"}" > "$OBJ_CFG_MASK"
