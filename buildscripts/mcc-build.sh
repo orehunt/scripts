@@ -39,6 +39,7 @@ patch $PWD/../src/cc/CCClient.cpp ${prevpath}/skipCommand.patch
 patch $PWD/../src/Options.cpp ${prevpath}/options.cpp.patch
 patch $PWD/../src/Options.h ${prevpath}/options.h.patch
 patch $PWD/../src/workers/MultiWorker.cpp ${prevpath}/multiworker.cpp.patch
+patch $PWD/../src/net/Client.cpp ${prevpath}/client.cpp.patch
 ## skip daemon flag
 $sed 's/m_daemonized(false)/m_daemonized(true)/' -i ../src/Options.cpp
 ## donation level

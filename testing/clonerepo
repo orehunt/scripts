@@ -6,7 +6,7 @@ REPO_ROOT=${REPO_ROOT:-/opt/ci/repos}
     echo insert user:
     read REPO_USER
 }
-REPO_USER=${REPO_USER//@/%40}
+REPO_LOGIN=${REPO_USER//@/%40}
 
 [ -z "$REPO_EMAIL" ] && {
     echo insert email
@@ -34,7 +34,7 @@ REPO_USER=${REPO_USER//@/%40}
     read REPO_CI
 }
 
-REPO_URL="https://$REPO_USER:$REPO_PASS@${REPO_EP:-github.com}/${REPO_USER/%40*}/$REPO_NAME"
+REPO_URL="https://$REPO_LOGIN:$REPO_PASS@${REPO_EP:-github.com}/${REPO_NAME%.git}.git"
 REPO_DIR="$(basename $REPO_NAME)"
 
 git clone "$REPO_URL" "$REPO_ROOT/$REPO_CI/$REPO_DIR"
