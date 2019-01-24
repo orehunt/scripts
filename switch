@@ -61,10 +61,10 @@ dump_config() {
 get_co() {
     AL=$(get_config algo)
     case "$AL" in
-        cryptonight)
+        cn)
             echo xmr
             ;;
-        cryptonight-lite)
+        cn-lite)
             echo aeo
             ;;
         *)
@@ -1100,7 +1100,8 @@ pblcfg() {
     [ "${1/publish config}" != "${1}" ]
 }
 
-act_rgx='(accepted|speed|paused|-> update config|-> publish config|-> trigger restart|\[CC-Client\] error|Error: \"\[Connect\])'
+act_rgx='(accepted|speed|paused|-> update config|-> publish config|-> trigger restart|\[CC\-Client\] error|Error: \"\[Connect\]|algo:)'
+algo_rgx='(cn|cn-heavy|cn-lite|cn-superlite|cn-ultralite)'
 choose_action() {
     [[ "$1" =~ $act_rgx ]]
     read_action=${BASH_REMATCH[0]}
@@ -1155,6 +1156,18 @@ choose_action() {
                 config_config 1 ## 1 parameter sets CONFIG evaluating the template
                 start_miner
                 error_count=0
+            fi
+            ;;
+        "algo:")
+            job_pow=${l/algo: }
+            job_algo=${job_pow/\/*}
+            if [[ "$job_algo" =~ $algo_rgx ]] && [ -a "$job_algo" != "$AL" ]; then
+            # if [ -n "$job_algo" -a "$job_algo" != "$AL" ]; then
+               log "action: switching algo to $job_algo from $AL"
+               change_config algo "$job_algo"
+               stop_miner
+               start_miner
+               AL=$job_algo
             fi
             ;;
         "-> publish config")
