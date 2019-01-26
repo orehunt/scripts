@@ -1100,7 +1100,7 @@ pblcfg() {
     [ "${1/publish config}" != "${1}" ]
 }
 
-act_rgx='(accepted|speed|paused|-> update config|-> publish config|-> trigger restart|\[CC\-Client\] error|Error: \"\[Connect\]|algo:)'
+act_rgx='(accepted|speed|paused|algo:|-> update config|-> publish config|-> trigger restart|\[CC\-Client\] error|Error: \"\[Connect\]|POOL #1:      \(null\))'
 algo_rgx='(cn|cn-heavy|cn-lite|cn-superlite|cn-ultralite)'
 choose_action() {
     [[ "$1" =~ $act_rgx ]]
@@ -1146,7 +1146,7 @@ choose_action() {
                 scratcher
             fi
             ;;
-        "[CC-Client] error"|"Error: \"[Connect]")
+        "[CC-Client] error"|"Error: \"[Connect]"|"POOL #1:      (null)")
             error_count=$((error_count+1))
             if [ "$error_count" -gt 3 ]; then
                 ## choose different endpoints
