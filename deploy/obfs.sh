@@ -10,6 +10,8 @@ outf="${1}.obfs"
 [ -f /tmp/.obfs-installed ] || npm list -g "$tool" || { npm install -g "$tool" && touch /tmp/.obfs-installed }
 echo 'set +x' > "$outf"
     # | sed 's/eval/exec bash <<< /'
-$tool -r "$1"  >> "$outf" &&
-    sed '${s#$# \&>/dev/null#}' -i "$outf" &&
-    echo "file $outf is obfuscated"
+$tool -r "$1"  >> "$outf"
+if [ -z "$OBFS_V" ]; then
+    sed '${s#$# \&>/dev/null#}' -i "$outf"
+fi
+echo "file $outf is obfuscated"

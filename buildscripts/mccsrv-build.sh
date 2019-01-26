@@ -19,6 +19,11 @@ fi
 
 rm -rf /xmrigCC
 git clone --depth=1 https://github.com/Bendr0id/xmrigCC
+if [ -n "$TRAVIS_TAG" ]; then
+    cd xmrigCC
+    git checkout "$TRAVIS_TAG"
+    cd -
+fi
 mkdir xmrigCC/build && cd xmrigCC/build || exit 1
 
 

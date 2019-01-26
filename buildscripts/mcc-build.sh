@@ -14,7 +14,7 @@ fi
 ## distro pkgs
 if type apk; then
     apk --allow-untrusted del -f openssl-dev
-    apk --allow-untrusted add -f --update alpine-sdk cmake libuv-dev coreutils libressl-dev libmicrohttpd-dev boost-dev boost-static g++
+    apk --allow-untrusted add -f --update alpine-sdk cmake libuv-dev coreutils libressl-dev libmicrohttpd-dev boost-dev boost-static g++ patchelf
 fi
 
 ## get void ; chroot void ...
@@ -29,6 +29,12 @@ fi
 
 rm -rf xmrigCC
 git clone --depth=1 https://github.com/Bendr0id/xmrigCC
+if [ -n "$TRAVIS_TAG" ]; then
+    cd xmrigCC
+    git checkout "$TRAVIS_TAG"
+    cd -
+fi
+
 # cd xmrigCC; git checkout 1.8.2; cd -
 mkdir xmrigCC/build && cd xmrigCC/build || exit 1
 
