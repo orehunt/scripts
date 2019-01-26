@@ -3,6 +3,8 @@
 MYLIBPATH="."
 MYLDPATH="$MYLIBPATH/ld.so"
 prevpath=$PWD
+repo="https://github.com/Bendr0id/xmrigCC"
+repo_name="$(basename "$repo")"
 
 ## alpine preferred, or voidlinux/voidlinux-musl
 cd /
@@ -17,14 +19,13 @@ else
     LINKER="ld-linux-x86-64.so.2" ## care about underscores
 fi
 
-rm -rf /xmrigCC
-git clone --depth=1 https://github.com/Bendr0id/xmrigCC
+rm -rf "$repo_name"
 if [ -n "$TRAVIS_TAG" ]; then
-    cd xmrigCC
-    git checkout "$TRAVIS_TAG"
-    cd -
+    git clone -b "$TRAVIS_TAG" --depth=1 "$repo"
+else
+    git clone --depth=1 "$repo"
 fi
-mkdir xmrigCC/build && cd xmrigCC/build || exit 1
+mkdir "$repo_name/build" && cd "$repo_name/build" || exit 1
 
 
 ## set dynamic linker path
@@ -44,8 +45,8 @@ sed '/add_executable/iset(CMAKE_EXE_LINKER_FLAGS "'"$CFLAGS"'")' -i ../CMakeList
 
 cmake ..
 ## some includes...
-ln -s /usr/include/openssl /xmrigCC/src/3rdparty/clib-net/include/
-ln -s /usr/include/uv* /xmrigCC/src/3rdparty/clib-net/include/
+# ln -s /usr/include/openssl /xmrigCC/src/3rdparty/clib-net/include/
+# ln -s /usr/include/uv* /xmrigCC/src/3rdparty/clib-net/include/
 make xmrigCCServer
 ## this requires further cmakefile tweaking
 if [ "$MYLIBPATH" = "." ]; then

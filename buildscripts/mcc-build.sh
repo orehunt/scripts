@@ -1,7 +1,10 @@
 #!/bin/sh
+
 set -e
 
 prevpath=$PWD
+repo="https://github.com/Bendr0id/xmrigCC"
+repo_name="$(basename "$repo")"
 
 if [ "$1" = mac ]; then
     brew install bash gnu-sed gpatch gcc cmake libuv openssl libmicrohttpd boost || true # rclone
@@ -27,16 +30,15 @@ else
 fi
 [ -z "$jobs" ] && jobs=1
 
-rm -rf xmrigCC
-git clone --depth=1 https://github.com/Bendr0id/xmrigCC
+rm -rf "$repo_name"
 if [ -n "$TRAVIS_TAG" ]; then
-    cd xmrigCC
-    git checkout "$TRAVIS_TAG"
-    cd -
+    git clone -b "$TRAVIS_TAG" --depth=1 "$repo"
+else
+    git clone --depth=1 "$repo"
 fi
 
 # cd xmrigCC; git checkout 1.8.2; cd -
-mkdir xmrigCC/build && cd xmrigCC/build || exit 1
+mkdir "$repo_name/build" && cd "$repo_name/build" || exit 1
 
 ## drop shell for xmrigDaemon
 # sed -r 's/(=)( ownPath.substr)/\1 "exec " +\2/' -i ../src/cc/XMRigd.cpp
@@ -87,6 +89,9 @@ else
           -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl \
           -DWITH_ASM=OFF
 fi
+
+## cmake fixes
+cp -a src/crypto/asm/* ../src/crypto/asm || true
 
 make -j $jobs xmrigMiner
 
