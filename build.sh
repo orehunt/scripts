@@ -3,8 +3,8 @@
 set -e
 nodeV=8
 # fork=https://github.com/bobbieltd/xmr-node-proxy
-# fork=https://github.com/MoneroOcean/xmr-node-proxy
-fork=https://github.com/untoreh/xmr-node-proxy
+fork=https://github.com/MoneroOcean/xmr-node-proxy
+#fork=https://github.com/untoreh/xmr-node-proxy
 bpath=node_modules/multi-hashing/build/Release
 # modules="{bignum,cryptonote-util,multi-hashing}"
 # modules="{bignum,cryptoforknote-util,cryptonight-hashing,multi-hashing,cryptonote-util,semipool-ipbc-util}"
@@ -13,7 +13,7 @@ name=xnp
 appname=server.js
 
 apt update && apt upgrade -y
-apt -y install git python-virtualenv python3-virtualenv curl ntp build-essential screen cmake pkg-config libboost-all-dev libevent-dev libunbound-dev libminiupnpc-dev libunwind8-dev liblzma-dev libldns-dev libexpat1-dev libgtest-dev libzmq3-dev
+apt -y install git jq python-virtualenv python3-virtualenv curl ntp build-essential screen cmake pkg-config libboost-all-dev libevent-dev libunbound-dev libminiupnpc-dev libunwind8-dev liblzma-dev libldns-dev libexpat1-dev libgtest-dev libzmq3-dev
 rm -rf $name
 git clone $fork $name
 curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.0/install.sh | bash
@@ -30,7 +30,10 @@ npm install
 npm rebuild
 npm install -g pkg@4.2.5
 mv proxy.js $appname
-patch package.json ../package.json.patch
+jq '.+ {"bin": "server.js",
+  "pkg": {
+         "scripts": "lib/**/*.js"
+   }}' < package.json > package.json.new && mv package.json.new package.json
 patch $appname ../proxy.js.patch
 sed 's/sendReply(miner.error)/if (miner.error != "Unauthorized access" ) sendReply(miner.error)/' \
     -i $appname
@@ -43,4 +46,3 @@ mv pkgbin ../
 rm -rf ../bindings
 mv bindings ../
 cd ../ && rm -rf $name && mv pkgbin $name
-
