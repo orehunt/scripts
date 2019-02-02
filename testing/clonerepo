@@ -37,6 +37,9 @@ REPO_LOGIN=${REPO_USER//@/%40}
 REPO_URL="https://$REPO_LOGIN:$REPO_PASS@${REPO_EP:-github.com}/${REPO_NAME%.git}.git"
 REPO_DIR="$(basename $REPO_NAME)"
 
+## ad-hoc workarounds
+[ "$REPO_CI" = azure ] && REPO_URL=${REPO_URL%.git}
+
 git clone "$REPO_URL" "$REPO_ROOT/$REPO_CI/$REPO_DIR"
 
 cd "$REPO_ROOT/$REPO_CI/$REPO_DIR"

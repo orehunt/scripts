@@ -3,8 +3,13 @@
 data=$(</dev/stdin)
 chunk_size=2047 ## 1 char for order
 data=$(echo "$data" | base64 -w $chunk_size)
-zone=drun.ml
-record=d
+if [ "$1" = zeit  ]; then
+    zone=drun.ml
+    record=zeit
+else
+    zone=drun.ml
+    record=d
+fi
 type=txt
 
 get_record_ids() {
