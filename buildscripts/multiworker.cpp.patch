@@ -11,7 +11,7 @@
 @@ -103,6 +104,7 @@
  void MultiWorker::start()
  {
-     const size_t memory  = scratchPadMem.realSize / 1048576;
+     size_t memory = scratchPadMem.realSize > ONE_MB ? scratchPadMem.realSize / ONE_MB : scratchPadMem.realSize / 1024;
 +    const int cpuSleep = Options::i()->cpuSleep();
  
      if (Options::i()->colors()) {
