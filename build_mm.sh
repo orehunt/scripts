@@ -15,7 +15,7 @@ curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.0/install.sh | b
 . ~/.nvm/nvm.sh
 nvm install v$nodeV
 
-cp ./mm_package.json $name/
+cp ./mm_package.json $name/package.json
 cd $name
 npm install -g pkg
 pkg -t node$nodeV-linux-x64 package.json -o pkgbin
