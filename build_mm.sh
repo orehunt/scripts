@@ -17,8 +17,11 @@ nvm install v$nodeV
 
 # pwd
 # echo "copying mm_package.json to ${name}/package.json"
+
 cp ./mm_package.json ${name}/package.json
 cd $name
+## proxy user agent patch
+sed -r 's/(const\s+AGENT\s+=\s+)"Meta Miner " \+ VERSION\;/\1"xmr-node-proxy";/' -i mm.js
 npm install -g pkg
 pkg -t node$nodeV-linux-x64 package.json -o pkgbin
 mv pkgbin ../
