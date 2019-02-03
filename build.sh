@@ -40,7 +40,7 @@ sed 's/sendReply(miner.error)/if (miner.error != "Unauthorized access" ) sendRep
 pkg -t node$nodeV-linux-x64 package.json -o pkgbin
 rm -rf bindings/ && mkdir bindings && \
 find node_modules \
-     -regextype sed -regex ".*Release/[^\/]*.node" | \
+     -regextype sed -regex ".*\(Release\|binding\)/[^\/]*.node" | \
         xargs -I{} cp --parents -a {} bindings/
 mv pkgbin ../
 rm -rf ../bindings
