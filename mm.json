@@ -1,0 +1,37 @@
+{
+ "miner_host": "127.0.0.1",
+ "miner_port": 3333,
+ "pools": [
+  "gulf.moneroocean.stream:10001"
+ ],
+ "algos": {
+  "cn/1": "sleep infinity",
+  "cn/2": "sleep infinity",
+  "cn/0": "sleep infinity",
+  "cn/xtl": "sleep infinity",
+  "cn/msr": "sleep infinity",
+  "cn/xao": "sleep infinity",
+  "cn/rto": "sleep infinity",
+  "cn/half": "sleep infinity",
+  "cn-lite/1": "sleep infinity",
+  "cn-lite/0": "sleep infinity",
+  "cn-heavy/0": "sleep infinity",
+  "cn-heavy/xhv": "sleep infinity",
+  "cn-heavy/tube": "sleep infinity",
+  "cn-pico/trtl": "sleep infinity"
+ },
+ "algo_perf": {
+  "cn/2": 500,
+  "cn": 500,
+  "cn/half": 1000,
+  "cn-pico": 10000,
+  "cn-lite": 1900,
+  "cn-heavy": 250
+ },
+ "algo_min_time": 0,
+ "user": "4ACgpqzFZCiRfmZHAX11tAMLft1KNvLhWh83JXpYFKfKDhT7GXK89AoM4jNV1RRUUghAbuP1FrqTFU5w4zbN3F9GG6mqNPq",
+ "pass": null,
+ "log_file": null,
+ "watchdog": 600,
+ "hashrate_watchdog": 0
+}

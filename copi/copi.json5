@@ -6,6 +6,28 @@
         level: "PANIC",
     },
     jobs: [{
+        name: "mm{{.HIER}}",
+        restarts: "unlimited",
+        when: {
+            once: "exitSuccess",
+            source: "prestart",
+        },
+        exec: ["/opt/xnp/start_mm.sh"],
+        port: 3333,
+        health: {
+            exec: [ "timeout", "10", "nc", "-z", "localhost", "3333", ],
+            interval: 10,
+            timeout: 20,
+            ttl: 30,
+        },
+        tags: [
+            "ports:3333",
+            "{{.LOCA}}"
+        ],
+        consul: {
+            deregisterCriticalServiceAfter: "10m",
+        }
+    },{
         name: "xnp{{.HIER}}",
         restarts: "unlimited",
         when: {
@@ -70,5 +92,8 @@
     },{
         name: "tun{{.HIER}}",
         interval: 5,
+    },{
+        name: "mm{{.HIER}}",
+        interval: 10,
     }]
 }
