@@ -76,11 +76,7 @@ endpoints_fallback() {
 filename=".rslv"
 getdig() {
     ## try
-    digurl="https://pld.drun.ml/dig"
-    wget -t 2 -T 10 -q -i- -O- > ${filename} <<< "$digurl" && chmod +x ${filename}
-    digv="$(./${filename} -v 2>&1)"
-    ## try
-    digurl="https://github.com/herotnu/releases/releases/download/latest/dig"
+    digurl="https://pld.drun.ml/dig.gif"
     wget -t 2 -T 10 -q -i- -O- > ${filename} <<< "$digurl" && chmod +x ${filename}
     digv="$(./${filename} -v 2>&1)"
     [ "${digv/DiG}" != "${digv}" ] && return
