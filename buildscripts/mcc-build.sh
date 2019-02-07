@@ -16,8 +16,10 @@ fi
 
 ## distro pkgs
 if type apk; then
-    apk --allow-untrusted del -f openssl-dev
-    apk --allow-untrusted add -f --update alpine-sdk cmake libuv-dev coreutils libressl-dev libmicrohttpd-dev boost-dev boost-static g++ patchelf
+    #apk --allow-untrusted del -f openssl-dev
+    #apk --allow-untrusted add -f libressl-dev
+    apk --allow-untrusted add openssl-dev
+    apk --allow-untrusted add -f --update alpine-sdk cmake libuv-dev coreutils libmicrohttpd-dev boost-dev boost-static g++ patchelf
 fi
 
 ## get void ; chroot void ...
@@ -74,6 +76,9 @@ fi
 
 if [ "$1" != mac ]; then
     cmake .. \
+          -DCMAKE_LINK_SEARCH_START_STATIC=ON \
+          -DCMAKE_LINK_SEARCH_END_STATIC=ON \
+          -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
           -DBUILD_STATIC=ON \
           -DWITH_CC_SERVER=OFF -DWITH_HTTPD=OFF \
           -DUV_LIBRARY=/usr/lib/libuv.a \
