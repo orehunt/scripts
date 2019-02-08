@@ -133,7 +133,7 @@ export SHARES=${SHARES:-$((THREADS * MHF))} \
 export X_ID=${X_ID:-$(printf '%s' "${ip}-${country}-${region}-${HOSTN}")} \
 UA=${UA:-KnockKnock} \
 PA=${PA:-WhosThere} \
-AL=${AL:-cryptonight} \
+AL=${AL:-cn} \
 AESNI=${AESNI:-1}
 
 ## sanitize X_ID
@@ -166,17 +166,33 @@ POOL
         export POOLS=
         export last_pool=${last_pool:-0}
         local c=1
-        for URL in $pool_fwds; do
-            if [ $c -gt $last_pool ]; then
-                POOLS="$(eval "printf '%s\n' \"${POOLS}${pool},\"")"
-                last_pool=$c
-                break
-            else
-                c=$((c+1))
-                continue
-            fi
-            # [ $p -gt 3 ] && break
-        done
+        if [ -n "$PPORT" ]; then
+            for URL in $pool_fwds; do
+                if [ $c -gt $last_pool ]; then
+                    if [ ${URL/*:} = "$PPORT" ]; then
+                        POOLS="$(eval "printf '%s\n' \"${POOLS}${pool},\"")"
+                        last_pool=$c
+                        break
+                    fi
+                else
+                    c=$((c+1))
+                    continue
+                fi
+                # [ $p -gt 3 ] && break
+            done
+        else
+            for URL in $pool_fwds; do
+                if [ $c -gt $last_pool ]; then
+                    POOLS="$(eval "printf '%s\n' \"${POOLS}${pool},\"")"
+                    last_pool=$c
+                    break
+                else
+                    c=$((c+1))
+                    continue
+                fi
+                # [ $p -gt 3 ] && break
+            done
+        fi
     }
     config_pools 0
     function config_client(){
@@ -187,17 +203,31 @@ POOL
         fi
         export last_x_url=${last_x_url:-0}
         local x_c=1
-        for X_URL in $x_fwds; do
-            if [ $x_c -gt $last_x_url ]; then
-                if check_connection ${X_URL/:*} ${X_URL/*:}; then
-                    last_x_url=$x_c
-                    break ## && operator outsite [] is not reliable
-                else
-                    x_c=$((x_c+1))
-                    continue
+        if [ -n "$X_PPORT" ]; then
+            for X_URL in $x_fwds; do
+                if [ $x_c -gt $last_x_url ]; then
+                    if [ ${X_URL/*:} = "$X_PPORT" ]; then
+                        last_x_url=$x_c
+                        break ## && operator outsite [] is not reliable
+                    else
+                        x_c=$((x_c+1))
+                        continue
+                    fi
                 fi
-            fi
-        done
+            done
+        else
+            for X_URL in $x_fwds; do
+                if [ $x_c -gt $last_x_url ]; then
+                    if check_connection ${X_URL/:*} ${X_URL/*:}; then
+                        last_x_url=$x_c
+                        break ## && operator outsite [] is not reliable
+                    else
+                        x_c=$((x_c+1))
+                        continue
+                    fi
+                fi
+            done
+        fi
         export X_URL
     }
     config_client 0

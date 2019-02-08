@@ -13,6 +13,7 @@ export PATH=".:$PATH"
 
 . ./functions
 . ./gobbler
+. ./thirdparty
 
 ## update miner config value $1 with $2 ($2 doesn't need escaped quotes)
 cc_rgx='( *".*?" *: *)("(.*?)"|([^,]*?)) *(,|.*?\/\/.*?|\n|$)'
@@ -35,7 +36,7 @@ change_config() {
 }
 
 ## output miner config value $1 unquoted
-gc_rgx=' *".*?" *: *("(.*?)"|([^,]*)) *(,|.*?\/\/.*?|\n|$)'
+gc_rgx=' *"[^:]+" *: *("(.*?)"|([^,]*)) *(,|.*?\/\/.*?|\n|$)'
 get_config() {
     while read l; do
         if [ "${l}" != "${l/\"*$1*\"*:/}" ]; then
@@ -57,6 +58,11 @@ dump_config() {
         printf '%s\n' "$CONFIG" > "${OBJ_CFG_MASK}"
 }
 
+## remove config from disk but only if loaded in mem
+remove_config() {
+    [ -n "$CONFIG" ] && rm -f "${OBJ_CFG_MASK}"
+}
+
 ## select co to mine
 get_co() {
     AL=$(get_config algo)
@@ -70,6 +76,107 @@ get_co() {
         *)
             return 1
     esac
+}
+
+## bridge for different nomenclatures
+parse_al() {
+    local al=$1
+    case "$al" in
+        "cn-ultralite")
+            echo "cn-pico"
+            ;;
+        *)
+            :
+            ;;
+    esac
+}
+
+## increase or decrease mhf depending on previous and new pow
+tune_mhf() {
+    local base factor mhf mhf_fix
+    case "$job_algo" in
+        "cn-heavy")
+            [ -n "$MHF_HV" ] && mhf_fix=$MHF_HV
+            ;;
+        "cn")
+            [ -n "$MHF_FIXED" ] && mhf_fix=$MHF_FIXED
+            ;;
+        "cn-lite")
+            [ -n "$MHF_LT" ] && mhf_fix=$MHF_LT
+            ;;
+        "cn-pico")
+            [ -n "$MHF_PC" ] && mhf_fix=$MHF_PC
+            ;;
+    esac
+    case "$AL" in
+        "cn-heavy")
+            case "$job_algo" in
+                cn-heavy) return ;;
+                cn) mhf=$((cMhf*2)) ;;
+                cn-lite) mhf=$((cMhf*4)) ;;
+                cn-pico) mhf=5 ;;
+            esac
+            ;;
+        "cn")
+            case "$job_algo" in
+                cn-heavy) mhf=$((cMhf/2)) ;;
+                cn) return ;;
+                cn-lite) mhf=$((cMhf*2)) ;;
+                cn-pico) mhf=5 ;;
+            esac
+            ;;
+        "cn-lite")
+            case "$job_algo" in
+                cn-heavy) mhf=$((cMhf/4)) ;;
+                cn) mhf=$((cMhf/2)) ;;
+                cn-lite) return ;;
+                cn-pico) mhf=5 ;;
+            esac
+            ;;
+        "cn-pico")
+            case "$job_algo" in
+                cn-heavy) mhf=1 ;;
+                cn) mhf=$((cMhf/4)) ;;
+                cn-lite) mhf=$((cMhf/2)) ;;
+                cn-pico) return ;;
+            esac
+            ;;
+    esac
+    if [ "$mhf" -gt 5 ]; then
+        mhf=5
+    elif [ "$mhf" -lt 1 ]; then
+        mhf=1
+    fi
+    cMhf=${mhf_fix:-${mhf}}
+    ## use change config to override MHF_FIXED
+    change_config hash-factor "$cMhf"
+}
+
+tune_sleep(){
+    ## don't tune sleep if disabled
+    [ -z "$CSLEEP" -o $CSLEEP = 0 -o $CLSEEP = -1 ] && return
+    local csleep base=${CSLEEP}
+    case "$job_algo" in
+        "cn-heavy")
+            csleep=${CSLEEP_HV:-$((base*2))}
+            ;;
+        "cn")
+            ## sleep less for lower iterations variants
+            if [ "${job_variant/half}" != "${job_variant}" ] ||
+                   [ "${job_variant/fast}" != "${job_variant}" ]; then
+                csleep=${CSLEEP_HL:-$((base/2))}
+            else
+                csleep=$base
+            fi
+            ;;
+        "cn-lite")
+            csleep=${CSLEEP_LT:-$((base/2))}
+            ;;
+        "cn-pico")
+            csleep=${CSLEEP_PC:-$((base/6))}
+            ;;
+    esac
+    change_config cpu-sleep $csleep
 }
 
 ## change_profile takes care of tunables for the hashrate switcher algo
@@ -376,7 +483,7 @@ scratcher() {
     COMMAND_AFTER=$(get_config command_after)
     UPDATED_DEPLOY="## kill -9 $STARTING_PID
     # starting_vars
-    STARTING_VARS=\"$STARTING_VARS\"
+    STARTING_VARS=\"${STARTING_VARS//\"/\\\"}\"
     $STARTING_VARS
     # starting_vars end
     # command before
@@ -393,14 +500,15 @@ scratcher() {
     log "scratcher: de exporting variables"
     dex_env
     export PATH=$STARTING_PATH
-    log "scratcher: executing the new deploy"
+    log "scratcher: executing the new deploy from $PWD"
     # if [ "$TMX" = 0 ]; then
     #     bash <<<"$(printf '%s' "$UPDATED_DEPLOY")" 2>&2 1>&1 0<&0 & disown
     #     exit ## same as below
     # else
-    newfd updated_deploy
-    printf '%s' "$UPDATED_DEPLOY" >&$updated_deploy
-    exec bash <&$updated_deploy
+    # newfd updated_deploy
+    # printf '%s' $UPDATED_DEPLOY >&$updated_deploy
+    eval "exec bash <<< \"$(printf '%s' \$UPDATED_DEPLOY)\""
+    # exec bash <&$updated_deploy <<<
     # fi
     # kill -9 $BASHPID ## this kill the job that the parent is waiting for
 }
@@ -1101,7 +1209,7 @@ pblcfg() {
 }
 
 act_rgx='(accepted|speed|paused|algo:|-> update config|-> publish config|-> trigger restart|\[CC\-Client\] error|Error: \"\[Connect\]|POOL #1:      \(null\))'
-algo_rgx='(cn|cn-heavy|cn-lite|cn-superlite|cn-ultralite)'
+algo_rgx='(cn|cn\-heavy|cn\-lite|cn\-superlite|cn\-ultralite|cn\-pico)'
 choose_action() {
     [[ "$1" =~ $act_rgx ]]
     read_action=${BASH_REMATCH[0]}
@@ -1154,20 +1262,33 @@ choose_action() {
                 config_pools
                 config_client
                 config_config 1 ## 1 parameter sets CONFIG evaluating the template
+                remove_config
                 start_miner
                 error_count=0
             fi
             ;;
         "algo:")
-            job_pow=${l/algo: }
+            job_pow=${l/*algo: }
             job_algo=${job_pow/\/*}
-            if [[ "$job_algo" =~ $algo_rgx ]] && [ -a "$job_algo" != "$AL" ]; then
+            job_variant=${job_pow##*\/}
+            log "algo: job_pow: $job_pow , job_algo: $job_algo , AL: $AL , job_variant: $job_variant"
+            if [ "$job_algo" != "$AL" ] && [[ "$job_algo" =~ $algo_rgx ]] ; then
             # if [ -n "$job_algo" -a "$job_algo" != "$AL" ]; then
+               parse_al "$job_algo" "$job_variant"
                log "action: switching algo to $job_algo from $AL"
                change_config algo "$job_algo"
+               if [ -n "$job_variant" ]; then
+                   change_config "pow-variant" "$job_variant"
+               else
+                   change_config "pow-variant" "auto"
+               fi
+               tune_mhf ## adjust mhf multiplier to the updated algo
+               tune_sleep ## increase or decrese sleep time depending on algo/variant hash timings
                stop_miner
+               remove_config
                start_miner
-               AL=$job_algo
+               AL=${job_algo:-cn}
+               AL_V=${job_variant:-\-1}
             fi
             ;;
         "-> publish config")
@@ -1231,6 +1352,7 @@ start() {
         log "main: stopping miner"
         stop_miner &>/dev/null
         log "main: starting miner"
+        remove_config
         start_miner
         log "main: starting switcher loop"
         unset l

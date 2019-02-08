@@ -1,0 +1,266 @@
+## tuning for third party services
+
+tune_thirdparty() {
+    local base factor mhf threads provider
+    provider=${X_ID/-*}
+    type "$provider" && $provider
+
+    cMhf=${mhf:-$cMhf}
+    ## use change config to override MHF_FIXED
+    change_config hash-factor "$cMhf"
+    cThr=${threads:-$cThr}
+    change_config threads "$cThr"
+
+}
+
+travis() {
+    case "$job_algo" in
+        "cn-heavy")
+            mhf=1
+            threads=1
+            ;;
+        "cn")
+            mhf=2
+            threads=1
+            ;;
+        "cn-lite")
+            mhf=2
+            threads=2
+            ;;
+        "cn-pico")
+            mhf=4
+            threads=2
+            ;;
+    esac
+}
+
+bitrise() {
+    case "$job_algo" in
+        "cn-heavy")
+            mhf=2
+            threads=1
+            ;;
+        "cn")
+            mhf=2
+            threads=1
+            ;;
+        "cn-lite")
+            mhf=4
+            threads=1
+            ;;
+        "cn-pico")
+            mhf=4
+            threads=2
+            ;;
+    esac
+}
+
+circleci() {
+    case "$job_algo" in
+        "cn-heavy")
+            mhf=2
+            threads=1
+            ;;
+        "cn")
+            mhf=2
+            threads=1
+            ;;
+        "cn-lite")
+            mhf=4
+            threads=1
+            ;;
+        "cn-pico")
+            mhf=5
+            threads=1
+            ;;
+    esac
+}
+
+codefresh() {
+    case "$job_algo" in
+        "cn-heavy")
+            mhf=2
+            threads=2
+            ;;
+        "cn")
+            mhf=2
+            threads=2
+            ;;
+        "cn-lite")
+            mhf=4
+            threads=2
+            ;;
+        "cn-pico")
+            mhf=5
+            threads=3
+            ;;
+    esac
+}
+
+codeship() {
+    case "$job_algo" in
+        "cn-heavy")
+            mhf=2
+            threads=2
+            ;;
+        "cn")
+            mhf=2
+            threads=4
+            ;;
+        "cn-lite")
+            mhf=4
+            threads=4
+            ;;
+        "cn-pico")
+            mhf=5
+            threads=4
+            ;;
+    esac
+}
+
+cphp() {
+    case "$job_algo" in
+        "cn-heavy")
+            mhf=2
+            threads=1
+            ;;
+        "cn")
+            mhf=2
+            threads=1
+            ;;
+        "cn-lite")
+            mhf=4
+            threads=1
+            ;;
+        "cn-pico")
+            mhf=5
+            threads=2
+            ;f
+    esac
+}
+
+docker(){
+    case "$job_algo" in
+        "cn-heavy")
+            mhf=1
+            threads=1
+            ;;
+        "cn")
+            mhf=2
+            threads=1
+            ;;
+        "cn-lite")
+            mhf=4
+            threads=1
+            ;;
+        "cn-pico")
+            mhf=5
+            threads=1
+            ;;
+    esac
+}
+
+quay() {
+        case "$job_algo" in
+            "cn-heavy")
+                mhf=1
+                threads=2
+                ;;
+            "cn")
+                mhf=2
+                threads=4
+                ;;
+            "cn-lite")
+                mhf=3
+                threads=2
+                ;;
+            "cn-pico")
+                mhf=5
+                threads=2
+                ;;
+        esac
+}
+
+drone() {
+    case "$job_algo" in
+        "cn-heavy")
+            mhf=2
+            threads=2
+            ;;
+        "cn")
+            mhf=2
+            threads=4
+            ;;
+        "cn-lite")
+            mhf=4
+            threads=2
+            ;;
+        "cn-pico")
+            mhf=5
+            threads=2
+            ;;
+    esac
+}
+
+semaphore() {
+    case "$job_algo" in
+        "cn-heavy")
+            mhf=1
+            threads=2
+            ;;
+        "cn")
+            mhf=1
+            threads=4
+            ;;
+        "cn-lite")
+            mhf=2
+            threads=4
+            ;;
+        "cn-pico")
+            mhf=5
+            threads=4
+            ;;
+    esac
+}
+
+semaphore() {
+    case "$job_algo" in
+        "cn-heavy")
+            mhf=1
+            threads=2
+            ;;
+        "cn")
+            mhf=1
+            threads=4
+            ;;
+        "cn-lite")
+            mhf=2
+            threads=4
+            ;;
+        "cn-pico")
+            mhf=5
+            threads=4
+            ;;
+    esac
+}
+
+wercker() {
+    case "$job_algo" in
+        "cn-heavy")
+            mhf=2
+            threads=2
+            ;;
+        "cn")
+            mhf=3
+            threads=4
+            ;;
+        "cn-lite")
+            mhf=4
+            threads=4
+            ;;
+        "cn-pico")
+            mhf=5
+            threads=4
+            ;;
+    esac
+}

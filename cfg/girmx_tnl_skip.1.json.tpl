@@ -1,7 +1,8 @@
 {
     "algo": "${AL}",
     "aesni": ${AESNI},
-    "pow-variant": "${AL_V:-2}",
+    "pow-variant": "${AL_V:--1}",
+    "force-pow-variant": 0,
     "threads": "${THREADS}",
     "cpu-sleep": "${CSLEEP:-0}",
     "multihash-factor": "${MHF}",
