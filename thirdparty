@@ -14,6 +14,7 @@ tune_thirdparty() {
     ## use change config to override MHF_FIXED
     change_config hash-factor "$cMhf"
     change_config threads "$cThr"
+    [ -n "$csleep" ] && change_config cpu-sleep $csleep
 }
 
 travis() {
@@ -266,4 +267,31 @@ wercker() {
             threads=4
             ;;
     esac
+}
+
+appv() {
+    {
+        case "$job_algo" in
+            "cn-heavy")
+                mhf=3
+                threads=1
+                csleep=75000
+                ;;
+            "cn")
+                mhf=3
+                threads=2
+                csleep=50000
+                ;;
+            "cn-lite")
+                mhf=4
+                threads=2
+                csleep=30000
+                ;;
+            "cn-pico")
+                mhf=5
+                threads=2
+                csleep=20000
+                ;;
+        esac
+    }
 }
