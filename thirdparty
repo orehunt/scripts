@@ -3,14 +3,17 @@
 tune_thirdparty() {
     local base factor mhf threads provider
     provider=${X_ID/-*}
-    type "$provider" && $provider
+    if type "$provider"; then
+        $provider
+    else
+        return
+    fi
 
     cMhf=${mhf:-$cMhf}
+    cThr=${threads:-$cThr}
     ## use change config to override MHF_FIXED
     change_config hash-factor "$cMhf"
-    cThr=${threads:-$cThr}
     change_config threads "$cThr"
-
 }
 
 travis() {

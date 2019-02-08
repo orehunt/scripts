@@ -1284,6 +1284,7 @@ choose_action() {
                fi
                tune_mhf ## adjust mhf multiplier to the updated algo
                tune_sleep ## increase or decrese sleep time depending on algo/variant hash timings
+               tune_thirdparty ## adhoc configs for thirdparties
                stop_miner
                remove_config
                start_miner
