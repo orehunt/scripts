@@ -106,18 +106,22 @@ codeship() {
         "cn-heavy")
             mhf=2
             threads=2
+            csleep=10000
             ;;
         "cn")
             mhf=2
             threads=4
+            csleep=5000
             ;;
         "cn-lite")
             mhf=4
             threads=4
+            csleep=2000
             ;;
         "cn-pico")
             mhf=5
             threads=4
+            csleep=1000
             ;;
     esac
 }
