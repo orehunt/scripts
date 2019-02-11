@@ -33,8 +33,9 @@ fi
 [ -z "$jobs" ] && jobs=1
 
 rm -rf "$repo_name"
-if [ -n "$TRAVIS_TAG" ]; then
-    git clone -b "$TRAVIS_TAG" --depth=1 "$repo"
+ttag="${TRAVIS_TAG/-*}"
+if [ -n "$ttag" ]; then
+    git clone -b "ttag" --depth=1 "$repo"
 else
     git clone --depth=1 "$repo"
 fi
