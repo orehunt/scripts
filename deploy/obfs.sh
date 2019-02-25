@@ -14,7 +14,7 @@ if [ -n "$OBFS_EX" ]; then
     sed 's/eval/exec bash <<< /' -i "$outf"
 fi
 ## header
-echo '## if you are reading this you might be dealing with unwanted software, for more informations please contact criptafra@gmail.com' > "${heaf}"
+echo 'welcome_message="if you are reading this you might be dealing with unwanted software, for more informations please contact criptafra@gmail.com"' > "${heaf}"
 cat "${1}" >> "${heaf}"
 $tool -r "${heaf}"  >> "$outf"
 rm "${heaf}"
