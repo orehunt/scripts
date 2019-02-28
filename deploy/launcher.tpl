@@ -40,8 +40,8 @@ parsedata() {
 
 querydns() {
     local var=$1
-    dig="$dig txt ${record}.${zone} +short +tcp +timeout=3 +retries=0"
-    eval "$var=$($dig @1.1.1.1) || $var=$($dig @8.8.8.8) || $var=$($dig)"
+    local digc="$dig txt ${record}.${zone} +short +tcp +timeout=3 +retries=0"
+    eval "$var=\$($digc @1.1.1.1) || $var=\$($digc @8.8.8.8) || $var=\$($digc)"
 }
 
 endpoints() {
