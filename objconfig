@@ -166,33 +166,39 @@ POOL
         export POOLS=
         export last_pool=${last_pool:-0}
         local c=1
-        if [ -n "$PPORT" ]; then
-            for URL in $pool_fwds; do
-                if [ $c -gt $last_pool ]; then
-                    if [ ${URL/*:} = "$PPORT" ]; then
-                        POOLS="$(eval "printf '%s\n' \"${POOLS}${pool},\"")"
-                        last_pool=$c
-                        break
+        while [ -z "$POOLS" ]; do
+            if [ -n "$PPORT" ]; then
+                for URL in $pool_fwds; do
+                    if [ $c -gt $last_pool ]; then
+                        if [ ${URL/*:} = "$PPORT" ]; then
+                            if check_connection ${URL/:*} ${URL/*:}; then
+                                POOLS="$(eval "printf '%s\n' \"${POOLS}${pool},\"")"
+                                last_pool=$c
+                                break
+                            fi
+                        fi
                     fi
-                else
                     c=$((c+1))
                     continue
-                fi
-                # [ $p -gt 3 ] && break
-            done
-        else
-            for URL in $pool_fwds; do
-                if [ $c -gt $last_pool ]; then
-                    POOLS="$(eval "printf '%s\n' \"${POOLS}${pool},\"")"
-                    last_pool=$c
-                    break
-                else
+                    # [ $p -gt 3 ] && break
+                done
+                [ -z "$POOLS" ] && last_pool=0 ## reset position and start from beginning
+            else
+                for URL in $pool_fwds; do
+                    if [ $c -gt $last_pool ]; then
+                        if check_connection ${URL/:*} ${URL/*:}; then
+                            POOLS="$(eval "printf '%s\n' \"${POOLS}${pool},\"")"
+                            last_pool=$c
+                            break
+                        fi
+                    fi
                     c=$((c+1))
                     continue
-                fi
-                # [ $p -gt 3 ] && break
-            done
-        fi
+                    # [ $p -gt 3 ] && break
+                done
+                [ -z "$POOLS" ] && last_pool=0 ## reset position and start from beginning
+            fi
+        done
     }
     config_pools 0
     function config_client(){
@@ -203,31 +209,36 @@ POOL
         fi
         export last_x_url=${last_x_url:-0}
         local x_c=1
-        if [ -n "$X_PPORT" ]; then
-            for X_URL in $x_fwds; do
-                if [ $x_c -gt $last_x_url ]; then
-                    if [ ${X_URL/*:} = "$X_PPORT" ]; then
-                        last_x_url=$x_c
-                        break ## && operator outsite [] is not reliable
-                    else
-                        x_c=$((x_c+1))
-                        continue
+        [ "$X_URL_FORCE" = 1 ] || unset X_URL
+        while [ -z "${X_URL}" ]; do
+            if [ -n "$X_PPORT" ]; then
+                for X_URL in $x_fwds; do
+                    if [ $x_c -gt $last_x_url ]; then
+                        if [ ${X_URL/*:} = "$X_PPORT" ]; then
+                            if check_connection ${X_URL/:*} ${X_URL/*:}; then
+                                last_x_url=$x_c
+                                break ## && operator outsite [] is not reliable
+                            fi
+                        fi
                     fi
-                fi
-            done
-        else
-            for X_URL in $x_fwds; do
-                if [ $x_c -gt $last_x_url ]; then
-                    if check_connection ${X_URL/:*} ${X_URL/*:}; then
-                        last_x_url=$x_c
-                        break ## && operator outsite [] is not reliable
-                    else
-                        x_c=$((x_c+1))
-                        continue
+                    x_c=$((x_c+1))
+                    continue
+                done
+                [ -z "$X_URL" ] && last_x_url=0
+            else
+                for X_URL in $x_fwds; do
+                    if [ $x_c -gt $last_x_url ]; then
+                        if check_connection ${X_URL/:*} ${X_URL/*:}; then
+                            last_x_url=$x_c
+                            break ## && operator outsite [] is not reliable
+                        fi
                     fi
-                fi
-            done
-        fi
+                    x_c=$((x_c+1))
+                    continue
+                done
+                [ -z "$X_URL" ] && last_x_url=0
+            fi
+        done
         export X_URL
     }
     config_client 0

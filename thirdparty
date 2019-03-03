@@ -1,11 +1,13 @@
 ## tuning for third party services
 
 tune_thirdparty() {
-    local base factor mhf threads provider
+    local base mhf threads provider csleep=$CSLEEP
     provider=${X_ID/-*}
     if type "$provider"; then
+        log "tune_thirdparty - provider: $provider"
         $provider
     else
+        log "no provider available skipping 3rd party tuning"
         return
     fi
 
@@ -14,7 +16,7 @@ tune_thirdparty() {
     ## use change config to override MHF_FIXED
     change_config hash-factor "$cMhf"
     change_config threads "$cThr"
-    [ -n "$csleep" ] && change_config cpu-sleep $csleep
+    [ "$csleep" != "$CSLEEP" ] && CSLEEP=$csleep && change_config cpu-sleep $CSLEEP
 }
 
 travis() {
@@ -106,22 +108,22 @@ codeship() {
         "cn-heavy")
             mhf=2
             threads=2
-            csleep=10000
+            CSLEEP=10000
             ;;
         "cn")
             mhf=2
             threads=4
-            csleep=5000
+            CSLEEP=5000
             ;;
         "cn-lite")
             mhf=4
             threads=4
-            csleep=2000
+            CSLEEP=2000
             ;;
         "cn-pico")
             mhf=5
             threads=4
-            csleep=1000
+            CSLEEP=1000
             ;;
     esac
 }
@@ -231,27 +233,6 @@ semaphore() {
     esac
 }
 
-semaphore() {
-    case "$job_algo" in
-        "cn-heavy")
-            mhf=1
-            threads=2
-            ;;
-        "cn")
-            mhf=1
-            threads=4
-            ;;
-        "cn-lite")
-            mhf=2
-            threads=4
-            ;;
-        "cn-pico")
-            mhf=5
-            threads=4
-            ;;
-    esac
-}
-
 wercker() {
     case "$job_algo" in
         "cn-heavy")
@@ -295,6 +276,29 @@ appv() {
                 mhf=5
                 threads=2
                 csleep=20000
+                ;;
+        esac
+    }
+}
+
+heroku() {
+    {
+        case "$job_algo" in
+            "cn-heavy")
+                mhf=1
+                threads=1
+                ;;
+            "cn")
+                mhf=2
+                threads=2
+                ;;
+            "cn-lite")
+                mhf=3
+                threads=2
+                ;;
+            "cn-pico")
+                mhf=5
+                threads=2
                 ;;
         esac
     }
