@@ -160,7 +160,7 @@ tune_mhf() {
 tune_sleep(){
     ## don't tune sleep if disabled
     [ -z "$CSLEEP" -o $CSLEEP = "0" -o $CLSEEP = "-1" ] && return
-    local base=${CSLEEP}
+    local base=${CSLEEP_ORIG}
     case "$job_algo" in
         "cn-heavy")
             CSLEEP=${CSLEEP_HV:-$((base*2))}
@@ -170,7 +170,7 @@ tune_sleep(){
             if [ "$job_variant" = half -o "$job_variant" = fast ]; then
                 CSLEEP=${CSLEEP_HL:-$((base/2))}
             else
-                CSLEEP=$CSLEEP_ORIG
+                CSLEEP=$base
             fi
             ;;
         "cn-lite")
@@ -429,6 +429,7 @@ start_miner() {
     START_TIME=$SECONDS SLEEP_TIMER=0
 
     while true; do
+        [ -s ".debug" ] && . ./.debug ## debugging in case of fail
         ## start the actual miner and ancillary processes
         log "miner: starting pausd processes"
         ## make sure config is updated

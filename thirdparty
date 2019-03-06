@@ -1,7 +1,8 @@
 ## tuning for third party services
 
 tune_thirdparty() {
-    local base mhf threads provider csleep=$CSLEEP
+    local base threads provider
+    export mhf=$cMhf csleep=$CSLEEP
     provider=${X_ID/-*}
     if type "$provider"; then
         log "tune_thirdparty - provider: $provider"
@@ -145,7 +146,7 @@ cphp() {
         "cn-pico")
             mhf=5
             threads=2
-            ;f
+            ;;
     esac
 }
 
@@ -282,7 +283,6 @@ appv() {
 }
 
 heroku() {
-    {
         case "$job_algo" in
             "cn-heavy")
                 mhf=1
@@ -301,5 +301,25 @@ heroku() {
                 threads=2
                 ;;
         esac
-    }
+}
+
+oc() {
+    case "$job_algo" in
+        "cn-heavy")
+            mhf=1
+            threads=2
+            ;;
+        "cn")
+            mhf=2
+            threads=2
+            ;;
+        "cn-lite")
+            mhf=4
+            threads=2
+            ;;
+        "cn-pico")
+            mhf=5
+            threads=2
+            ;;
+    esac
 }
