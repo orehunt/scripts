@@ -23,7 +23,7 @@
 +            if (cpuSleep >= 0) {
 +              usleep(cpuSleep);
 +            }
-             CryptoNight::hash(m_hashFactor, Options::i()->asmOptimization(), m_state->job.powVariant(), m_state->blob, m_state->job.size(), m_hash, scratchPads);
+             CryptoNight::hash(m_hashFactor, Options::i()->asmOptimization(), m_state->job.height(), m_state->job.powVariant(), m_state->blob, m_state->job.size(), m_hash, scratchPads);
  
              for (size_t i=0; i < m_hashFactor; ++i) {
 @@ -205,4 +210,4 @@
