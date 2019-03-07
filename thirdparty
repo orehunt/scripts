@@ -318,8 +318,8 @@ oc() {
             threads=2
             ;;
         "cn-pico")
-            mhf=5
-            threads=2
+            mhf=2
+            threads=4
             ;;
     esac
 }

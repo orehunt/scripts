@@ -41,7 +41,7 @@ python start.py -p 8585 -u localhost
 imageserver --conf default.conf
 imaginary -p 8080 -http-cache-ttl 31556926 -concurrency 2
 imaginary -p 8086 -enable-url-source -enable-auth-forwarding
-imaginary -p 8083 -enable-url-source -authorization "secret"
+imaginary -p 8083 -enable-url-source -authorization secret
 syncthing
 rclone sync
 borg init --encryption=local.ppk archiver@localhost:backup
