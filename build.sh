@@ -25,7 +25,8 @@ cd $name
 export JOBS=max
 npm install --ignore-scripts
 
-find ./ -name binding.gyp | xargs sed 's/-march=native/-mtune=generic -maes -mavx2/' -i
+find ./ -name binding.gyp | xargs sed 's/-march=native/-march=athlon64 -maes /' -i
+find ./ -name binding.gyp | xargs sed '/cn_gpu_/d' -i
 npm install
 npm rebuild
 npm install -g pkg@4.2.5
