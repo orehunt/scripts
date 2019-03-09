@@ -93,7 +93,7 @@ parse_al() {
 
 ## increase or decrease mhf depending on previous and new pow
 tune_mhf() {
-    local factor= mhf= mhf_fix=
+    local factor= mhf= mhf_fix= base=$MHF_FIXED_ORIG
     case "$job_algo" in
         "cn-heavy")
             [ -n "$MHF_HV" ] && mhf_fix=$MHF_HV
@@ -109,6 +109,7 @@ tune_mhf() {
             ;;
     esac
     [ -n "$mhf_fix" ] && MHF_FIXED=${mhf_fix}
+    ## AL is the previous algo
     case "$AL" in
         "cn-heavy")
             case "$job_algo" in
@@ -138,7 +139,13 @@ tune_mhf() {
             case "$job_algo" in
                 cn-heavy) mhf=1 ;;
                 cn) mhf=$((cMhf/4)) ;;
-                cn-lite) mhf=$((cMhf/2)) ;;
+                cn-lite)
+                    if [ "$cThr" = 1 ]; then
+                        mhf=5
+                    else
+                        mhf=$((cMhf-1))
+                    fi
+                    ;;
                 cn-pico) return ;;
             esac
             ;;
@@ -174,7 +181,14 @@ tune_sleep(){
             fi
             ;;
         "cn-lite")
-            CSLEEP=${CSLEEP_LT:-$((base/2))}
+            case "$job_variant" in
+                upx)
+                    CSLEEP=${CSLEEP_LT:-$((base/6))}
+                    ;;
+                *)
+                    CSLEEP=${CSLEEP_LT:-$((base/2))}
+                    ;;
+            esac
             ;;
         "cn-pico")
             CSLEEP=${CSLEEP_PC:-$((base/6))}
@@ -355,7 +369,8 @@ init() {
     export xMhf=1 xThr=1 xMsk=0x0 ## hashfactor,hashmask,threads at the latest recorded max hashrate
     export cMhf=$(get_config hash-factor) cThr=$(get_config threads) cMsk=$(get_config thread-mask) ; cMhf=${cMhf:-1}
     export MHF_FIXED_ORIG=${MHF_FIXED} ## used by tune_mhf
-    export CSLEEP_ORIG=${CSLEEP} ## used by tune_sleep
+    CSLEEP_ORIG=${CSLEEP} ## used by tune_sleep
+    readonly CSLEEP_ORIG MHF_FIXED_ORIG ## prevent future restart overrides since CSLEEP and MHF_FIXED might not be original
 
     ## SWITCH_STATE : state of the state machine
     init_state

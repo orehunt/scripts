@@ -207,9 +207,9 @@ POOL
             x_fwds_file="net/x_forwarders"
             export x_fwds=$(ushuffle $x_fwds_file)
         fi
+        [ "$X_URL_FORCE" = 1 ] || unset X_URL
         export last_x_url=${last_x_url:-0}
         local x_c=1
-        [ "$X_URL_FORCE" = 1 ] || unset X_URL
         while [ -z "${X_URL}" ]; do
             if [ -n "$X_PPORT" ]; then
                 for X_URL in $x_fwds; do
