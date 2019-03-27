@@ -6,7 +6,7 @@
     "skip-self-check": true,
     "threads": "${THREADS}",
     "cpu-sleep": "${CSLEEP:-0}",
-    "multihash-factor": "${MHF}",
+    "multihash-factor": "${cMhf:-2}",
     "multihash-thread-mask" : "0x0",
     "background": false,
     "colors": false,

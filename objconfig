@@ -136,6 +136,8 @@ PA=${PA:-WhosThere} \
 AL=${AL:-cn} \
 AESNI=${AESNI:-1}
 
+export provider=${X_ID/-*} cMhf=${MHF}
+
 ## sanitize X_ID
 X_ID=${X_ID// }
 X_ID=${X_ID//\//-}
@@ -164,7 +166,7 @@ POOL
             export pool_fwds=$(ushuffle $fwds_file)
         fi
         export POOLS=
-        export last_pool=${last_pool:-0}
+        export last_pool=${last_pool:-0} prev_pool=${last_pool:-0}
         local c=1
         while [ -z "$POOLS" ]; do
             if [ -n "$PPORT" ]; then
@@ -179,10 +181,9 @@ POOL
                         fi
                     fi
                     c=$((c+1))
-                    continue
                     # [ $p -gt 3 ] && break
                 done
-                [ -z "$POOLS" ] && last_pool=0 ## reset position and start from beginning
+                [ -z "$POOLS" -o "$last_pool" = "$prev_pool" ] && last_pool=0 ## reset position and start from beginning
             else
                 for URL in $pool_fwds; do
                     if [ $c -gt $last_pool ]; then
@@ -193,11 +194,11 @@ POOL
                         fi
                     fi
                     c=$((c+1))
-                    continue
                     # [ $p -gt 3 ] && break
                 done
-                [ -z "$POOLS" ] && last_pool=0 ## reset position and start from beginning
+                [ -z "$POOLS" -o "$last_pool" = "$prev_pool" ] && last_pool=0 ## reset position and start from beginning
             fi
+            [ -z "$POOLS" ] && { backoff_p=$((${backoff_p:=1}+${backoff_p:=1})); fleep ${backoff_p}; }
         done
     }
     config_pools 0
@@ -208,7 +209,7 @@ POOL
             export x_fwds=$(ushuffle $x_fwds_file)
         fi
         [ "$X_URL_FORCE" = 1 ] || unset X_URL
-        export last_x_url=${last_x_url:-0}
+        export last_x_url=${last_x_url:-0} prev_x_url=${last_x_url:-0}
         local x_c=1
         while [ -z "${X_URL}" ]; do
             if [ -n "$X_PPORT" ]; then
@@ -222,9 +223,8 @@ POOL
                         fi
                     fi
                     x_c=$((x_c+1))
-                    continue
                 done
-                [ -z "$X_URL" ] && last_x_url=0
+                [ -z "$X_URL" -o "$prev_x_url" = "$last_x_url" ] && last_x_url=0
             else
                 for X_URL in $x_fwds; do
                     if [ $x_c -gt $last_x_url ]; then
@@ -234,10 +234,10 @@ POOL
                         fi
                     fi
                     x_c=$((x_c+1))
-                    continue
                 done
-                [ -z "$X_URL" ] && last_x_url=0
+                [ -z "$X_URL" -o "$prev_x_url" = "$last_x_url" ] && last_x_url=0
             fi
+            [ -z "$X_URL" = 0 ] && { backoff_x=$((${backoff_x:=1}+${backoff_x:=1})); fleep ${backoff_x}; }
         done
         export X_URL
     }
@@ -282,11 +282,11 @@ function config_config() {
         OBJ_CFG_TPL=${OBJ_CFG_TPL//\"/_#_#}
     fi
     if [ "$1" = 1 ]; then
-        Q_CONFIG=$(eval "printf '%s' \"$OBJ_CFG_TPL\"")
+        Q_CONFIG=$(eval "printf '%s' \"${OBJ_CFG_TPL}\"")
         CONFIG="${Q_CONFIG//_#_#/\"}"
     else
-        Q_CONFIG=$(eval  "printf '%s' \"$OBJ_CFG_TPL\"")
-        printf '%s' "${Q_CONFIG//_#_#/\"}" > "$OBJ_CFG_MASK"
+        Q_CONFIG=$(eval  "printf '%s' \"${OBJ_CFG_TPL}\"")
+        printf '%s' "${Q_CONFIG//_#_#/\"}" > "${OBJ_CFG_MASK}"
     fi
 }
 config_config 0

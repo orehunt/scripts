@@ -93,66 +93,37 @@ parse_al() {
 
 ## increase or decrease mhf depending on previous and new pow
 tune_mhf() {
-    local factor= mhf= mhf_fix= base=$MHF_FIXED_ORIG
+    export factor= mhf= mhf_fix= base=$MHF_ORIG
     case "$job_algo" in
         "cn-heavy")
             [ -n "$MHF_HV" ] && mhf_fix=$MHF_HV
+            mhf=$((base/2))
             ;;
         "cn")
-            [ -n "$MHF_FIXED_ORIG" ] && mhf_fix=$MHF_FIXED_ORIG
+            [ -n "$MHF_ORIG" ] && mhf_fix=$MHF_ORIG
+            mhf=$base
             ;;
         "cn-lite")
-            [ -n "$MHF_LT" ] && mhf_fix=$MHF_LT
+            LOWRATE=2
+            HYSTRATE=50
+            if [ -n "$MHF_LT" ]; then
+                mhf_fix=$MHF_LT
+            elif [ "$cThr" = 1 ]; then
+                if [ -n "$cache_MB" -a "$cache_MB" -ne 0 -a "$cache_MB" -gt 8 ]; then
+                    mhf=5
+                else
+                    mhf=4
+                fi
+            else
+                mhf=$((base*2))
+            fi
             ;;
         "cn-pico")
             [ -n "$MHF_PC" ] && mhf_fix=$MHF_PC
+            mhf=5
             ;;
     esac
     [ -n "$mhf_fix" ] && MHF_FIXED=${mhf_fix}
-    ## AL is the previous algo
-    case "$AL" in
-        "cn-heavy")
-            case "$job_algo" in
-                cn-heavy) return ;;
-                cn) mhf=$((cMhf*2)) ;;
-                cn-lite) mhf=$((cMhf*4)) ;;
-                cn-pico) mhf=5 ;;
-            esac
-            ;;
-        "cn")
-            case "$job_algo" in
-                cn-heavy) mhf=$((cMhf/2)) ;;
-                cn) return ;;
-                cn-lite) mhf=$((cMhf*2)) ;;
-                cn-pico) mhf=5 ;;
-            esac
-            ;;
-        "cn-lite")
-            case "$job_algo" in
-                cn-heavy) mhf=$((cMhf/4)) ;;
-                cn) mhf=$((cMhf/2)) ;;
-                cn-lite) return ;;
-                cn-pico) mhf=5 ;;
-            esac
-            ;;
-        "cn-pico")
-            case "$job_algo" in
-                cn-heavy) mhf=1 ;;
-                cn) mhf=$((cMhf/4)) ;;
-                cn-lite)
-                    if [ "$cThr" = 1 ]; then
-                        mhf=5
-                    else
-                        mhf=$((cMhf-1))
-                    fi
-                    ;;
-                cn-pico) return ;;
-            esac
-            ;;
-        *)
-            mhf=1
-            ;;
-    esac
     if [ "$mhf" -gt 5 ]; then
         mhf=5
     elif [ "$mhf" -lt 1 ]; then
@@ -368,9 +339,10 @@ init() {
     export pMhf=0 pThr=0 pMsk=0x0 ## previous values hashfactor,hashmask,threads
     export xMhf=1 xThr=1 xMsk=0x0 ## hashfactor,hashmask,threads at the latest recorded max hashrate
     export cMhf=$(get_config hash-factor) cThr=$(get_config threads) cMsk=$(get_config thread-mask) ; cMhf=${cMhf:-1}
-    export MHF_FIXED_ORIG=${MHF_FIXED} ## used by tune_mhf
+    export MHF_ORIG=${MHF_FIXED} ## used by tune_mhf
+    [ -n "$MHF_FIXED" ] && MHF_ORIG=$MHF_FIXED || MHF_ORIG=$cMhf
     CSLEEP_ORIG=${CSLEEP} ## used by tune_sleep
-    readonly CSLEEP_ORIG MHF_FIXED_ORIG ## prevent future restart overrides since CSLEEP and MHF_FIXED might not be original
+    readonly CSLEEP_ORIG MHF_ORIG ## prevent future restart overrides since CSLEEP and MHF_FIXED might not be original
 
     ## SWITCH_STATE : state of the state machine
     init_state
@@ -538,6 +510,7 @@ scratcher() {
 ## $1 the new mhf value
 change_mhf() {
     [ -n "$MHF_FIXED" ] && return 1
+    [ "${job_algo}" = "cn-lite" ] && return 1
     case "$1" in
         up)
             if [ $cMhf -lt 5 ]; then
@@ -695,12 +668,14 @@ change_load() {
                     msk=${xMsk/0x}
                     change_mask ${msk:-$cMsk} # don't pass 0x string to change_mask
                     change_threads ${xThr:-$cThr}
-                    change_mhf ${xMhf:-$cMhf}
+                    # change_mhf ${xMhf:-$cMhf}
+                    tune_thirdparty || { tune_mhf; tune_sleep; }
                     log "its a wakeup! returning 0..."
                     return 0 # force the restart anyway
                     ;;
                 "MHF_DOWN_THEN_SLEEP")
-                    change_mhf down || return 1
+                    # change_mhf down || return 1
+                    return 1
                     ;;
                 "MASK_DOWN_THEN_SLEEP")
                     change_mask down || return 1
@@ -715,11 +690,12 @@ change_load() {
                 "MHF_TRIAL"|\
                     "B_MHF_TRIAL"|\
                     "MHF_DOWN_THEN_SLEEP")
-                    change_mhf down || return 1
+                    # change_mhf down || return 1
+                    return 1
                     ;;
                 "MHF_TO_THREAD_TRIAL"|"B_MHF_TO_THREAD_TRIAL") ## transient state between max mhf and thread trial
                     change_threads up
-                    change_mhf down
+                    # change_mhf down
                     ;;
                 "THREAD_TRIAL")
                     change_mask down
@@ -738,7 +714,9 @@ change_load() {
                     change_mask up || return 1
                     ;;
                 "PLUS_THREAD_MINUS_MHF")
-                    change_mhf down || return 1
+                    # change_mhf down || return 1
+                    return 1
+                    :
                     ;;
                 "PLUS_THREAD_MINUS_MASK")
                     change_threads up ||
@@ -752,7 +730,8 @@ change_load() {
                     msk=${xMsk/0x}
                     change_mask ${msk:-$cMsk}
                     change_threads ${xThr:-$cThr}
-                    change_mhf ${xMhf:-$cMhf}
+                    # change_mhf ${xMhf:-$cMhf}
+                    tune_thirdparty || { tune_mhf; tune_sleep; }
                     log "its a wakeup! returning 0..."
                     return 0 # force the restart anyway
                     ;;
@@ -819,8 +798,11 @@ calc_hyst() {
 
 ## hash has fallen if current hashing is lower than max by LOWRATE
 hash_check() {
-    [ "$CHs" = 0 ] && return 0
-    diff=$((XHs-CHs)) && calc_hyst
+    log "hash_check: asserting CHs: $CHs"
+    [ "$CHs" = 0 ] && { hash_status=0; return; }
+    log "hash_check: calculating diff"
+    diff=$((XHs-CHs)); calc_hyst
+    log "hash_check: calculating limit with LOWRATE: $LOWRATE, hyst: $hyst"
     limit=$((XHs/LOWRATE-hyst))
     ## must be better than max hash and previous hash
     log "CHs: $CHs, accepted \>$((XHs-limit))"
@@ -828,15 +810,16 @@ hash_check() {
     ## the current hashrate must be higher than minimum hashing
     if [ $diff -le $limit \
                -a $CHs -ge $MHs \
-               -o $limit -eq -${hyst} ]; then ## variabily is low, ok
-        return 1
+               -o "$limit" -eq "-${hyst}" \
+               -o "$limit" -eq "-$XHs" ]; then ## variabily is low, or limit disabled by LOWRATE/HYSTRATE config, ok
+        hash_status=1; return
     else ## variability is high, not ok!
         if [ $CHs -lt $PHs ]; then
             log "hash sick; diff: $diff limit: $limit PHs: $PHs"
-            return 0
+            hash_status=2; return
         else
             log "hash not sicker; CHs: $CHs PHs: $PHs"
-            return 1
+            hash_status=1; return
         fi
     fi
 }
@@ -1019,6 +1002,10 @@ change_state(){
                     ;;
                 "WAKEUP") ## from wakeup try to go up again, figuring where it left off
                     log "change_state: waking up"
+                    if tune_thirdparty; then
+                        start_sleeping
+                        return 0
+                    fi
                     if [ $cMsk != 0x0 ] &&
                            [ $cThr -gt 1 ] &&
                            [ $cMhf -gt 1 ]; then
@@ -1126,6 +1113,10 @@ change_state(){
                     ;;
                 "WAKEUP") ## since wakeup starts from max hash we go backwards (B) with the logic, mask->threads->mhf
                     log "change_state: waking up"
+                    if tune_thirdparty; then
+                        start_sleeping
+                        return 0
+                    fi
                     if [ $cMsk != 0x1 ] &&
                            [ $cThr -gt 1 ] &&
                            [ $cMhf -gt 1 ]; then
@@ -1191,10 +1182,17 @@ switcher() {
         $current_hash "$1"
         ## is hashrate healthy or sick
         log "switcher: healthcheck"
-        hash_check $XHs $CHs $PHs \
-            && decr hash_health $hash_health_drop \
-                || incr hash_health $hash_health_boost
-        incr switch_trigger_counter
+        hash_check $XHs $CHs $PHs
+        case "$hash_status" in
+            1) incr hash_health $hash_health_boost
+               incr switch_trigger_counter
+               "switcher: hash health increased"
+               ;;
+            2) decr hash_health $hash_health_drop
+               incr switch_trigger_counter
+               "switcher: hash health decreased"
+               ;;
+        esac
         log "switcher: evaluating trigger"
         if [ $switch_trigger_counter -ge $switch_trigger ]; then
             ## compare sickness ratio and decide what to do
@@ -1327,6 +1325,7 @@ choose_action() {
                stop_miner
                remove_config
                start_miner
+               export MHs=999999 XHs=0 CHs=0 NHs=0 PHs=0 THs=0 AHs=0 ## reset HS/s values
                AL=${job_algo:-cn}
                AL_V=${job_variant:-\-1}
             fi

