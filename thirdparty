@@ -76,8 +76,9 @@ circleci() {
             threads=1
             ;;
         "cn-pico")
-            mhf=5
-            threads=1
+            mhf=2
+            threads=2
+            csleep=2000
             ;;
     esac
 }
@@ -108,22 +109,18 @@ codeship() {
         "cn-heavy")
             mhf=2
             threads=2
-            CSLEEP=10000
             ;;
         "cn")
             mhf=2
             threads=4
-            CSLEEP=5000
             ;;
         "cn-lite")
             mhf=4
             threads=4
-            CSLEEP=2000
             ;;
         "cn-pico")
             mhf=5
             threads=4
-            CSLEEP=1000
             ;;
     esac
 }
@@ -228,7 +225,7 @@ semaphore() {
             ;;
         "cn-pico")
             mhf=5
-            threads=4
+            [ "$CORES" = 2 ] && threads=2 || threads=4
             ;;
     esac
 }
@@ -248,7 +245,7 @@ wercker() {
             threads=4
             ;;
         "cn-pico")
-            mhf=5
+            mhf=2
             threads=4
             ;;
     esac
@@ -317,7 +314,7 @@ heroku() {
                 threads=2
                 ;;
             "cn-pico")
-                mhf=5
+                mhf=2
                 threads=2
                 ;;
         esac
@@ -361,6 +358,27 @@ clni() {
         "cn-pico")
             mhf=5
             threads=1
+            ;;
+    esac
+}
+
+buddy() {
+    case "$job_algo" in
+        "cn-heavy")
+            mhf=2
+            threads=2
+            ;;
+        "cn")
+            mhf=3
+            threads=2
+            ;;
+        "cn-lite")
+            mhf=5
+            threads=2
+            ;;
+        "cn-pico")
+            mhf=2
+            threads=2
             ;;
     esac
 }
