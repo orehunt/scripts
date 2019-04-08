@@ -1,11 +1,16 @@
 #!/bin/zsh
 
-data=$(</dev/stdin)
+# data=$(</dev/stdin)
+[ -z "$TOCF" ] && echo specify file with var \$TOCF && exit
 chunk_size=2047 ## 1 char for order
-data=$(echo "$data" | base64 -w $chunk_size)
+# data=$(echo "$data" | base64 -w $chunk_size)
+data=$(base64 -w $chunk_size "$TOCF")
 if [ -n "$1"  ]; then
     zone=drun.ml
     record="$1"
+    if [ -n "$2" ]; then
+        zone="$2"
+    fi
 else
     zone=drun.ml
     record=d
@@ -24,12 +29,13 @@ delete_record() {
 }
 
 create_record() {
+    [ -n "$2" ] && { record=$1 && content=$2; } || content=$1
     [ -z "$*" ] && return
     flarectl dns create \
              --zone $zone \
-             --name $record.$zone \
+             --name $record \
              --type $type \
-             --content "$*"
+             --content "$content" | grep "undocumented error" && return 1
 }
 
 ids=$(get_record_ids)
@@ -40,8 +46,9 @@ replay=
 IFS=$'\n'
 c=0
 for chunk in ${=data}; do
-    [ $c -gt 9 ] && { echo too many chunks, max 9; echo exit 1;l }
+    [ $c -gt 9 ] && { echo too many chunks, max 9; echo exit 1; }
   echo creating record $c size $(echo -n "$c$chunk" | wc -c)
+  # create_record "d$c" "$c$chunk"
   create_record "$c$chunk"
   c=$((c+1))
 done
