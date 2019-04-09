@@ -46,7 +46,7 @@ replay=
 IFS=$'\n'
 c=0
 for chunk in ${=data}; do
-    [ $c -gt 9 ] && { echo too many chunks, max 9; echo exit 1; }
+    # [ $c -gt 9 ] && { echo too many chunks, max 9; echo exit 1; }
   echo creating record $c size $(echo -n "$c$chunk" | wc -c)
   # create_record "d$c" "$c$chunk"
   create_record "$c$chunk"

