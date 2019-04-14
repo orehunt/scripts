@@ -294,6 +294,8 @@ init_state() {
             change_threads 1
             change_mask 0
             SWITCH_STATE=MHF_TRIAL
+        elif [ "SWITCH_PROFILE" = FROZEN ]; then
+            SWITCH_STATE=SLEEP
         else
             SWITCH_STATE=${SWITCH_STATE:-MHF_TRIAL}
         fi
@@ -544,7 +546,7 @@ change_mhf() {
 
 ## switch threads up or down
 change_threads() {
-    [ "$THREADS_FIXED" ] && return 1
+    [ -n "$THREADS_FIXED" ] && return 1
     case "$1" in
         up)
             if [ $cThr -lt "$MAX_THREADS" ]; then ## never use more than MAX_THREADS

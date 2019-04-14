@@ -41,8 +41,13 @@ shares=${SHARES:-1}
 ## start the object
 function objectd() {
     dex_env
-    exec "$ARGS" \
-        $ARGS_OVERRIDE
+    if should_exec; then
+        exec "$ARGS" \
+             $ARGS_OVERRIDE
+    else
+        "$ARGS" \
+            $ARGS_OVERRIDE
+    fi
 }
 
 ## tells pausd when shares are enough

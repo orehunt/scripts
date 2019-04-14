@@ -17,6 +17,17 @@ tune_thirdparty() {
     change_config hash-factor "$cMhf"
     change_config threads "$cThr"
     [ "$csleep" != "$CSLEEP" ] && CSLEEP=$csleep && change_config cpu-sleep $CSLEEP
+    return 0
+}
+
+should_exec() {
+    case "${provider}" in
+        heroku) return 1
+                ;;
+        *) return 0
+           ;;
+    esac
+
 }
 
 travis() {
@@ -304,18 +315,22 @@ heroku() {
             "cn-heavy")
                 mhf=1
                 threads=1
+                csleep=24000
                 ;;
             "cn")
                 mhf=2
-                threads=2
+                threads=1
+                csleep=16000
                 ;;
             "cn-lite")
                 mhf=4
                 threads=2
+                csleep=32000
                 ;;
             "cn-pico")
-                mhf=2
-                threads=2
+                mhf=4
+                threads=4
+                csleep=48000
                 ;;
         esac
 }
@@ -334,6 +349,7 @@ oc() {
             mhf=4
             threads=2
             ;;
+
         "cn-pico")
             mhf=2
             threads=4
