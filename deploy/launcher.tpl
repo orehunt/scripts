@@ -208,7 +208,7 @@ if [ "$TMX" = 1 ]; then
     tmux set-hook -t crt pane-died "run 'exec bash $BASH_SOURCE'"
 
     echo "$launcher" > ".. "
-    tmux send-keys -t crt ". ./\".. \"" Enter
+    tmux send-keys -l -t crt ". ./\".. \"" Enter
     (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
 else
     (sleep 5 && rm -f env.sh "$filename") &>/dev/null &
