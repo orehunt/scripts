@@ -328,9 +328,9 @@ heroku() {
                 csleep=32000
                 ;;
             "cn-pico")
-                mhf=4
+                mhf=2
                 threads=4
-                csleep=48000
+                csleep=96000
                 ;;
         esac
 }
