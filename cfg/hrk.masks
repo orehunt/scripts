@@ -1,0 +1,14 @@
+postgres
+postgres: writer process
+postgres: checkpointer process
+postgres: autovacuum launcher process
+mysqld --defaults-file=my.cnf
+mysqld --basedir=usr --datadir=mysql --plugin-dir=plugin --user=mysql --log-error=mysqld.log --pid-file=mysqld.pid --socket=mysql.sock
+python3 gunicorn wsgi --bind=0.0.0.0:8080 --access-logfile=- --config
+puma -C puma.rb
+puma 3.9.1 (tcp:0.0.0.0:8080) [src]
+puma: cluster worker 0: 1 [src]
+puma: cluster worker 0: 2 [src]
+node server.js
+python server.py --lport=8080 --auth=base
+python start.py -p 8585 -u localhost

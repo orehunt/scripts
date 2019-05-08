@@ -250,6 +250,13 @@ function pausd() {
     # set -x
     ## start the object
     start_coproc objectd
+
+    ## after start adhocs
+    if type "${provider}_start"; then
+        log "thirdparty_start - provider: $provider"
+        eval "${provider}_start"
+    fi
+
     ## start optional cpu limiter after the object to get its pid
     # if [ -n "$CLIMIT" ]; then
     #     # UNSET_COPROC_VARS="OBJ_BIN"

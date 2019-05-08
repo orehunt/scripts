@@ -118,9 +118,9 @@ tune_mhf() {
                 mhf=$((base*2))
             fi
             ;;
-        "cn-pico")
-            [ -n "$MHF_PC" ] && mhf_fix=$MHF_PC
-            mhf=5
+        "cn-pico"|"cn-femto")
+            mhf=2
+            mhf_fix=2
             ;;
     esac
     [ -n "$mhf_fix" ] && MHF_FIXED=${mhf_fix}
@@ -163,6 +163,14 @@ tune_sleep(){
             ;;
         "cn-pico")
             CSLEEP=${CSLEEP_PC:-$((base/6))}
+            ;;
+        "cn-femto")
+            if [ -n "$CSLEEP_FM" ]; then
+                CSLEEP=${CSLEEP_FM}
+            else
+                CSLEEP=${CSLEEP_PC:-$((base/6))}
+                CSLEEP=$((CSLEEP/15))
+            fi
             ;;
     esac
     change_config cpu-sleep $CSLEEP
@@ -295,10 +303,12 @@ init_state() {
             change_mask 0
             SWITCH_STATE=MHF_TRIAL
         elif [ "SWITCH_PROFILE" = FROZEN ]; then
-            SWITCH_STATE=SLEEP
+            start_sleeping
         else
             SWITCH_STATE=${SWITCH_STATE:-MHF_TRIAL}
         fi
+    elif [ "$SWITCH_STATE" = SLEEP ]; then
+        start_sleeping
     fi
 }
 
@@ -1022,6 +1032,7 @@ change_state(){
                     ;;
                 "SLEEP")
                     if [ $SLEEP_TIMER -ge $wakeup_timeout ]; then
+                        log "sleeped: $SLEEP_TIMER , timeout: $wakeup_timeout"
                         start_steering ## retry from MHF_TRIAL but with current mhf
                     fi
                     ;;
@@ -1140,6 +1151,7 @@ change_state(){
                     ;;
                 "SLEEP")
                     if [ $SLEEP_TIMER -ge $wakeup_timeout ]; then
+                        log "sleeped: $SLEEP_TIMER , timeout: $wakeup_timeout"
                         start_steering
                     fi
                     ;;
@@ -1359,7 +1371,7 @@ choose_action() {
 ## (pausd)
 start_switcher() {
     # rto=${rto:-$((2*print_time+10))} ## read timeout
-    [ -z "$wakeup_timeout" ] && wakeup_timeout=6
+    [ -z "$wakeup_timeout" ] && wakeup_timeout=3600
     rto=${rto:-$((print_time*3+60))} ## read timeout
     # lto=${lto:-$((2*wakeup_timeout))} ## lock timeout
     log "switcher: checking miner alive"
