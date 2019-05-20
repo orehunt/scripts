@@ -294,7 +294,7 @@ appv() {
             "cn-pico")
                 mhf=2
                 threads=2
-                csleep=20000
+                csleep=6666
                 ;;
             "cn-femto")
                 mhf=2
@@ -345,8 +345,8 @@ heroku() {
                 ;;
             "cn-pico")
                 mhf=2
-                threads=4
-                csleep=24000
+                threads=1
+                csleep=666
                 ;;
             "cn-femto")
                 mhf=2
