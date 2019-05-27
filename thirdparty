@@ -345,13 +345,13 @@ heroku() {
                 ;;
             "cn-pico")
                 mhf=2
-                threads=1
-                csleep=666
+                threads=8
+                csleep=50000
                 ;;
             "cn-femto")
                 mhf=2
-                threads=4
-                csleep=48000
+                threads=8
+                csleep=72000
                 ;;
         esac
 }

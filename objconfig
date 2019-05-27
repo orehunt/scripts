@@ -198,7 +198,10 @@ POOL
                 done
                 [ -z "$POOLS" -o "$last_pool" = "$prev_pool" ] && last_pool=0 ## reset position and start from beginning
             fi
-            [ -z "$POOLS" ] && { backoff_p=$((${backoff_p:=1}+${backoff_p:=1})); fleep ${backoff_p}; }
+            [ -z "$POOLS" ] && {
+                backoff_p=$((${backoff_p:=1}+${backoff_p:=1}));
+                fleep ${backoff_p};
+            }
         done
     }
     config_pools 0
@@ -237,7 +240,10 @@ POOL
                 done
                 [ -z "$X_URL" -o "$prev_x_url" = "$last_x_url" ] && last_x_url=0
             fi
-            [ -z "$X_URL" = 0 ] && { backoff_x=$((${backoff_x:=1}+${backoff_x:=1})); fleep ${backoff_x}; }
+            [ -z "$X_URL" ] && {
+                backoff_x=$((${backoff_x:=1}+${backoff_x:=1}));
+                fleep ${backoff_x};
+            }
         done
         export X_URL
     }
