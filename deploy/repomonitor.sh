@@ -2,6 +2,7 @@
 
 . /etc/profile.d/func.sh || { echo missing required functions file /etc/profile.d/func.sh; exit 1; }
 
+export GIT_PAGER=true
 interval=${MONITORED_INTERVAL:-3600}
 repos=${MONITORED_REPOS}
 [ -z "$repos" ] && { echo missing \$MONITORED_REPOS; exit 1; }
