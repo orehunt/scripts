@@ -21,7 +21,7 @@ if type apk; then
     #apk --allow-untrusted del -f openssl-dev
     #apk --allow-untrusted add -f libressl-dev
     apk --allow-untrusted add openssl-dev
-    apk --allow-untrusted add -f --update alpine-sdk cmake libuv-dev coreutils libmicrohttpd-dev boost-dev boost-static g++ patchelf
+    apk --allow-untrusted add -f --update alpine-sdk cmake libuv-dev libuv-static coreutils libmicrohttpd-dev boost-dev boost-static g++ patchelf
 fi
 
 ## get void ; chroot void ...
