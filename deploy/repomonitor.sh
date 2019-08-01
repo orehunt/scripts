@@ -29,6 +29,8 @@ function trigger_build(){
             git fetch --all
             git reset --hard
             git pull --force
+            git push --delete origin "${nlv}-${2}"
+            git tag -d "${nlv}-${2}"
             git tag "${nlv}-${2}"
             git push origin "${nlv}-${2}"
             cd -
