@@ -4,6 +4,8 @@ set -e
 
 prevpath=$PWD
 repo="https://github.com/Bendr0id/xmrigCC"
+# repo="https://github.com/untoreh/xmrigCC"
+# branch="-b randomx-wow"
 repo_name="$(basename "$repo")"
 
 if [ "$1" = mac ]; then
@@ -37,7 +39,7 @@ ttag="${TRAVIS_TAG/-*}"
 if [ -n "$ttag" ]; then
     git clone -b "ttag" --depth=1 "$repo"
 else
-    git clone --depth=1 "$repo"
+    git clone --depth=1 "$repo" $branch
 fi
 
 # cd xmrigCC; git checkout 1.8.2; cd -

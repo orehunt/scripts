@@ -1,36 +1,28 @@
 --- src/workers/MultiWorker.cpp.orig
 +++ src/workers/MultiWorker.cpp
 @@ -24,6 +24,7 @@
- 
- 
+
+
  #include <thread>
 +#include <unistd.h>
  #include <log/Log.h>
- 
- 
-@@ -103,6 +104,7 @@
+
+
+@@ -120,6 +121,7 @@
  void MultiWorker::start()
  {
      size_t memory = scratchPadMem.realSize > ONE_MB ? scratchPadMem.realSize / ONE_MB : scratchPadMem.realSize / 1024;
 +    const int cpuSleep = Options::i()->cpuSleep();
- 
+
      if (Options::i()->colors()) {
          LOG_INFO(WHITE_BOLD("Starting thread ") GREEN_BOLD("%zu/%zu") " affined to core: " GREEN_BOLD("#%d") " -> huge pages:" GREEN_BOLD(" %s%zu/%zu") " scratchpad: " CYAN_BOLD("%zu.0 %s"),
-@@ -141,6 +143,10 @@
-                 *Job::nonce(m_state->blob + i * m_state->job.size()) = ++m_state->nonces[i];
-             }
- 
-+	    if (cpuSleep >= 0) {
+@@ -156,6 +158,9 @@
+               *Job::nonce(m_state->blob + i * m_state->job.size()) = ++m_state->nonces[i];
+               }
+
++            if (cpuSleep >= 0) {
 +              usleep(cpuSleep);
 +            }
-+
-             HashSelector::hash(m_hashFactor, Options::i()->asmOptimization(), m_state->job.height(), m_state->job.powVariant(), m_state->blob, m_state->job.size(), m_hash, scratchPads);
- 
-             for (size_t i=0; i < m_hashFactor; ++i) {
-@@ -206,4 +212,4 @@
- 
- Worker* createMultiWorker(Handle *handle, size_t hashFactor) {
-     return new MultiWorker(handle, hashFactor);
--}
-\ No newline at end of file
-+}
+             const PowVariant v = m_state->job.powVariant();
+             if (v == PowVariant::POW_WOW) {
+               allocateRandomX_VM();
