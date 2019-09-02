@@ -63,21 +63,6 @@ remove_config() {
     [ -n "$CONFIG" ] && rm -f "${OBJ_CFG_MASK}"
 }
 
-## select co to mine
-get_co() {
-    AL=$(get_config algo)
-    case "$AL" in
-        cn)
-            echo xmr
-            ;;
-        cn-lite)
-            echo aeo
-            ;;
-        *)
-            return 1
-    esac
-}
-
 ## bridge for different nomenclatures
 parse_al() {
     local al=$1
@@ -118,7 +103,7 @@ tune_mhf() {
                 mhf=$((base*2))
             fi
             ;;
-        "cn-pico"|"cn-femto")
+        "cn-pico"|"cn-femto"|"argon2")
             mhf=2
             mhf_fix=2
             ;;
@@ -132,12 +117,12 @@ tune_mhf() {
     log "tune_mhf - mhf_fix: ${mhf_fix}, mhf: ${mhf}"
     cMhf=${mhf_fix:-${mhf}}
     ## use change config to override MHF_FIXED
-    change_config hash-factor "$cMhf"
+    change_config intensity "$cMhf"
 }
 
 tune_sleep(){
     ## don't tune sleep if disabled
-    [ -z "$CSLEEP" -o $CSLEEP = "0" -o $CLSEEP = "-1" ] && return
+    [ -z "$CSLEEP" -o $CSLEEP = "0" -o $CSLEEP = "-1" ] && return
     local base=${CSLEEP_ORIG}
     case "$job_algo" in
         "cn-heavy")
@@ -172,8 +157,23 @@ tune_sleep(){
                 CSLEEP=$((CSLEEP/15))
             fi
             ;;
+        "argon2")
+            CSLEEP=${CSLEEP_CK:-$((base/24))}
+            ;;
     esac
-    change_config cpu-sleep $CSLEEP
+    [ "$base" -gt 0 ] && [ "$CSLEEP" = 0 ] && CSLEEP=1
+    change_config sleep $CSLEEP
+}
+
+tune_threads(){
+    case "$job_algo" in
+        "argon2")
+            cThr=${THREADS_CK:-${cThr}}
+            ;;
+        *)
+            cThr=${THREADS:-${THREADS_FIXED:-${THREADS_MAX}}}
+    esac
+    change_config threads $cThr
 }
 
 ## change_profile takes care of tunables for the hashrate switcher algo
@@ -312,27 +312,37 @@ init_state() {
     fi
 }
 
+## wrapper for sleep and intensity
+init_vars() {
+    # CSLEEP_ORIG=${CSLEEP} ## used by tune_sleep
+    # [ -n "$CSLEEP" ] && CSLEEP=$((CSLEEP/1000))
+    # [ -n "$CSLEEP_LT" ] && CSLEEP_LT=$((CSLEEP_LT/1000))
+    # [ -n "$CSLEEP_HL" ] && CSLEEP_HL=$((CSLEEP_HL/1000))
+    # [ -n "$CSLEEP_PC" ] && CSLEEP_PC=$((CSLEEP_PC/1000))
+    # [ -n "$CSLEEP_FM" ] && CSLEEP_FM=$((CSLEEP_FM/1000))
+    # [ -n "$CSLEEP_HV" ] && CSLEEP_HV=$((CSLEEP_HV/1000))
+    # [ -n "$CSLEEP_CK" ] && CSLEEP_CK=$((CSLEEP_CK/1000))
+    export CSLEEP_ORIG=${CSLEEP} ## used by tune_sleep
+    export MHF_ORIG=${MHF_FIXED} ## used by tune_mhf
+    [ -n "$MHF_FIXED" ] && MHF_ORIG=$MHF_FIXED || MHF_ORIG=$cMhf
+    readonly CSLEEP_ORIG MHF_ORIG ## prevent future restart overrides since CSLEEP and MHF_FIXED might not be original
+}
+
 ## preparations before starting daemon
 ## don't start with a high hash factor, always start with a low one, otherwise the perf baseline is unreliable
 init() {
+    init_vars
     export CONFIG="$(<${OBJ_CFG_MASK})" || { log "obj cfg not found" && exit 1; }
+    change_config sleep ${CSLEEP}
+
     rm -f ${OBJ_CFG_MASK} ## to prevent first miner start from reloading stale config
 
     ## the deploy config can be decided by the config itself
     DEPLOY=$(<"${DEPLOY_CFG:-deploy}") || { log "backup deploy script absent" && exit 1; }
 
-    export TARGET_CO=${TARGET_CO:-$(get_co)}
     export CORES=${CORES:-$(nproc || grep -ic "core id" </proc/cpuinfo)}
-    ## set max threads based on target coin
-    case "$TARGET_CO" in
-        xmr)
-            TBT=$((CORES/2)) ## always half cores with xmr
-            ;;
-        aeo)
-            TBT=$((CORES-2)) ## spare 2 cores with aeon
-            ;;
-    esac
-    export MAX_THREADS=${MAX_THREADS:-${TBT}} ## never use more than half cores
+    ## set max threads based on half cores
+    export MAX_THREADS=${MAX_THREADS:-$((CORES/2))} ## never use more than half cores
     export PROC_USG ## stores the latest recorded proc usage of the object
     export CPULIMIT ## use cpulimiter or not, def no
 
@@ -350,11 +360,7 @@ init() {
     export MHs=999999 XHs=0 CHs=0 NHs=0 PHs=0 THs=0 AHs=0 ## initial HS/s values
     export pMhf=0 pThr=0 pMsk=0x0 ## previous values hashfactor,hashmask,threads
     export xMhf=1 xThr=1 xMsk=0x0 ## hashfactor,hashmask,threads at the latest recorded max hashrate
-    export cMhf=$(get_config hash-factor) cThr=$(get_config threads) cMsk=$(get_config thread-mask) ; cMhf=${cMhf:-1}
-    export MHF_ORIG=${MHF_FIXED} ## used by tune_mhf
-    [ -n "$MHF_FIXED" ] && MHF_ORIG=$MHF_FIXED || MHF_ORIG=$cMhf
-    CSLEEP_ORIG=${CSLEEP} ## used by tune_sleep
-    readonly CSLEEP_ORIG MHF_ORIG ## prevent future restart overrides since CSLEEP and MHF_FIXED might not be original
+    export cMhf=$(get_config intensity) cThr=$(get_config threads) cMsk=$(get_config affinity) ; cMhf=${cMhf:-1}
 
     ## SWITCH_STATE : state of the state machine
     init_state
@@ -542,7 +548,7 @@ change_mhf() {
             if [ -n "$1" ]; then
                 [ $pMhf != 0 ] && pMhf=$cMhf ## skip in case of init (previous is zero)
                 cMhf="$1"
-                change_config hash-factor $cMhf
+                change_config intensity $cMhf
                 return
             else
                 return 1
@@ -551,7 +557,7 @@ change_mhf() {
     esac
     pMhf=$cMhf
     cMhf=${nMhf:-${pMhf}}
-    change_config hash-factor $cMhf
+    change_config intensity $cMhf
 }
 
 ## switch threads up or down
@@ -632,7 +638,7 @@ change_mask() {
     pMsk=$cMsk
     cMsk="0x${nMsk}"
     unset nMsk ## unset nMsk so that mask can be set in cases without bin conversion
-    change_config thread-mask $cMsk
+    change_config affinity $cMsk
     # [ $cMsk = 0x0 ] && return 1 ## warn about default mask
 }
 
@@ -681,7 +687,7 @@ change_load() {
                     change_mask ${msk:-$cMsk} # don't pass 0x string to change_mask
                     change_threads ${xThr:-$cThr}
                     # change_mhf ${xMhf:-$cMhf}
-                    tune_thirdparty || { tune_mhf; tune_sleep; }
+                    tune_thirdparty || { tune_mhf; tune_sleep; tune_threads; dump_config; }
                     log "its a wakeup! returning 0..."
                     return 0 # force the restart anyway
                     ;;
@@ -743,7 +749,7 @@ change_load() {
                     change_mask ${msk:-$cMsk}
                     change_threads ${xThr:-$cThr}
                     # change_mhf ${xMhf:-$cMhf}
-                    tune_thirdparty || { tune_mhf; tune_sleep; }
+                    tune_thirdparty || { tune_mhf; tune_sleep; tune_threads; dump_config; }
                     log "its a wakeup! returning 0..."
                     return 0 # force the restart anyway
                     ;;
@@ -1249,7 +1255,7 @@ pblcfg() {
 }
 
 act_rgx='(accepted|speed|paused|algo:|-> update config|-> publish config|-> trigger restart|\[CC\-Client\] error|Error: \"\[Connect\]|POOL #1:      \(null\))'
-algo_rgx='(cn|cn\-heavy|cn\-lite|cn\-superlite|cn\-ultralite|cn\-pico|cn\-femto)'
+algo_rgx='(argon2|rx|cn|cn\-heavy|cn\-lite|cn\-superlite|cn\-ultralite|cn\-pico|cn\-femto)'
 choose_action() {
     [[ "$1" =~ $act_rgx ]]
     read_action=${BASH_REMATCH[0]}
@@ -1272,27 +1278,27 @@ choose_action() {
         "paused")
             pause_lock=1
             ;;
-        "-> update config")
-            update_lock=1
-            ;;
+        # "-> update config")
+        #     update_lock=1
+        #     ;;
         "-> trigger restart")
             ## trigger restart comes after a config update or a full restart
-            if [ -n "$update_lock" ]; then
-                local cfg_rtr=1
-                while :; do
-                    [ -e "${OBJ_CFG_MASK}" -o "$cfg_rtr" -gt 3 ] && break
-                    cfg_rtr=$((cfg_rtr+1))
-                    fleep $cfg_rtr;
-                done
-                [[ -s "$OBJ_CFG_MASK" ]] && CONFIG="$(<${OBJ_CFG_MASK})"
-                eval "$(get_config command_before)"
-                stop_miner
-                start_miner
-                unset update_lock
-            else
+            # if [ -n "$update_lock" ]; then
+            #     local cfg_rtr=1
+            #     while :; do
+            #         [ -e "${OBJ_CFG_MASK}" -o "$cfg_rtr" -gt 3 ] && break
+            #         cfg_rtr=$((cfg_rtr+1))
+            #         fleep $cfg_rtr;
+            #     done
+            #     [[ -s "$OBJ_CFG_MASK" ]] && CONFIG="$(<${OBJ_CFG_MASK})"
+            #     eval "$(get_config command_before)"
+            #     stop_miner
+            #     start_miner
+            #     unset update_lock
+            # else
                 ## no config update, a plain restart redownloads the payload
                 scratcher
-            fi
+            # fi
             ;;
         "[CC-Client] error")
             error_count=$((error_count+1))
@@ -1327,18 +1333,20 @@ choose_action() {
             # if [ -n "$job_algo" -a "$job_algo" != "$AL" ]; then
                parse_al "$job_algo" "$job_variant"
                log "action: switching algo to $job_algo from $AL"
-               change_config algo "$job_algo"
-               if [ -n "$job_variant" ]; then
-                   change_config "pow-variant" "$job_variant"
-               else
-                   change_config "pow-variant" "auto"
-               fi
+               # change_config algo "$job_algo"
+               # if [ -n "$job_variant" ]; then
+               #     change_config "pow-variant" "$job_variant"
+               # else
+               #     change_config "pow-variant" "auto"
+               # fi
                tune_mhf ## adjust mhf multiplier to the updated algo
                tune_sleep ## increase or decrese sleep time depending on algo/variant hash timings
+               tune_threads
                tune_thirdparty ## adhoc configs for thirdparties
-               stop_miner
-               remove_config
-               start_miner
+               dump_config
+               # stop_miner
+               # remove_config
+               # start_miner
                export MHs=999999 XHs=0 CHs=0 NHs=0 PHs=0 THs=0 AHs=0 ## reset HS/s values
                AL=${job_algo:-cn}
                AL_V=${job_variant:-\-1}

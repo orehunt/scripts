@@ -535,6 +535,16 @@ get_cores() {
     fi
 }
 
+## store current free memory (MB) in FREEMEM
+get_mem(){
+    local l
+    while read l; do
+        [ "${l/MemFree}" != "$l" ] &&
+            l=${l//[^0-9]} &&
+            FREEMEM=$((l/1000))
+    done < /proc/meminfo
+}
+
 ## store cpu l3 cache size in cache_bytes
 get_cache() {
     if [ ! -e /proc/cpuinfo ]; then
