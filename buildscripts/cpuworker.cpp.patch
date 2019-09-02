@@ -1,0 +1,20 @@
+--- src/backend/cpu/CpuWorker.cpp.orig
++++ src/backend/cpu/CpuWorker.cpp
+@@ -56,6 +56,7 @@
+     Worker(index, data.affinity, data.priority),
+     m_algorithm(data.algorithm),
+     m_assembly(data.assembly),
++    m_sleep(data.sleep),
+     m_hwAES(data.hwAES),
+     m_av(data.av()),
+     m_miner(data.miner),
+@@ -201,6 +203,9 @@
+                 break;
+             }
+ 
++            if (m_sleep >= 0) {
++                std::this_thread::sleep_for(std::chrono::microseconds(m_sleep));
++            }
+ #           ifdef XMRIG_ALGO_RANDOMX
+             if (job.algorithm().family() == Algorithm::RANDOM_X) {
+                 randomx_calculate_hash(m_vm->get(), m_job.blob(), job.size(), m_hash);

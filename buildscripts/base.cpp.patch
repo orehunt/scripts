@@ -1,0 +1,21 @@
+--- src/base/kernel/Base.cpp.orig
++++ src/base/kernel/Base.cpp
+@@ -141,8 +141,8 @@
+         for (IBaseListener *listener : listeners) {
+             listener->onConfigChanged(config, previousConfig);
+         }
+-
+         delete previousConfig;
++        std::remove(config->fileName());
+     }
+ 
+ 
+@@ -182,7 +182,7 @@
+ 
+         return 1;
+     }
+-
++    std::remove(d_ptr->config->fileName());
+ #ifndef XMRIG_NO_CC
+     if (!d_ptr->config->isDaemonized()) {
+         LOG_EMERG(APP_ID " is compiled with CC support, please start the daemon instead.\n");

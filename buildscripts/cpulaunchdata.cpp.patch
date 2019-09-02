@@ -1,0 +1,18 @@
+--- src/backend/cpu/CpuLaunchData.cpp.orig
++++ src/backend/cpu/CpuLaunchData.cpp
+@@ -37,6 +37,7 @@
+     hugePages(config.isHugePages()),
+     hwAES(config.isHwAES()),
+     priority(config.priority()),
++    sleep(config.sleep()),
+     affinity(thread.affinity()),
+     miner(miner),
+     intensity(std::min<uint32_t>(thread.intensity(), algorithm.maxIntensity()))
+@@ -53,6 +54,7 @@
+             && intensity        == other.intensity
+             && priority         == other.priority
+             && affinity         == other.affinity
++            && sleep            == other.sleep
+             );
+ }
+ 

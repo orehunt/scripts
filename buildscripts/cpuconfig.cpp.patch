@@ -1,0 +1,26 @@
+--- src/backend/cpu/CpuConfig.cpp.orig
++++ src/backend/cpu/CpuConfig.cpp
+@@ -36,6 +36,7 @@
+ static const char *kHugePages           = "huge-pages";
+ static const char *kHwAes               = "hw-aes";
+ static const char *kPriority            = "priority";
++static const char *kSleep               = "sleep";
+ 
+ #ifdef XMRIG_FEATURE_ASM
+ static const char *kAsm = "asm";
+@@ -98,6 +99,7 @@
+     obj.AddMember(StringRef(kHugePages),    m_hugePages, allocator);
+     obj.AddMember(StringRef(kHwAes),        m_aes == AES_AUTO ? Value(kNullType) : Value(m_aes == AES_HW), allocator);
+     obj.AddMember(StringRef(kPriority),     priority() != -1 ? Value(priority()) : Value(kNullType), allocator);
++    obj.AddMember(StringRef(kSleep),        sleep() != -1 ? Value(sleep()) : Value(kNullType), allocator);
+ 
+ #   ifdef XMRIG_FEATURE_ASM
+     obj.AddMember(StringRef(kAsm), m_assembly.toJSON(), allocator);
+@@ -140,6 +142,7 @@
+ 
+         setAesMode(Json::getValue(value, kHwAes));
+         setPriority(Json::getInt(value,  kPriority, -1));
++        setSleep(Json::getInt(value,  kSleep, -1));
+ 
+ #       ifdef XMRIG_FEATURE_ASM
+         m_assembly = Json::getValue(value, kAsm);

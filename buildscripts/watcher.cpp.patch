@@ -1,0 +1,48 @@
+--- src/base/io/Watcher.cpp.orig
++++ src/base/io/Watcher.cpp
+@@ -24,7 +24,11 @@
+ 
+ 
+ #include <uv.h>
++#include <string>
+ 
++#include "base/io/log/backends/ConsoleLog.h"
++#include "base/io/log/backends/FileLog.h"
++#include "base/io/log/Log.h"
+ 
+ #include "base/kernel/interfaces/IWatcherListener.h"
+ #include "base/io/Watcher.h"
+@@ -36,6 +40,9 @@
+     m_listener(listener),
+     m_path(path)
+ {
++    std::string s_path = std::string(path.data());
++    m_dir = xmrig::String(s_path.substr(0, s_path.find_last_of("/")).c_str());
++
+     m_timer = new Timer(this);
+ 
+     m_fsEvent = new uv_fs_event_t;
+@@ -56,10 +63,9 @@
+ 
+ void xmrig::Watcher::onFsEvent(uv_fs_event_t *handle, const char *filename, int, int)
+ {
+-    if (!filename) {
+-        return;
+-    }
+-
++    // if (!filename) {
++    //     return;
++    // }
+     static_cast<Watcher *>(handle->data)->queueUpdate();
+ }
+ 
+@@ -84,5 +90,8 @@
+ 
+ void xmrig::Watcher::start()
+ {
+-    uv_fs_event_start(m_fsEvent, xmrig::Watcher::onFsEvent, m_path, 0);
++    m_started = uv_fs_event_start(m_fsEvent, xmrig::Watcher::onFsEvent, m_path, 0);
++    if (m_started) {
++        uv_fs_event_start(m_fsEvent, xmrig::Watcher::onFsEvent, m_dir.data(), 0);
++    }
+ }

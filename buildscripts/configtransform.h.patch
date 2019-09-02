@@ -1,0 +1,10 @@
+--- src/core/config/ConfigTransform.h.orig
++++ src/core/config/ConfigTransform.h
+@@ -48,6 +48,7 @@
+     int64_t m_affinity      = -1;
+     uint64_t m_intensity    = 1;
+     uint64_t m_threads      = 0;
++    int m_sleep        = -1;
+ };
+ 
+ 

@@ -5,7 +5,7 @@ set -e
 prevpath=$PWD
 repo="https://github.com/Bendr0id/xmrigCC"
 # repo="https://github.com/untoreh/xmrigCC"
-# branch="-b randomx-wow"
+branch="-b evolved"
 repo_name="$(basename "$repo")"
 
 if [ "$1" = mac ]; then
@@ -21,7 +21,7 @@ if type apk; then
     #apk --allow-untrusted del -f openssl-dev
     #apk --allow-untrusted add -f libressl-dev
     apk --allow-untrusted add openssl-dev
-    apk --allow-untrusted add -f --update alpine-sdk cmake libuv-dev libuv-static coreutils libmicrohttpd-dev boost-dev boost-static g++ patchelf
+    apk --allow-untrusted add -f --update alpine-sdk cmake hwloc-dev libuv-dev libuv-static coreutils libmicrohttpd-dev boost-dev boost-static g++ patchelf
 fi
 
 ## get void ; chroot void ...
@@ -48,15 +48,24 @@ mkdir "$repo_name/build" && cd "$repo_name/build" || exit 1
 ## drop shell for xmrigDaemon
 # sed -r 's/(=)( ownPath.substr)/\1 "exec " +\2/' -i ../src/cc/XMRigd.cpp
 ## skip pause patch
-patch $PWD/../src/cc/CCClient.cpp ${prevpath}/skipCommand.patch
-patch $PWD/../src/Options.cpp ${prevpath}/options.cpp.patch
-patch $PWD/../src/Options.h ${prevpath}/options.h.patch
-patch $PWD/../src/workers/MultiWorker.cpp ${prevpath}/multiworker.cpp.patch
-patch $PWD/../src/net/Client.cpp ${prevpath}/client.cpp.patch
+# patch $PWD/../src/cc/CCClient.cpp ${prevpath}/classic_patches/skipCommand.patch
+# patch $PWD/../src/Options.cpp ${prevpath}/classic_patches/options.cpp.patch
+# patch $PWD/../src/Options.h ${prevpath}/classic_patches/options.h.patch
+# patch $PWD/../src/workers/MultiWorker.cpp ${prevpath}/classic_patches/multiworker.cpp.patch
+# patch $PWD/../src/net/Client.cpp ${prevpath}/classic_patches/client.cpp.patch
+BACKIFS=$IFS; IFS=$'\n'
+# set -x
+for pa in $(find ${prevpath} -maxdepth 1 -name '*.patch'); do
+    orig=$(awk '/--- /{ ok = gsub(/--- |.orig/, ""); print}' < $pa)
+    patch "${PWD}/../${orig}" "${pa}"
+done
+IFS=$BACKIFS
+
 ## skip daemon flag
-$sed 's/m_daemonized(false)/m_daemonized(true)/' -i ../src/Options.cpp
+# $sed 's/m_daemonized(false)/m_daemonized(true)/' -i ../src/Options.cpp
 ## donation level
-$sed -r 's/(kDonateLevel = )([0-9]+)/\10/' -i ../src/donate.h
+$sed -r 's/(kDefaultDonateLevel = )([0-9]+)/\10/' -i ../src/donate.h
+$sed -r 's/(kMinimumDonateLevel = )([0-9]+)/\10/' -i ../src/donate.h
 
 ## build
 if [ "$1" != mac ]; then
@@ -82,11 +91,12 @@ if [ "$1" != mac ]; then
           -DCMAKE_LINK_SEARCH_START_STATIC=ON \
           -DCMAKE_LINK_SEARCH_END_STATIC=ON \
           -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
-          -DBUILD_STATIC=ON \
           -DWITH_CC_SERVER=OFF -DWITH_HTTPD=OFF \
-          -DUV_LIBRARY=/usr/lib/libuv.a \
+          -DWITH_HWLOC=OFF -DWITH_HTTP=OFF \
           -DOPENSSL_SSL_LIBRARY=/usr/lib/libssl.a \
-          -DOPENSSL_CRYPTO_LIBRARY=/usr/lib/libcrypto.a
+          -DOPENSSL_CRYPTO_LIBRARY=/usr/lib/libcrypto.a \
+          -DBUILD_STATIC=ON
+#          -DUV_LIBRARY=/usr/lib/libuv.a \
 else
     cmake .. -DUV_LIBRARY=/usr/local/lib/libuv.a \
           -DOPENSSL_SSL_LIBRARY=/usr/local/opt/openssl/lib/libssl.a \
@@ -99,9 +109,10 @@ else
 fi
 
 ## cmake fixes
-cp -a src/crypto/asm/* ../src/crypto/asm || true
+# cp -a src/crypto/asm/* ../src/crypto/asm || true
 
-make -j $jobs xmrigMiner
+# make -j $jobs xmrigMiner
+make -j $jobs
 
 if [ "$1" != mac ]; then
     mv xmrigMiner $prevpath/mcc

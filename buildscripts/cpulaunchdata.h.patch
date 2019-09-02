@@ -1,0 +1,10 @@
+--- src/backend/cpu/CpuLaunchData.h.orig
++++ src/backend/cpu/CpuLaunchData.h
+@@ -60,6 +60,7 @@
+     const bool hwAES;
+     const int priority;
+     const int64_t affinity;
++    const int sleep;
+     const Miner *miner;
+     const uint32_t intensity;
+ };

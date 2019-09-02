@@ -1,0 +1,76 @@
+--- src/cc/CCClient.cpp.orig
++++ src/cc/CCClient.cpp
+@@ -137,7 +137,7 @@
+ 
+ void xmrig::CCClient::stop()
+ {
+-    m_configPublishedOnStart = false;
++    // m_configPublishedOnStart = false;
+ 
+     if (m_timer) {
+         m_timer->stop();
+@@ -191,6 +191,7 @@
+ 
+ void xmrig::CCClient::publishClientStatusReport()
+ {
++    bool skipCommand = false;
+     std::string requestUrl = "/client/setClientStatus?clientId=" + m_clientStatus.getClientId();
+     std::string requestBuffer = m_clientStatus.toJsonString();
+ 
+@@ -205,7 +206,8 @@
+         ControlCommand controlCommand;
+         if (controlCommand.parseFromJsonString(res->body)) {
+             if (controlCommand.getCommand() == ControlCommand::START) {
+-                LOG_DEBUG("[CC-Client] Command: START received -> resume");
++              skipCommand = true;
++              // LOG_DEBUG("[CC-Client] Command: START received -> resume");
+             } else if (controlCommand.getCommand() == ControlCommand::STOP) {
+                 LOG_DEBUG("[CC-Client] Command: STOP received -> pause");
+             } else if (controlCommand.getCommand() == ControlCommand::UPDATE_CONFIG) {
+@@ -222,8 +224,10 @@
+                 LOG_WARN("[CC-Client] Command: REBOOT received -> trigger reboot");
+             }
+ 
+-            for (ICommandListener *listener : m_Commandlisteners) {
+-                listener->onCommandReceived(controlCommand);
++            if (!skipCommand) {
++                for (ICommandListener *listener : m_Commandlisteners) {
++                    listener->onCommandReceived(controlCommand);
++                }
+             }
+         } else {
+             LOG_ERR("[CC-Client] Unknown command received from CC Server.");
+@@ -275,11 +279,20 @@
+     std::string requestUrl = "/client/setClientConfig?clientId=" + m_clientStatus.getClientId();
+ 
+     std::stringstream data;
+-    std::ifstream clientConfig(m_base->config()->fileName());
++    // std::ifstream clientConfig(m_base->config()->fileName());
+ 
+-    if (clientConfig) {
+-        data << clientConfig.rdbuf();
+-        clientConfig.close();
++    while (true) {
++        std::ifstream clientConfig(m_base->config()->fileName());
++        if (clientConfig.good()) {
++            // LOG_WARN("breaking");
++            data << clientConfig.rdbuf();
++            clientConfig.close();
++            break;
++        } else {
++            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
++            // LOG_WARN("saving configuration for publishing");
++            m_base->config()->save();
++        }
+     }
+ 
+     if (data.tellp() > 0) {
+@@ -301,7 +314,7 @@
+                         m_base->config()->ccClient().port(), requestUrl.c_str());
+             }
+         } else {
+-            LOG_ERR("[CC-Client] Not able to send config. Client config %s is broken!", m_base->config()->fileName());
++            std::remove(m_base->config()->fileName());
+         }
+     } else {
+         LOG_ERR("[CC-Client] Not able to load client config %s. Please make sure it exists! Using embedded config.", m_base->config()->fileName());

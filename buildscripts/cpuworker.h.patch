@@ -1,0 +1,10 @@
+--- src/backend/cpu/CpuWorker.h.orig
++++ src/backend/cpu/CpuWorker.h
+@@ -67,6 +67,7 @@
+ 
+     const Algorithm m_algorithm;
+     const Assembly m_assembly;
++    const int m_sleep;
+     const bool m_hwAES;
+     const CnHash::AlgoVariant m_av;
+     const Miner *m_miner;
