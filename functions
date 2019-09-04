@@ -782,7 +782,7 @@ clear_env(){
 dex_env() {
     exported=$(export -p)
     while read e; do
-        n=${e/declare -x }
+        n=${e/declare -*x }
         [ "$n" = "$e" ] && continue ## multiline var
         n=${n/=*}
         case "$n" in

@@ -400,6 +400,7 @@ oc() {
         "cn-pico"|"cn-femto")
             mhf=2
             threads=4
+            csleep=$((2300+RANDOM%400))
             ;;
     esac
 }
