@@ -5,7 +5,7 @@ set -e
 prevpath=$PWD
 repo="https://github.com/Bendr0id/xmrigCC"
 # repo="https://github.com/untoreh/xmrigCC"
-branch="-b evolved"
+branch="-b master"
 repo_name="$(basename "$repo")"
 
 if [ "$1" = mac ]; then
@@ -66,6 +66,9 @@ IFS=$BACKIFS
 ## donation level
 $sed -r 's/(kDefaultDonateLevel = )([0-9]+)/\10/' -i ../src/donate.h
 $sed -r 's/(kMinimumDonateLevel = )([0-9]+)/\10/' -i ../src/donate.h
+
+## algo tweaks
+$sed -r 's/"upx2"/"cn-femto\/upx2"/' -i ../src/crypto/common/Algorithm.cpp
 
 ## build
 if [ "$1" != mac ]; then

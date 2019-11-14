@@ -1,23 +1,23 @@
 --- src/cc/CCClient.cpp.orig
 +++ src/cc/CCClient.cpp
-@@ -137,7 +137,7 @@
- 
- void xmrig::CCClient::stop()
+@@ -159,7 +159,7 @@
  {
+ 	LOG_DEBUG("CCClient::stop");
+ 
 -    m_configPublishedOnStart = false;
 +    // m_configPublishedOnStart = false;
  
      if (m_timer) {
          m_timer->stop();
-@@ -191,6 +191,7 @@
- 
+@@ -218,6 +218,7 @@
  void xmrig::CCClient::publishClientStatusReport()
  {
+ 	LOG_DEBUG("CCClient::publishClientStatusReport");
 +    bool skipCommand = false;
+ 
      std::string requestUrl = "/client/setClientStatus?clientId=" + m_clientStatus.getClientId();
      std::string requestBuffer = m_clientStatus.toJsonString();
- 
-@@ -205,7 +206,8 @@
+@@ -233,7 +234,8 @@
          ControlCommand controlCommand;
          if (controlCommand.parseFromJsonString(res->body)) {
              if (controlCommand.getCommand() == ControlCommand::START) {
@@ -27,7 +27,7 @@
              } else if (controlCommand.getCommand() == ControlCommand::STOP) {
                  LOG_DEBUG("[CC-Client] Command: STOP received -> pause");
              } else if (controlCommand.getCommand() == ControlCommand::UPDATE_CONFIG) {
-@@ -222,8 +224,10 @@
+@@ -250,8 +252,10 @@
                  LOG_WARN("[CC-Client] Command: REBOOT received -> trigger reboot");
              }
  
@@ -40,7 +40,15 @@
              }
          } else {
              LOG_ERR("[CC-Client] Unknown command received from CC Server.");
-@@ -275,11 +279,20 @@
+@@ -292,6 +296,7 @@
+ 
+                 LOG_WARN("[CC-Client] Config updated. -> reload");
+             } else {
++                std::remove(m_base->config()->fileName());
+                 LOG_ERR("[CC-Client] Not able to store client config to file %s.", m_base->config()->fileName().data());
+             }
+         } else {
+@@ -307,11 +312,20 @@
      std::string requestUrl = "/client/setClientConfig?clientId=" + m_clientStatus.getClientId();
  
      std::stringstream data;
@@ -65,12 +73,3 @@
      }
  
      if (data.tellp() > 0) {
-@@ -301,7 +314,7 @@
-                         m_base->config()->ccClient().port(), requestUrl.c_str());
-             }
-         } else {
--            LOG_ERR("[CC-Client] Not able to send config. Client config %s is broken!", m_base->config()->fileName());
-+            std::remove(m_base->config()->fileName());
-         }
-     } else {
-         LOG_ERR("[CC-Client] Not able to load client config %s. Please make sure it exists! Using embedded config.", m_base->config()->fileName());
