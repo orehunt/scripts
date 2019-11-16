@@ -457,7 +457,8 @@ read_coproc() {
 read_fd(){
     local l
     [ -z "$1" -o -z "$2" ] && return 1
-    while read -t 0 -ru $1 l; do
+    while read -t 0 -ru $1; do
+        read -t 1 -ru $1 l
         [ -z "$l" ] && break
         eval "$2=$l"
     done
@@ -542,6 +543,15 @@ get_mem(){
         [ "${l/MemFree}" != "$l" ] &&
             l=${l//[^0-9]} &&
             FREEMEM=$((l/1000))
+    done < /proc/meminfo
+}
+## store current free swap (MB) in FREESWP
+get_swp(){
+    local l
+    while read l; do
+        [ "${l/SwapFree}" != "$l" ] &&
+            l=${l//[^0-9]} &&
+            FREESWP=$((l/1000))
     done < /proc/meminfo
 }
 

@@ -44,7 +44,11 @@ travis() {
             threads=1
             ;;
         "cn")
-            mhf=2
+            if [ "$job_variant" = double ]; then
+               mhf=1
+            else
+                mhf=2
+            fi
             threads=1
             ;;
         "cn-lite")
@@ -397,10 +401,10 @@ oc() {
             threads=2
             ;;
 
-        "cn-pico"|"cn-femto")
+        "cn-pico"|"cn-femto"|"argon2")
             mhf=2
             threads=4
-            csleep=$((2300+RANDOM%400))
+            csleep=$((2500+RANDOM%250))
             ;;
     esac
 }

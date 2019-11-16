@@ -134,7 +134,7 @@ export SHARES=${SHARES:-$((THREADS * MHF))} \
 export X_ID=${X_ID:-$(printf '%s' "${ip}-${country}-${region}-${HOSTN}")} \
 UA=${UA:-KnockKnock} \
 PA=${PA:-WhosThere} \
-AL=${AL:-cn} \
+AL=${AL} \
 AESNI=${AESNI:-1}
 
 export provider=${X_ID/-*} cMhf=${MHF}
