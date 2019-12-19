@@ -10,6 +10,9 @@ repo_name="$(basename "$repo")"
 cd /
 
 if type apk; then
+    ## add testing repository
+    t_repo="$(cat /etc/apk/repositories | tail -1 | sed 's/community/testing/')"
+    echo "$t_repo" >> /etc/apk/repositories
     apk add --update alpine-sdk cmake libuv-dev libmicrohttpd-dev coreutils libressl-dev patchelf hwloc-dev
     # LINKER="ld-musl-x86_64.so.1"
     LINKER="libc.musl-x86_64.so.1"
