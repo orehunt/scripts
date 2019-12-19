@@ -1,11 +1,12 @@
 --- src/core/config/Config_default.h.orig
 +++ src/core/config/Config_default.h
-@@ -57,20 +57,21 @@
+@@ -57,21 +57,22 @@
          "huge-pages": true,
          "hw-aes": null,
          "priority": null,
-+        "sleep": -1,
++	"sleep": -1,
          "asm": true,
+         "max-threads-hint": 100,
          "argon2-impl": null,
          "cn/0": false,
          "cn-lite/0": false
@@ -26,7 +27,7 @@
              "rig-id": null,
              "nicehash": false,
              "keepalive": false,
-@@ -82,12 +83,12 @@
+@@ -83,12 +84,12 @@
      ],
      "cc-client": {
          "enabled" : true,

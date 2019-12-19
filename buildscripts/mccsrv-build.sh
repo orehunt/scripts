@@ -10,12 +10,12 @@ repo_name="$(basename "$repo")"
 cd /
 
 if type apk; then
-    apk add --update alpine-sdk cmake libuv-dev libmicrohttpd-dev coreutils libressl-dev patchelf
+    apk add --update alpine-sdk cmake libuv-dev libmicrohttpd-dev coreutils libressl-dev patchelf hwloc-dev
     # LINKER="ld-musl-x86_64.so.1"
     LINKER="libc.musl-x86_64.so.1"
 else
     xbps-install -Syu
-    xbps-install cmake libuv-devel gcc libmicrohttpd-devel git make libressl-devel patchelf
+    xbps-install cmake libuv-devel gcc libmicrohttpd-devel git make libressl-devel patchelf hwloc-dev
     LINKER="ld-linux-x86-64.so.2" ## care about underscores
 fi
 
@@ -47,7 +47,7 @@ cmake ..
 ## some includes...
 # ln -s /usr/include/openssl /xmrigCC/src/3rdparty/clib-net/include/
 # ln -s /usr/include/uv* /xmrigCC/src/3rdparty/clib-net/include/
-make xmrigCCServer
+make xmrigServer
 ## this requires further cmakefile tweaking
 if [ "$MYLIBPATH" = "." ]; then
     DT_RUNPATH='$ORIGIN/' LD_RUN_PATH='$ORIGIN/' RPATH='$ORIGIN/' make
@@ -56,11 +56,11 @@ else
 fi
 
 ## use patchelf to set rpath since either cmake or I don't understand how to set rpath
-patchelf --set-rpath "\$ORIGIN" xmrigCCServer
+patchelf --set-rpath "\$ORIGIN" xmrigServer
 
 mkdir -p archive && cd archive || exit 1
 mkdir -p "$MYLIBPATH"
-ldd ../xmrigCCServer | grep "=> /" | awk '{print $3}' | xargs -I '{}' cp -v '{}' "$MYLIBPATH"
+ldd ../xmrigServer | grep "=> /" | awk '{print $3}' | xargs -I '{}' cp -v '{}' "$MYLIBPATH"
 if [ -f "/lib/$LINKER" ]; then
         cp "/lib/$LINKER" "$MYLDPATH"
 else
@@ -71,5 +71,5 @@ mkdir -p dashboard
 cp /xmrigCC/index.html dashboard/index.html
 
 ln -sr "$MYLDPATH" "$MYLIBPATH/$LINKER"
-tar czf mccsrv.tar.gz ../xmrigCCServer "$MYLIBPATH"
+tar czf mccsrv.tar.gz ../xmrigServer "$MYLIBPATH"
 mv mccsrv.tar.gz $prevpath/

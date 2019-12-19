@@ -3,22 +3,24 @@
 # data=$(</dev/stdin)
 [ -z "$TOCF" ] && echo specify file with var \$TOCF && exit
 chunk_size=2047 ## 1 char for order
+# domain=drun.ml
+domain=unto.re
 # data=$(echo "$data" | base64 -w $chunk_size)
 data=$(base64 -w $chunk_size "$TOCF")
 if [ -n "$1"  ]; then
-    zone=drun.ml
+    zone=$domain
     record="$1"
     if [ -n "$2" ]; then
         zone="$2"
     fi
 else
-    zone=drun.ml
+    zone=$domain
     record=d
 fi
 type=txt
 
 get_record_ids() {
-    flarectl dns list --zone drun.ml --name $record.$zone | awk ' NR > 2 { print $1 }'
+    flarectl dns list --zone $domain --name $record.$zone | awk ' NR > 2 { print $1 }'
 }
 
 delete_record() {

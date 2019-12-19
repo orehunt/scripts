@@ -7,7 +7,7 @@
 +    inline int sleep() const                            { return m_sleep; }
  
  private:
-     void generate();
+     void generate(uint32_t limit);
 @@ -65,6 +66,7 @@
      void setAesMode(const rapidjson::Value &aesMode);
  
@@ -20,7 +20,7 @@
      bool m_hugePages     = true;
      bool m_shouldSave    = false;
      int m_priority       = -1;
-+    int m_sleep = -1;
++    int m_sleep          = -1;
+     int32_t  m_limit     = 100;
      String m_argon2Impl;
      Threads<CpuThreads> m_threads;
- };

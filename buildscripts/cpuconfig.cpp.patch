@@ -5,18 +5,18 @@
  static const char *kHwAes               = "hw-aes";
  static const char *kPriority            = "priority";
 +static const char *kSleep               = "sleep";
+ static const char *kCpuLimit            = "max-threads-hint";
  
  #ifdef XMRIG_FEATURE_ASM
- static const char *kAsm = "asm";
-@@ -98,6 +99,7 @@
+@@ -102,6 +103,7 @@
      obj.AddMember(StringRef(kHugePages),    m_hugePages, allocator);
      obj.AddMember(StringRef(kHwAes),        m_aes == AES_AUTO ? Value(kNullType) : Value(m_aes == AES_HW), allocator);
      obj.AddMember(StringRef(kPriority),     priority() != -1 ? Value(priority()) : Value(kNullType), allocator);
 +    obj.AddMember(StringRef(kSleep),        sleep() != -1 ? Value(sleep()) : Value(kNullType), allocator);
+     obj.AddMember(StringRef(kCpuLimit),     m_limit, allocator);
  
  #   ifdef XMRIG_FEATURE_ASM
-     obj.AddMember(StringRef(kAsm), m_assembly.toJSON(), allocator);
-@@ -140,6 +142,7 @@
+@@ -146,6 +148,7 @@
  
          setAesMode(Json::getValue(value, kHwAes));
          setPriority(Json::getInt(value,  kPriority, -1));
