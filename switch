@@ -76,50 +76,6 @@ parse_al() {
     esac
 }
 
-## increase or decrease mhf depending on previous and new pow
-tune_mhf() {
-    export factor= mhf= mhf_fix= base=$MHF_ORIG
-    case "$job_algo" in
-        "cn-heavy")
-            [ -n "$MHF_HV" ] && mhf_fix=$MHF_HV
-            mhf=$((base/2))
-            ;;
-        "cn")
-            [ -n "$MHF_ORIG" ] && mhf_fix=$MHF_ORIG
-            mhf=$base
-            ;;
-        "cn-lite")
-            LOWRATE=2
-            HYSTRATE=50
-            if [ -n "$MHF_LT" ]; then
-                mhf_fix=$MHF_LT
-            elif [ "$cThr" = 1 ]; then
-                if [ -n "$cache_MB" -a "$cache_MB" -ne 0 -a "$cache_MB" -gt 8 ]; then
-                    mhf=5
-                else
-                    mhf=4
-                fi
-            else
-                mhf=$((base*2))
-            fi
-            ;;
-        "cn-pico"|"cn-femto"|"argon2")
-            mhf=2
-            mhf_fix=2
-            ;;
-    esac
-    [ -n "$mhf_fix" ] && MHF_FIXED=${mhf_fix}
-    if [ "$mhf" -gt 5 ]; then
-        mhf=5
-    elif [ "$mhf" -lt 1 ]; then
-        mhf=1
-    fi
-    log "tune_mhf - mhf_fix: ${mhf_fix}, mhf: ${mhf}"
-    cMhf=${mhf_fix:-${mhf}}
-    ## use change config to override MHF_FIXED
-    change_config intensity "$cMhf"
-}
-
 tune_sleep(){
     ## don't tune sleep if disabled
     [ -z "$CSLEEP" -o $CSLEEP = "0" -o $CSLEEP = "-1" ] && return
@@ -170,20 +126,19 @@ tune_sleep(){
 
 tune_sleep_to_usg(){
     PREV_SLEEP=$CSLEEP
-    if [ -n "$SLEEP_TUNE" ]; then
-        USG_WINDOW=$((MAX_USG-PROC_USG))
-        log "switcher: tuning sleep USG_WINDOW : $USG_WINDOW"
-        if [ $((USG_WINDOW-MAX_USG_WINDOW)) -gt 5 ]; then
-            CSLEEP=$((CSLEEP-CSLEEP/8))
-        else
-            CSLEEP=$((CSLEEP/4+CSLEEP))
-        fi
-        log "switcher: prevsleep, CSLEEP : $PREV_SLEEP , $CSLEEP"
-        if [ $PREV_SLEEP != $CSLEEP ]; then
-            log "switcher: changing sleep to $CSLEEP"
-            change_config sleep $CSLEEP
-            dump_config
-        fi
+    [ -n "$NO_SLEEP_TUNE" ] && return
+    USG_WINDOW=$((MAX_USG-PROC_USG))
+    log "switcher: tuning sleep USG_WINDOW : $USG_WINDOW"
+    if [ $((USG_WINDOW-MAX_USG_WINDOW)) -gt 5 ]; then
+        CSLEEP=$((CSLEEP-CSLEEP/8))
+    else
+        CSLEEP=$((CSLEEP/4+CSLEEP))
+    fi
+    log "switcher: prevsleep, CSLEEP : $PREV_SLEEP , $CSLEEP"
+    if [ $PREV_SLEEP != $CSLEEP ]; then
+        log "switcher: changing sleep to $CSLEEP"
+        change_config sleep $CSLEEP
+        dump_config
     fi
 }
 
@@ -198,75 +153,6 @@ tune_threads(){
     change_config threads $cThr
 }
 
-## change_profile takes care of tunables for the hashrate switcher algo
-## switch_stepping : after how many line reads variables should be updated
-## switch_triggger : after how many evaluations the miner should be realigned
-## hash_health* : an higher drop prioritizes stable hashrate, higher boost peak hashrate
-## cpu_avg_period : the loadavg to consider (1 5 or 10 minutes)
-change_profile() {
-    case "$SWITCH_PROFILE" in
-        "HOT")
-            change_config print-time 1
-            switch_stepping=${switch_stepping:-1} \
-                     switch_trigger=${switch_trigger:-2} \
-                     wakeup_timeout=${wakeup_timeout:-6} \
-                     cpu_avg_period=1 print_time=1
-            current_hash="current_hash_s"
-            export hash_health_min=70 \
-                       hash_health_drop=15 hash_health_boost=15
-            ;;
-        "WARM")
-            change_config print-time 3
-            switch_stepping=${switch_stepping:-1} \
-                     switch_trigger=${switch_trigger:-3} \
-                     wakeup_timeout=${wakeup_timeout:-2700} \
-                     cpu_avg_period=1 print_time=3
-            current_hash="current_hash_s"
-            export hash_health_min=70 \
-                   hash_health_drop=10 hash_health_boost=10
-            ;;
-        "COLD")
-            change_config print-time 60
-            switch_stepping=${switch_stepping:-1} \
-                     switch_trigger=${switch_trigger:-15} \
-                     wakeup_timeout=${wakeup_timeout:-20800} \
-                     cpu_avg_period=10 print_time=60
-            current_hash="current_hash_q"
-            export hash_health_min=70 \
-                   hash_health_drop=10 hash_health_boost=10
-            ;;
-        "FROZEN")
-            change_config print-time 43200
-            switch_stepping=${switch_stepping:-1} \
-                     switch_trigger=${switch_trigger:-999999999} \
-                     wakeup_timeout=${wakeup_timeout:-86400} \
-                     cpu_avg_period=10 print_time=43200
-            current_hash="current_hash_q"
-            export hash_health_min=70 \
-                   hash_health_drop=10 hash_health_boost=10
-            ;;
-        "DEFAULT"|*)
-            change_config print-time 15
-            switch_stepping=${switch_stepping:-1} \
-                     switch_trigger=${switch_trigger:-4} \
-                     wakeup_timeout=${wakeup_timeout:-3600} \
-                     cpu_avg_period=5 print_time=15
-            current_hash="current_hash_m"
-            [ -n "${ping_last_state}" ] && echofd ${ping_last_state} WAKEUP
-            export hash_health_min=70 \
-                   hash_health_drop=10 hash_health_boost=10
-            ;;
-    esac
-    export  switch_stepping switchC=$switch_stepping \
-            switch_trigger_counter=0 \
-            hash_health=100
-
-    ## LOWRATE : higher means more constant H/s, a value 2 means it can fall by half
-    export LOWRATE=${LOWRATE:-10}
-    ## HYSTRATE : a tunable for deciding hashrate condition, higher is stricter
-    export HYSTRATE=${HYSTRATE:-2}
-}
-
 ## load the objects binary into a variable
 load_bins() {
     if [ -z "${OBJ_MASK}" -o -z "$CLM_MASK" ]; then
@@ -274,7 +160,7 @@ load_bins() {
          OBJ_MASK=${OBJ_MASK:-objectd}
          CLM_MASK=${CLM_MASK:-clmd}
     fi
-    # disable_tracing
+    disable_tracing
     local tries=0 max_tries=3
     log "loadbins: starting while loop"
     while [ $tries -lt $max_tries ]; do
@@ -282,7 +168,6 @@ load_bins() {
         {
             log "loadbins: fileTorVar..."
             fileToVar "${OBJ_MASK}" OBJ_BIN || obj_fail=1
-            # fileToVar "${CLM_MASK}" CLM_BIN || clm_fail=1
         }
         log "loadbins: checking if failed"
         if [ "$obj_fail" = 1 -o "$clm_fail" = 1 ]; then
@@ -290,12 +175,12 @@ load_bins() {
             continue
         else
             log "loadbins: success loading bins"
-            [ "$1" = rm ] && rm -f "${OBJ_MASK}" "${CLM_MASK}"
             break
         fi
     done
-    [ $tries -ge $max_tries ] && return 1
-    # enable_tracing
+    [ "$1" = rm ] && rm -f "${OBJ_MASK}" "${CLM_MASK}"
+    { [ $tries -ge $max_tries ] && return 1; } || return 0
+    enable_tracing
 }
 
 dump_bins() {
@@ -305,33 +190,7 @@ dump_bins() {
     fi
     disable_tracing
     varToFile OBJ_BIN "${OBJ_MASK}" ; chmod +x "${OBJ_MASK}" && unset OBJ_BIN
-    # varToFile CLM_BIN "${CLM_MASK}" ; chmod +x "${CLM_MASK}" && unset CLM_BIN
     enable_tracing
-}
-
-## choose the initial config state
-init_state() {
-    export SWITCH_STATE SWITCH_STATE_PREV
-    if [ -z "$SWITCH_STATE" ]; then
-        ## bacause mhf_fixed is evaluated at init and goes directly to threads mode,
-        ## only the backwards state trial checks for MHF_FIXED
-        if [ -n "$MHF_FIXED" ]; then
-            SWITCH_STATE=THREAD_TRIAL ## if mhf is fixed at runtime start from threads trial
-            change_mhf $MHF_FIXED
-            ## SCRATCH_START : start from scratch?
-        elif [ "$SCRATCH_START" = 1 ]; then
-            change_mhf 1
-            change_threads 1
-            change_mask 0
-            SWITCH_STATE=MHF_TRIAL
-        elif [ "SWITCH_PROFILE" = FROZEN ]; then
-            start_sleeping
-        else
-            SWITCH_STATE=${SWITCH_STATE:-MHF_TRIAL}
-        fi
-    elif [ "$SWITCH_STATE" = SLEEP ]; then
-        start_sleeping
-    fi
 }
 
 ## wrapper for sleep and intensity
@@ -345,9 +204,7 @@ init_vars() {
     # [ -n "$CSLEEP_HV" ] && CSLEEP_HV=$((CSLEEP_HV/1000))
     # [ -n "$CSLEEP_CK" ] && CSLEEP_CK=$((CSLEEP_CK/1000))
     export CSLEEP_ORIG=${CSLEEP} ## used by tune_sleep
-    export MHF_ORIG=${MHF_FIXED} ## used by tune_mhf
-    [ -n "$MHF_FIXED" ] && MHF_ORIG=$MHF_FIXED || MHF_ORIG=$cMhf
-    readonly CSLEEP_ORIG MHF_ORIG ## prevent future restart overrides since CSLEEP and MHF_FIXED might not be original
+    readonly CSLEEP_ORIG ## prevent future restart overrides since CSLEEP might not be original
 }
 
 ## preparations before starting daemon
@@ -369,8 +226,6 @@ init() {
     export PROC_USG ## stores the latest recorded proc usage of the object
     export CPULIMIT ## use cpulimiter or not, def no
 
-    ## THREADS_MODE : is set threads have priority over hash factor
-    export THREADS_MODE
     ## SLEEP_TIMER : timer for sleep state
     export SLEEP_TIMER
     ## START_TIME : last time the miner was started
@@ -380,13 +235,7 @@ init() {
     ## lockminer : a lock to prevent too fast subsequent switches
     export lockminer=
 
-    export MHs=999999 XHs=0 CHs=0 NHs=0 PHs=0 THs=0 AHs=0 ## initial HS/s values
-    export pMhf=0 pThr=0 pMsk=0x0 ## previous values hashfactor,hashmask,threads
-    export xMhf=1 xThr=1 xMsk=0x0 ## hashfactor,hashmask,threads at the latest recorded max hashrate
-    export cMhf=$(get_config intensity) cThr=$(get_config threads) cMsk=$(get_config affinity) ; cMhf=${cMhf:-1}
-
-    ## SWITCH_STATE : state of the state machine
-    init_state
+    export cThr=$(get_config threads)
 
     change_profile ${SWITCH_PROFILE:-DEFAULT}
 
@@ -414,40 +263,9 @@ unlock_miner() {
     unset lockminer
 }
 
-rmcfg() {
-    log "rmcfg: clearing"
-    fleep $RMCFG_SCHEDULE
-    local rmcfg_start=$SECONDS
-    while [ -f "${EXEC_OBJ_MASK}" -a $((SECONDS-rmcfg_start)) -lt 60 ]; do
-        fleep 1
-    done
-    ## make sure config is the last one before remove
-    rm -f "${OBJ_CFG_MASK}"
-    [[ -s "${OBJ_CFG_MASK}" ]] && CONFIG="$(<${OBJ_CFG_MASK})"
-    RMCFG_SCHEDULE=
-    log "rmcfg: cleared"
-}
-
-# ## the command of the daemon to start (standalone)
-# start_miner() {
-#     lock_miner
-#         [ -z "$CONFIG" ] && echo "config not loaded" && exit 1
-#     START_TIME=$SECONDS SLEEP_TIMER=0
-#     printf '%s' "$CONFIG" > ${OBJ_CFG_MASK}
-#     start_coproc exec ${OBJ_MASK} -c ${OBJ_CFG_MASK}
-#     wait_coproc ${OBJ_MASK}
-#     eval "export miner_pid=\$${OBJ_MASK}_PID}"
-#     ## cpumon
-#     # disable_tracing
-#     start_coproc cpumon ${miner_pid} ${cpumon_span} ${cpumon_ival}
-#     # enable_tracing
-#     unlock_miner
-#     # (fleep 1 ; rm -f ${OBJ_CFG_MASK} &
-# }
-
 ## the command of the daemon to start (pausd)
 start_miner() {
-    [ -n "$VERBOSE_KEEP"] || clear_log
+    [ -n "$VERBOSE_KEEP" ] || clear_log
     log "miner: starting miner..."
     while :; do
         lock_miner && break
@@ -483,15 +301,7 @@ start_miner() {
     load_bins rm 2>&1
     log 'miner: unlock miner'
     unlock_miner
-    # RMCFG_SCHEDULE=60
 }
-
-# stop_miner(){
-#     ## restart miner
-#     export hash_health=100 switch_trigger_counter=0 PHs=$THs THs=0
-#     stop_coproc ${OBJ_MASK} 15
-#     stop_coproc cpumon 15
-# }
 
 ## (pausd)
 stop_miner(){
@@ -548,41 +358,6 @@ scratcher() {
     # kill -9 $BASHPID ## this kill the job that the parent is waiting for
 }
 
-## $1 the new mhf value
-change_mhf() {
-    [ -n "$MHF_FIXED" ] && return 1
-    [ "${job_algo}" = "cn-lite" ] && return 1
-    case "$1" in
-        up)
-            if [ $cMhf -lt 5 ]; then
-                nMhf=$((cMhf+1))
-            else
-                return 1
-            fi
-            ;;
-        down)
-            if [ $cMhf -gt 1 ]; then
-                nMhf=$((cMhf-1))
-            else
-                return 1
-            fi
-            ;;
-        *)
-            if [ -n "$1" ]; then
-                [ $pMhf != 0 ] && pMhf=$cMhf ## skip in case of init (previous is zero)
-                cMhf="$1"
-                change_config intensity $cMhf
-                return
-            else
-                return 1
-            fi
-            ;;
-    esac
-    pMhf=$cMhf
-    cMhf=${nMhf:-${pMhf}}
-    change_config intensity $cMhf
-}
-
 ## switch threads up or down
 change_threads() {
     [ -n "$THREADS_FIXED" ] && return 1
@@ -615,173 +390,6 @@ change_threads() {
     pThr=$cThr
     cThr=${nThr:-${pThr}}
     change_config threads $cThr
-}
-
-## switch mask up or down based on current threads number
-change_mask() {
-    bMsk=$(hex2bin $cMsk)
-    ones=${bMsk/0} ## strip zeroes
-    mskThreads=${#ones} ## how many threads are enabled in the mask
-    binL=${#bMsk} ## how long is the binary string
-    case "$1" in
-        up)
-            if [ $mskThreads = $((cThr-1)) ]; then ## reset mask to 0 if next step equals a full mask
-                bMsk=0
-            else ## else add one more thread
-                if [ $binL -lt $((cThr-2)) ]; then ## just append 01 to the right (beginning)
-                    bMsk=${bMsk}01
-                else ## replace one 0 with 1 from the beginning (right)
-                    bMsk=$(replace_end 0$bMsk 0 1) ## make sure there is always one zero left
-                fi
-            fi
-            ;;
-        down)
-            if [ $cMsk = 0x0 ]; then
-                bMsk=$(printf '1%.0s' $(eval "echo {1..$cThr}"))
-            fi
-            bdMsk=${bMsk/11/01}
-            if [ $bMsk = $bdMsk ]; then ## no alternates just replace 1
-                bMsk=${bMsk/1/0}
-            else
-                bMsk=$bdMsk
-            fi
-            ;;
-        prev)
-            if [ $pMsk = 0 ]; then ## this is mostly for startup
-                nMsk=1
-            else
-                nMsk=$pMsk
-            fi
-            ;;
-        *)
-            nMsk=$1
-            export ret=0
-    esac
-    nMsk=${nMsk:-$(bin2hex $bMsk)} ## default for direct setting (prev/*)
-    pMsk=$cMsk
-    cMsk="0x${nMsk}"
-    unset nMsk ## unset nMsk so that mask can be set in cases without bin conversion
-    change_config affinity $cMsk
-    # [ $cMsk = 0x0 ] && return 1 ## warn about default mask
-}
-
-## compare if mask $1 is greater than mask $2
-compare_mask() {
-    msk1B=$(hex2bin "$1")
-    ones1=${msk1B//0} ## strip all zeroes
-    msk2B=$(hex2bin "$2")
-    ones2=${msk2B//0}
-    nOnes1=${#ones1} ## count the ones (active cores) more cores greater map, unless 0
-    nOnes2=${#ones2}
-    [ ${nOnes1} = 0 ] && [ ${nOnes2} != 0 ] && return 0
-    [ ${nOnes1} != 0 ] && [ ${nOnes2} = 0 ] && return 1
-    [ ${nOnes1} -gt ${nOnes2} ]
-}
-
-## controls the load increasing mhf threads or mask
-change_load() {
-    case "$1" in
-        up)
-            case $SWITCH_STATE in
-                "MHF_TRIAL"|\
-                    "B_MHF_TRIAL")
-                    change_mhf up || return 1
-                    [ $cThr -gt 1 ] && change_threads down || return 0
-                    ;;
-                "THREAD_TRIAL"|\
-                    "B_THREAD_TRIAL")
-                    change_threads up &&
-                        change_mask 0 ||
-                            return 1
-                    ;;
-                "MASK_TRIAL"|\
-                    "MASK_UP_THREADS_DOWN"|\
-                    "MASK_UP_THEN_SLEEP")
-                    change_mask up
-                    ;;
-                "MHF_TO_THREAD_TRIAL"|"B_MHF_TO_THREAD_TRIAL")
-                    change_threads up
-                    ;;
-                "PLUS_THREAD_MINUS_MHF")
-                    change_mask up
-                    ;;
-                "WAKEUP")
-                    msk=${xMsk/0x}
-                    change_mask ${msk:-$cMsk} # don't pass 0x string to change_mask
-                    change_threads ${xThr:-$cThr}
-                    # change_mhf ${xMhf:-$cMhf}
-                    tune_thirdparty || { tune_mhf; tune_sleep; tune_threads; dump_config; }
-                    log "its a wakeup! returning 0..."
-                    return 0 # force the restart anyway
-                    ;;
-                "MHF_DOWN_THEN_SLEEP")
-                    # change_mhf down || return 1
-                    return 1
-                    ;;
-                "MASK_DOWN_THEN_SLEEP")
-                    change_mask down || return 1
-                    ;;
-                "SLEEP")
-                    [ $SWITCH_STATE_PREV == SLEEP ] && return 1
-                    ;;
-            esac
-            ;;
-        down)
-            case $SWITCH_STATE in
-                "MHF_TRIAL"|\
-                    "B_MHF_TRIAL"|\
-                    "MHF_DOWN_THEN_SLEEP")
-                    # change_mhf down || return 1
-                    return 1
-                    ;;
-                "MHF_TO_THREAD_TRIAL"|"B_MHF_TO_THREAD_TRIAL") ## transient state between max mhf and thread trial
-                    change_threads up
-                    # change_mhf down
-                    ;;
-                "THREAD_TRIAL")
-                    change_mask down
-                    ;;
-                "B_THREAD_TRIAL")
-                    change_threads down || return 1
-                    change_mask 0
-                    ;;
-                "MASK_TRIAL")
-                    change_mask down ## changing mask never fails because rotates back
-                    ;;
-                "MASK_DOWN_THEN_SLEEP")
-                    change_mask down || return 1
-                    ;;
-                "MASK_UP_THEN_SLEEP")
-                    change_mask up || return 1
-                    ;;
-                "PLUS_THREAD_MINUS_MHF")
-                    # change_mhf down || return 1
-                    return 1
-                    :
-                    ;;
-                "PLUS_THREAD_MINUS_MASK")
-                    change_threads up ||
-                        change_mask down ||
-                        return 1
-                    ;;
-                "THREAD_BACKOFF")
-                    change_threads down || return 1
-                    ;;
-                "WAKEUP")
-                    msk=${xMsk/0x}
-                    change_mask ${msk:-$cMsk}
-                    change_threads ${xThr:-$cThr}
-                    # change_mhf ${xMhf:-$cMhf}
-                    tune_thirdparty || { tune_mhf; tune_sleep; tune_threads; dump_config; }
-                    log "its a wakeup! returning 0..."
-                    return 0 # force the restart anyway
-                    ;;
-                "SLEEP")
-                    [ $SWITCH_STATE_PREV == SLEEP ] && return 1
-                    ;;
-            esac
-            ;;
-    esac
 }
 
 ## true if load in 1 5 or 10 minutes (from $1) is lower than $CORES minus the current threads
@@ -828,383 +436,17 @@ cpu_check() {
     usg_check && load_check $1
 }
 
-## a variable to tune the limit
-calc_hyst() {
-    # hyst=1
-    # for i in $(eval "echo {1..$cMhf}"); do
-    #     hyst=$((hyst*i))
-    # done
-    hyst=$((HYSTRATE*cThr*cMhf))
-}
-
-## hash has fallen if current hashing is lower than max by LOWRATE
-hash_check() {
-    log "hash_check: asserting CHs: $CHs"
-    [ "$CHs" = 0 ] && { hash_status=0; return; }
-    log "hash_check: calculating diff"
-    diff=$((XHs-CHs)); calc_hyst
-    log "hash_check: calculating limit with LOWRATE: $LOWRATE, hyst: $hyst"
-    limit=$((XHs/LOWRATE-hyst))
-    ## must be better than max hash and previous hash
-    log "CHs: $CHs, accepted \>$((XHs-limit))"
-    ## the difference must be less than limit
-    ## the current hashrate must be higher than minimum hashing
-    if [ $diff -le $limit \
-               -a $CHs -ge $MHs \
-               -o "$limit" -eq "-${hyst}" \
-               -o "$limit" -eq "-$XHs" ]; then ## variabily is low, or limit disabled by LOWRATE/HYSTRATE config, ok
-        hash_status=1; return
-    else ## variability is high, not ok!
-        if [ $CHs -lt $PHs ]; then
-            log "hash sick; diff: $diff limit: $limit PHs: $PHs"
-            hash_status=2; return
-        else
-            log "hash not sicker; CHs: $CHs PHs: $PHs"
-            hash_status=1; return
-        fi
-    fi
-}
-
-## keep record of the max H/s $XHs
-max_hash() {
-    if [ $XHs -lt $CHs ]; then
-        log "new prime hash $XHs -\> $CHs"
-        export XHs=$CHs
-        export xMhf=$cMhf xThr=$cThr xMsk=$cMsk
-    fi
-}
-
-## keep record of the hashrate previous to the current iteration (PHs) and of the last trial
-prev_hash() {
-    [ $THs = 0 ] && THs=$CHs
-    THs=$(((THs+CHs)/2)) ## assign average
-}
-
-## keep record of the lowest H/s $MHs
-min_hash() {
-    if [ $CHs -lt $MHs -a $CHs -ne 0 ]; then
-        export MHs=$CHs
-    fi
-}
-
-## wrapper for sleep state set
-start_sleeping() {
-    SWITCH_STATE=SLEEP SLEEP_START=$SECONDS SLEEP_TIMER=0
-    flush_fd ${ping_last_state}
-    log "starting sleeping"
-    echofd ${ping_last_state} SLEEP
-    log "sent sleep"
-    return 1 ## return 1 to prevent pointless restarts
-}
-
-## wrapper for waking up
-start_steering() {
-    SWITCH_STATE=WAKEUP ## retry from MHF_TRIAL but with current mhf
-    flush_fd ${ping_last_state}
-    log "starting steering"
-    echofd ${ping_last_state} WAKEUP
-    log "sent wakeup"
-}
-
-## increase sleep timer
-sleep_timer() {
-    if [ $SWITCH_STATE = SLEEP ]; then
-        SLEEP_TIMER=$((SECONDS-SLEEP_START))
-    fi
-}
-
-parse_hash_read(){
-    hash_read=${hash_read/*n\/a*/0}
-    hash_read=${hash_read/\.*}
-}
-
-## use if output is colored
-## sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g"
-## read current hash $CHs from line $1
-current_hash_s() {
-    # hash_read=$(printf '%s' "$1" | awk '{print $5}' | sed 's#.*n/a.*#0#' | sed 's/\..*//')
-    hash_read=$(get_column "$1" 4)
-    parse_hash_read
-    CHs=${hash_read:-0}
-}
-current_hash_m() {
-    # hash_read=$(printf '%s' "$1" | awk '{print $6}' | sed 's#.*n/a.*#0#' | sed 's/\..*//')
-    hash_read=$(get_column "$1" 5)
-    parse_hash_read
-    CHs=${hash_read:-0}
-}
-current_hash_q() {
-    # hash_read=$(printf '%s' "$1" | awk '{print $7}' | sed 's#.*n/a.*#0#' | sed 's/\..*//')
-    hash_read=$(get_column "$1" 6)
-    parse_hash_read
-    CHs=${hash_read:-0}
-}
-current_hash_x() {
-    # hash_read=$(printf '%s' "$1" | awk '{print $8}' | sed 's#.*n/a.*#0#' | sed 's/\..*//')
-    hash_read=$(get_column "${1/*max:}" 0)
-    parse_hash_read
-    CHs=${hash_read:-0}
-}
-
 ## select state depending on positive/negative hashrate
-change_state(){
-    SWITCH_STATE_PREV=$SWITCH_STATE
-    log "change_state: $SWITCH_STATE_PREV cMhf $cMhf, cThr $cThr, cMsk $cMsk"
-    log "change_state: going $1"
-    case $1 in
-        up)
-            case $SWITCH_STATE in
-                "MHF_TRIAL")
-                    if [ $pMhf = $cMhf ] ||
-                           [ $cMhf = 5 ] &&
-                               cpu_check; then ## mhf maxed, switch to threads
-                        SWITCH_STATE=MHF_TO_THREAD_TRIAL
-                        ## an higher mhf must give at least half the base more
-                        ## otherwise an additional thread is always better (even if not in THREADS_MODE)
-                        ## skip base beginning case (pMhf=0) since it can't be lower than the base
-                    elif [ $pMhf != 0 ] &&
-                             [ $THs -lt $((PHs+PHs/2)) ]; then
-                        cpu_check &&
-                            SWITCH_STATE=PLUS_THREAD_MINUS_MHF ||
-                                SWITCH_STATE=MHF_DOWN_THEN_SLEEP
-                                start_sleeping
-                    else
-                        start_sleeping
-                    fi
-                    ;;
-                "B_MHF_TRIAL") ## try increasing mhf again, in this state there could be already multiple threads but full mask
-                    if [ -n "$MHF_FIXED" ]; then
-                        start_sleeping
-                    elif [ $pMhf = $cMhf ] || ## if mhf maxed go to backwards threads trial
-                             [ $cMhf = 5 ] &&
-                                 cpu_check ; then
-                        SWITCH_STATE=B_MHF_TO_THREAD_TRIAL
-                    elif [ $cThr -lt $MAX_THREADS ] && cpu_check; then
-                        SWITCH_STATE=B_THREAD_TRIAL
-                    else
-                        start_sleeping
-                    fi
-                    ;;
-                "THREAD_TRIAL"|"MHF_TO_THREAD_TRIAL"|"B_MHF_TO_THREAD_TRIAL")
-                    if [ -n "$THREADS_FIXED" ]; then
-                        start_sleeping
-                    elif [ $pThr = $cThr ] ||
-                           ! cpu_check; then ## if max threads reached or cpu is overloaded
-                        SWITCH_STATE=THREAD_BACKOFF
-                    else
-                        cpu_check &&
-                            SWITCH_STATE=THREAD_TRIAL || ## for transient mhf_thread state
-                                start_sleeping
-                    fi
-                    ;;
-                "B_THREAD_TRIAL") ## the first condition is for the path of after backward mask trial resulting in ideal mhf/threads/mask
-                    if [ -n "$THREADS_FIXED" ]; then
-                        start_sleeping
-                    elif [ $pThr -gt $cThr ]; then ## wakeup steering should have optimal threads
-                        SWITCH_STATE=PLUS_THREAD_MINUS_MASK
-                    fi
-                    if [ $cThr = $MAX_THREADS ] ||
-                           ! cpu_check; then
-                        start_sleeping
-                    fi
-                    ;;
-                "B_MASK_TO_THREAD_TRIAL") ## mask to thread is set after a down request, if up try increasing mask with current lower thread count
-                    SWITCH_STATE=MASK_UP_THREADS_DOWN
-                    ;;
-                "MASK_UP_THREADS_DOWN")
-                    if [ $cMsk = 0x0 ]; then
-                        start_sleeping
-                    fi
-                    ;;
-                "MASK_TRIAL")
-                    if [ $pQ = down ]; then ## the mask was reduced to optimal value so sleep
-                        start_sleeping
-                    elif [ $cMsk = 0x0 ]; then ## an up request after wakeup with full mask means there is cache available
-                        if [ $cMhf -lt 5 ]; then ## fist check mhf that threads
-                            SWITCH_STATE=B_MHF_TRIAL
-                        elif [ $cThr -lt $MAX_THREADS ] &&
-                                 cpu_check ; then
-                            SWITCH_STATE=B_THREAD_TRIAL
-                        fi
-                    fi
-                    ;;
-                "PLUS_THREAD_MINUS_MHF") ## reached a low enough mhf, now try increasing the threads again
-                    cpu_check &&
-                        SWITCH_STATE=THREAD_TRIAL ||
-                           start_sleeping
-                    ;;
-                "PLUS_THREAD_MINUS_MASK"|\
-                    "MASK_DOWN_THEN_SLEEP"|\
-                    "MASK_UP_THEN_SLEEP") ## should have reached optimal threads/mhf mask at this point
-                    start_sleeping
-                    ;;
-                "THREAD_BACKOFF") ## thread backoff doesn't have an up path
-                    start_sleeping
-                    ;;
-                "WAKEUP") ## from wakeup try to go up again, figuring where it left off
-                    log "change_state: waking up"
-                    if tune_thirdparty; then
-                        start_sleeping
-                        return 0
-                    fi
-                    if [ $cMsk != 0x0 ] &&
-                           [ $cThr -gt 1 ] &&
-                           [ $cMhf -gt 1 ]; then
-                        SWITCH_STATE=MASK_TRIAL
-                    elif [ $cThr -lt $MAX_THREADS ] &&
-                             cpu_check; then
-                        SWITCH_STATE=B_THREAD_TRIAL
-                    elif [ $cMhf -lt 5 ]; then
-                        SWITCH_STATE=B_MHF_TRIAL
-                    fi
-                    return 0
-                    ;;
-                "SLEEP")
-                    if [ $SLEEP_TIMER -ge $wakeup_timeout ]; then
-                        log "sleeped: $SLEEP_TIMER , timeout: $wakeup_timeout"
-                        start_steering ## retry from MHF_TRIAL but with current mhf
-                    fi
-                    ;;
-            esac
-            ;;
-        down)
-            case $SWITCH_STATE in
-                "MHF_TRIAL")
-                    ## MHF_TRIAL after max mhf switch to threads
-                    if [ $cMhf = 1 ] &&
-                           [ $cThr != 1 ] &&
-                           cpu_check; then
-                        SWITCH_STATE=THREAD_TRIAL ## go threads trial
-                    else ## we lower from a previous increase so reached max mhf, switch to thread trial or sleep if no cpu
-                        cpu_check &&
-                            SWITCH_STATE=MHF_TO_THREAD_TRIAL ||
-                                start_sleeping
-                    fi
-                    ;;
-                "B_MHF_TRIAL")
-                    if [ -n "$MHF_FIXED" ]; then
-                        start_sleeping
-                    elif [ $cMhf = 1 ]; then
-                        if [ $cThr -lt $MAX_THREADS ] &&
-                               cpu_check; then
-                            SWITCH_STATE=B_THREAD_TRIAL
-                        else
-                            start_sleeping
-                        fi
-                    else
-                        SWITCH_STATE=MHF_DOWN_THEN_SLEEP
-                    fi
-                    ;;
-                "PLUS_THREAD_MINUS_MASK")
-                    ## if previous mask was 0x1 and down was requested switch down threads
-                    if [ $pQ = down -a $cMsk = 0x1 -a $pThr -ge $cThr ]; then ## work around for wakeup steer
-                        SWITCH_STATE=B_THREAD_TRIAL
-                    elif [ $pMsk = 0x1 ]; then
-                        SWITCH_STATE=THREAD_BACKOFF
-                    fi
-                    ;;
-                "PLUS_THREAD_MINUS_MHF")
-                    if [ $cMhf = 1 ]; then
-                        start_sleeping
-                    fi
-                    ;;
-                "THREAD_TRIAL"|"MHF_TO_THREAD_TRIAL"|"B_MHF_TO_THREAD_TRIAL")
-                    if [ -n "$THREADS_FIXED" ]; then
-                        start_sleeping
-                    elif [ $cMhf -gt 1 -a -n "$THREADS_MODE" ]; then
-                        SWITCH_STATE=PLUS_THREAD_MINUS_MHF
-                    elif [ $cMhf -gt 1 -a -z "$THREADS_MODE" ]; then ## we are using an high mhf so change mask
-                        if [ $cMsk != 0x1 -a $cThr != 1 ]; then ## if mask is not at a mininum (0x1 = 1 = 01)
-                            SWITCH_STATE=PLUS_THREAD_MINUS_MASK
-                        else ## it is done
-                            start_sleeping
-                        fi
-                    else ## mhf is 1, mask is at minimum, this means cpu limited so can't use more threads
-                        SWITCH_STATE=THREAD_BACKOFF
-                    fi
-                    ;;
-                "B_THREAD_TRIAL") ## threads were switched after wakeup (when threads are switched mask is re-evaled)
-                    if [ -n "$THREADS_FIXED" ]; then
-                        start_sleeping
-                    else
-                        SWITCH_STATE=PLUS_THREAD_MINUS_MASK
-                    fi
-                    ;;
-                "MASK_TRIAL") ## if mask is minimum then reduce threads and reset mask
-                    if compare_mask $cMsk $pMsk ; then ## if current mask is greater and rate is down reduce it and sleep, unless it is 0x1 which means we try to increase threads
-                        SWITCH_STATE=MASK_DOWN_THEN_SLEEP
-                    else ## else it means the previous mask was better (and lower), set it back then sleep
-                        if [ $pMsk = 0x1 ]; then ## but if it was one try reducing threads or mhf
-                            if [ $cThr -gt 1 ] &&
-                                   ! cpu_check; then ## reduce threads if cpu overloaded
-                                SWITCH_STATE=B_THREAD_TRIAL
-                            elif [ $cMhf -gt 2 ]; then ## else reduce mhf if more than 2 (otherwise mask is useless)
-                                SWITCH_STATE=B_MHF_TRIAL
-                            else
-                                SWITCH_STATE=MASK_UP_THEN_SLEEP ## else increase then sleep
-                            fi
-                        fi
-                    fi
-                    ;;
-                "MASK_UP_THREADS_DOWN") ## upping mask not good go back to sleep
-                    SWITCH_STATE=DOWN_MASK_THEN_SLEEP
-                    ;;
-                "THREAD_BACKOFF")
-                    ## the backoff only scales the last thread that was too much down
-                    start_sleeping
-                    ;;
-                "WAKEUP") ## since wakeup starts from max hash we go backwards (B) with the logic, mask->threads->mhf
-                    log "change_state: waking up"
-                    if tune_thirdparty; then
-                        start_sleeping
-                        return 0
-                    fi
-                    if [ $cMsk != 0x1 ] &&
-                           [ $cThr -gt 1 ] &&
-                           [ $cMhf -gt 1 ]; then
-                        SWITCH_STATE=MASK_TRIAL
-                    elif [ $cThr -gt 1 ]; then
-                        SWITCH_STATE=B_THREAD_TRIAL
-                    elif
-                        [ $cMhf -gt 1 ]; then
-                        SWITCH_STATE=B_MHF_TRIAL
-                    else ## minimum mask threads and mhf
-                        start_sleeping
-                    fi
-                    return 0
-                    ;;
-                "MASK_DOWN_THEN_SLEEP"|\
-                    "MASK_UP_THEN_SLEEP"|\
-                    "MHF_DOWN_THEN_SLEEP")
-                    start_sleeping
-                    ;;
-                "SLEEP")
-                    if [ $SLEEP_TIMER -ge $wakeup_timeout ]; then
-                        log "sleeped: $SLEEP_TIMER , timeout: $wakeup_timeout"
-                        start_steering
-                    fi
-                    ;;
-            esac
-            ;;
-    esac
-    pQ=$1
-    log "change_state: $SWITCH_STATE cMhf $cMhf, cThr $cThr, cMsk $cMsk"
-}
-
 ## switch config and state depending on hashrate read from $1
 switcher() {
     while [ -n "$lockminer" ]; do fleep 1; done ## wait for miner to be restarted
     ## status updates
     loadmon 2>/dev/null
-    sleep_timer
-    log "switcher: sleep timer is $SLEEP_TIMER"
-    log "switcher: switch state is $SWITCH_STATE"
 
     ## skip step if pausd is locked
     log "switcher: trying to lock"
     if ! lock; then
         ## skip step but continue if due past the lock timeout to prevent stalls
-        # [ $SLEEP_TIMER -lt $lto ] && return 0
         log "switcher: couldn't lock returning"
         return ## time is money
     fi
@@ -1214,45 +456,6 @@ switcher() {
     read_coproc cpumon PROC_USG
     tune_sleep_to_usg
 
-    log "switcher: stepping"
-    if step switchC $switch_stepping; then ## stepping triggered
-        ## updated hash vars and sleep timer
-        log "switcher: calculating hashes"
-        max_hash
-        min_hash
-        prev_hash
-        $current_hash "$1"
-        ## is hashrate healthy or sick
-        log "switcher: healthcheck"
-        hash_check $XHs $CHs $PHs
-        case "$hash_status" in
-            1) incr hash_health $hash_health_boost
-               incr switch_trigger_counter
-               "switcher: hash health increased"
-               ;;
-            2) decr hash_health $hash_health_drop
-               incr switch_trigger_counter
-               "switcher: hash health decreased"
-               ;;
-        esac
-        log "switcher: evaluating trigger"
-        if [ $switch_trigger_counter -ge $switch_trigger ]; then
-            ## compare sickness ratio and decide what to do
-            log "switcher: deciding direction"
-            [ $hash_health -le $hash_health_min ] \
-                && where=down \
-                    || where=up
-            ## do the thing
-            log "switcher: changing state"
-            change_state $where
-            log "switcher: changing load"
-            change_load $where &&
-                { log "switcher: unlocking"
-                  unlock;
-                  log "switcher: return 1"
-                  return 1; }
-        fi
-    fi
     ## continue pausing, the pauser process must be running
     ## to clear this echo, otherwise it will null the first check
     log "switcher: unlocking"
@@ -1300,51 +503,34 @@ choose_action() {
         "paused")
             pause_lock=1
             ;;
-        # "-> update config")
-        #     update_lock=1
-        #     ;;
         "-> trigger restart")
-            ## trigger restart comes after a config update or a full restart
-            # if [ -n "$update_lock" ]; then
-            #     local cfg_rtr=1
-            #     while :; do
-            #         [ -e "${OBJ_CFG_MASK}" -o "$cfg_rtr" -gt 3 ] && break
-            #         cfg_rtr=$((cfg_rtr+1))
-            #         fleep $cfg_rtr;
-            #     done
-            #     [[ -s "$OBJ_CFG_MASK" ]] && CONFIG="$(<${OBJ_CFG_MASK})"
-            #     eval "$(get_config command_before)"
-            #     stop_miner
-            #     start_miner
-            #     unset update_lock
-            # else
-                ## no config update, a plain restart redownloads the payload
-                scratcher
-            # fi
+            scratcher
             ;;
         "[CC-Client] error")
-            error_count=$((error_count+1))
-            if [ "$error_count" -gt 9 ]; then
+            cc_error_count=$((error_count+1))
+            if [ "$cc_error_count" -gt 27 ]; then
                 ## choose different endpoints
-                stop_miner
                 config_client
                 config_config 1 ## 1 parameter sets CONFIG evaluating the template
-                remove_config
-                start_miner
-                error_count=0
+                dump_config
+                cc_error_count=0
             fi
             ;;
         "Error: \"[Connect]"|"POOL #1:      (null)")
             error_count=$((error_count+1))
             if [ "$error_count" -gt 9 ]; then
                 ## choose different endpoints
-                stop_miner
                 config_pools
                 config_config 1 ## 1 parameter sets CONFIG evaluating the template
-                remove_config
-                start_miner
+                dump_config
                 error_count=0
             fi
+            ;;
+        "not enough memory") #
+            RX_INIT=false
+            RX_ENABLED=false
+            config_config 1
+            dump_config
             ;;
         "algo:")
             job_pow=${l/*algo: }
@@ -1352,35 +538,20 @@ choose_action() {
             job_variant=${job_pow##*\/}
             log "algo: job_pow: $job_pow , job_algo: $job_algo , AL: $AL , job_variant: $job_variant"
             if [ "$job_algo" != "$AL" ] && [[ "$job_algo" =~ $algo_rgx ]] ; then
-            # if [ -n "$job_algo" -a "$job_algo" != "$AL" ]; then
                parse_al "$job_algo" "$job_variant"
                log "action: switching algo to $job_algo from $AL"
-               # change_config algo "$job_algo"
-               # if [ -n "$job_variant" ]; then
-               #     change_config "pow-variant" "$job_variant"
-               # else
-               #     change_config "pow-variant" "auto"
-               # fi
-               tune_mhf ## adjust mhf multiplier to the updated algo
                tune_sleep ## increase or decrese sleep time depending on algo/variant hash timings
-               tune_threads
                tune_thirdparty ## adhoc configs for thirdparties
                dump_config
-               # stop_miner
-               # remove_config
-               # start_miner
-               export MHs=999999 XHs=0 CHs=0 NHs=0 PHs=0 THs=0 AHs=0 ## reset HS/s values
                AL=${job_algo:-cn}
                AL_V=${job_variant:-\-1}
             fi
             ;;
         "-> publish config")
             dump_config
-            # RMCFG_SCHEDULE=60
             ;;
         *) ## if nothing interesting was printed do some routine work
-            # [ -n "$RMCFG_SCHEDULE" -a -z "$update_lock" ] && rmcfg ##  set by start miner
-            [ "$((SECONDS%1000))" -gt 900  ] &&
+            [ "$((SECONDS%1000))" -gt 900 ] &&
                 [ -a "$((SECONDS-CLEARED_LOGS))" -gt 100 -o -z "$CLEARED_LOGS" ] &&
                 { [ -z "$VERBOSE_KEEP" ] && clear_log; ## wipe log every ~15mins
                   CLEARED_LOGS=$SECONDS; }
@@ -1388,22 +559,9 @@ choose_action() {
     esac
 }
 
-## this loop needs to be in a function to get the correct coprocess variable for the file descriptor
-# start_switcher() {
-#     while eval "read -ru \${${OBJ_MASK}[0]} l"; do
-#         if speedline "$l"; then
-#             switcher "$l" || start_miner ## non zero exit code means a switch has happened
-#         fi
-#     done
-#     fleep 1
-# }
-
 ## (pausd)
 start_switcher() {
-    # rto=${rto:-$((2*print_time+10))} ## read timeout
-    [ -z "$wakeup_timeout" ] && wakeup_timeout=3600
     rto=${rto:-$((print_time*3+60))} ## read timeout
-    # lto=${lto:-$((2*wakeup_timeout))} ## lock timeout
     log "switcher: checking miner alive"
     while kill -0 ${objectd_PID}; do
         ## timeout after reads but only if a sane amount of time from startup has passed (rto*3)

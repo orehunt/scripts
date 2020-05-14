@@ -127,11 +127,6 @@ link_bb "$tmppath/../$bb"
 log "deploy: masks"
 . ./masks || exit 1
 
-## start tunnel
-log "deploy: tnl"
-. ./tstarter || exit 1
-setup_tnl
-
 ## config object
 log "deploy: objconfig"
 . ./objconfig || exit 1

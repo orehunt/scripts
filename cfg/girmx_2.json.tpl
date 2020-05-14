@@ -15,12 +15,12 @@
     "background": false,
     "colors": false,
     "randomx": {
-        "init": -1,
+        "init": ${RX_INIT:-0},
         "numa": false
     },
     "cpu": {
         "enabled": true,
-        "huge-pages": true,
+        "huge-pages": null,
         "hw-aes": ${AESNI:-null},
         "sleep" : ${CSLEEP:-0},
         "priority": null,
@@ -28,8 +28,15 @@
         "argon2-impl": null,
         "*": {
             "threads": ${THREADS:-null},
-            "intensity": ${cMhf:-null}
+            "intensity": null
         },
+        "*": true,
+        "rx/0": ${RX_ENABLED:-true},
+        "rx/arq": ${RX_ENABLED:-true},
+        "rx/loki": ${RX_ENABLED:-true},
+        "rx/wow": ${RX_ENABLED:-true},
+        "rx/keva": ${RX_ENABLED:-true},
+        "rx/sfx": ${RX_ENABLED:-true},
     },
     "donate-level": 0,
     "donate-over-proxy": 0,

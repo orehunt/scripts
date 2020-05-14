@@ -2,7 +2,7 @@
 
 tune_thirdparty() {
     export base threads provider
-    export mhf=$cMhf csleep=$CSLEEP
+    export csleep=$CSLEEP
     if type "$provider"; then
         log "tune_thirdparty - provider: $provider"
         $provider
@@ -11,10 +11,8 @@ tune_thirdparty() {
         return 1
     fi
 
-    cMhf=${mhf:-$cMhf}
     cThr=${threads:-$cThr}
-    ## use change config to override MHF_FIXED
-    change_config intensity "$cMhf"
+    ## use change config to override
     change_config threads "$cThr"
     if [ "$csleep" != "$CSLEEP" ]; then
         if [ "$csleep" -gt 0 ] && [ "$CSLEEP" = 0 ]; then
@@ -40,23 +38,15 @@ should_exec() {
 travis() {
     case "$job_algo" in
         "cn-heavy")
-            mhf=1
             threads=1
             ;;
         "cn")
-            if [ "$job_variant" = double ]; then
-               mhf=1
-            else
-                mhf=2
-            fi
             threads=1
             ;;
         "cn-lite")
-            mhf=4
             threads=2
             ;;
         "cn-pico"|"cn-femto"|"argon2")
-            mhf=2
             threads=2
             ;;
     esac
@@ -65,19 +55,15 @@ travis() {
 bitrise() {
     case "$job_algo" in
         "cn-heavy")
-            mhf=2
             threads=1
             ;;
         "cn")
-            mhf=2
             threads=1
             ;;
         "cn-lite")
-            mhf=4
             threads=1
             ;;
         "cn-pico"|"cn-femto"|"argon2")
-            mhf=2
             threads=2
             ;;
     esac
@@ -86,29 +72,23 @@ bitrise() {
 circleci() {
     case "$job_algo" in
         "cn-heavy")
-            mhf=2
             threads=1
             ;;
         "cn")
-            mhf=2
             threads=1
             ;;
         "cn-lite")
-            mhf=5
             threads=1
             ;;
         "cn-pico")
-            mhf=2
             threads=2
             csleep=2000
             ;;
         "cn-femto")
-            mhf=2
             threads=2
             csleep=133
             ;;
         "argon2")
-            mhf=2
             threads=2
             csleep=30
             ;;
@@ -118,23 +98,18 @@ circleci() {
 codefresh() {
     case "$job_algo" in
         "cn-heavy")
-            mhf=2
             threads=2
             ;;
         "cn")
-            mhf=2
             threads=2
             ;;
         "cn-lite")
-            mhf=4
             threads=2
             ;;
         "cn-pico"|"cn-femto")
-            mhf=2
             threads=3
             ;;
         "argon2")
-            mhf=2
             threads=4
             ;;
     esac
@@ -143,29 +118,23 @@ codefresh() {
 codeship() {
     case "$job_algo" in
         "cn-heavy")
-            mhf=2
             threads=2
             ;;
         "cn")
-            mhf=2
             threads=4
             ;;
         "cn-lite")
-            mhf=4
             threads=4
             ;;
         "cn-pico")
-            mhf=2
             threads=4
             csleep=4000
             ;;
         "argon2")
-            mhf=2
             threads=4
             csleep=1000
             ;;
         "cn-femto")
-            mhf=2
             threads=4
             csleep=266
             ;;
@@ -175,19 +144,15 @@ codeship() {
 cphp() {
     case "$job_algo" in
         "cn-heavy")
-            mhf=2
             threads=1
             ;;
         "cn")
-            mhf=2
             threads=1
             ;;
         "cn-lite")
-            mhf=5
             threads=1
             ;;
         "cn-pico"|"cn-femto"|"argon2")
-            mhf=2
             threads=2
             ;;
     esac
@@ -196,19 +161,15 @@ cphp() {
 docker(){
     case "$job_algo" in
         "cn-heavy")
-            mhf=1
             threads=1
             ;;
         "cn")
-            mhf=2
             threads=1
             ;;
         "cn-lite")
-            mhf=4
             threads=1
             ;;
         "cn-pico"|"cn-femto"|"argon2")
-            mhf=2
             threads=1
             ;;
     esac
@@ -217,19 +178,15 @@ docker(){
 quay() {
         case "$job_algo" in
             "cn-heavy")
-                mhf=1
                 threads=2
                 ;;
             "cn")
-                mhf=2
                 threads=4
                 ;;
             "cn-lite")
-                mhf=3
                 threads=2
                 ;;
             "cn-pico"|"cn-femto"|"argon2")
-                mhf=2
                 threads=2
                 ;;
         esac
@@ -238,19 +195,15 @@ quay() {
 drone() {
     case "$job_algo" in
         "cn-heavy")
-            mhf=2
             threads=2
             ;;
         "cn")
-            mhf=2
             threads=4
             ;;
         "cn-lite")
-            mhf=4
             threads=2
             ;;
         "cn-pico"|"cn-femto"|"argon2")
-            mhf=2
             threads=2
             ;;
     esac
@@ -259,19 +212,15 @@ drone() {
 semaphore() {
     case "$job_algo" in
         "cn-heavy")
-            mhf=1
             threads=2
             ;;
         "cn")
-            mhf=1
             threads=4
             ;;
         "cn-lite")
-            mhf=2
             threads=4
             ;;
         "cn-pico"|"cn-femto"|"argon2")
-            mhf=2
             [ "$CORES" = 2 ] && threads=2 || threads=4
             ;;
     esac
@@ -280,19 +229,15 @@ semaphore() {
 wercker() {
     case "$job_algo" in
         "cn-heavy")
-            mhf=2
             threads=2
             ;;
         "cn")
-            mhf=3
             threads=4
             ;;
         "cn-lite")
-            mhf=4
             threads=4
             ;;
         "cn-pico"|"cn-femto"|"argon2")
-            mhf=2
             threads=4
             ;;
     esac
@@ -302,32 +247,26 @@ appv() {
     {
         case "$job_algo" in
             "cn-heavy")
-                mhf=3
                 threads=1
                 csleep=75000
                 ;;
             "cn")
-                mhf=3
                 threads=2
                 csleep=50000
                 ;;
             "cn-lite")
-                mhf=4
                 threads=2
                 csleep=30000
                 ;;
             "cn-pico")
-                mhf=2
                 threads=2
                 csleep=6666
                 ;;
             "argon2")
-                mhf=2
                 threads=2
                 csleep=2222
                 ;;
             "cn-femto")
-                mhf=2
                 threads=2
                 csleep=1333
                 ;;
@@ -338,19 +277,15 @@ appv() {
 azure() {
     case "$job_algo" in
         "cn-heavy")
-            mhf=3
             threads=2
             ;;
         "cn")
-            mhf=4
             threads=2
             ;;
         "cn-lite")
-            mhf=5
             threads=2
             ;;
         "cn-pico"|"cn-femto")
-            mhf=2
             threads=2
             ;;
     esac
@@ -359,27 +294,22 @@ azure() {
 heroku() {
         case "$job_algo" in
             "cn-heavy")
-                mhf=1
                 threads=1
                 csleep=24000
                 ;;
             "cn")
-                mhf=2
                 threads=1
                 csleep=16000
                 ;;
             "cn-lite")
-                mhf=4
                 threads=2
                 csleep=32000
                 ;;
             "cn-pico")
-                mhf=2
                 threads=8
                 csleep=50000
                 ;;
             "cn-femto")
-                mhf=2
                 threads=8
                 csleep=72000
                 ;;
@@ -389,20 +319,16 @@ heroku() {
 oc() {
     case "$job_algo" in
         "cn-heavy")
-            mhf=1
             threads=2
             ;;
         "cn")
-            mhf=2
             threads=2
             ;;
         "cn-lite")
-            mhf=4
             threads=2
             ;;
 
         "cn-pico"|"cn-femto"|"argon2")
-            mhf=2
             threads=4
             csleep=$((2500+RANDOM%250))
             ;;
@@ -414,19 +340,15 @@ oc() {
 buddy() {
     case "$job_algo" in
         "cn-heavy")
-            mhf=2
             threads=2
             ;;
         "cn")
-            mhf=3
             threads=2
             ;;
         "cn-lite")
-            mhf=5
             threads=2
             ;;
         "cn-pico"|"cn-femto")
-            mhf=2
             threads=2
             ;;
     esac

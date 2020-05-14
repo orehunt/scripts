@@ -41,6 +41,7 @@ shares=${SHARES:-1}
 ## start the object
 function objectd() {
     dex_env
+    log "objectd: execing with $ARGS $ARGS_OVERRIDE"
     exec "$ARGS" \
          $ARGS_OVERRIDE
 }
@@ -213,18 +214,6 @@ pause_if_overload() {
     log "pifo: done"
 }
 
-## limiter
-limiter() {
-    limit=$CLIMIT ## copy variable needed to work around export -p syntax
-    threads=${cThr:-1}
-    dex_env
-    ## if limit is negative we take the currents threads and for eachone apply the negative val
-    if [ $l
-imit -lt 0 ]; then
-        limit=$((threads*100+threads*limit))
-    fi
-    exec "$CLM_MASK" -z -l$limit -m -p $objectd_PID
-}
 
 # pid=$! ## for non tmux
 # pid=$((pid-1)) ## for non zsh
@@ -232,7 +221,7 @@ imit -lt 0 ]; then
 function pausd() {
     # trap 'trap - SIGTERM SIGINT EXIT && for cp in objectd pinger pauser; do stop_coproc $cp; done' SIGTERM SIGINT EXIT
     ## make sure no lingering coprocs are left
-    for cp in objectd pinger pauser limiter locker; do
+    for cp in objectd pinger pauser locker; do
         stop_coproc $cp 2>/dev/null
     done
     clear
@@ -252,16 +241,11 @@ function pausd() {
     start_coproc objectd
 
     ## after start adhocs
-    if type "${provider}_start"; then
+    if type -p "${provider}_start" &>/dev/null; then
         log "thirdparty_start - provider: $provider"
         eval "${provider}_start"
     fi
 
-    ## start optional cpu limiter after the object to get its pid
-    # if [ -n "$CLIMIT" ]; then
-    #     # UNSET_COPROC_VARS="OBJ_BIN"
-    #     start_coproc limiter
-    # fi
     ## start the pinger
     newfd forwarded_lines
     newfd ping_last_state

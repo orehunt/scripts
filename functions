@@ -57,11 +57,11 @@ timeout() {
         if [ $start -ge $to ]; then
             # log "timeout done killing $wp"
             kill -9 $wp 2>/dev/null
-            wait $wp 2>/dev/null
+            wait -f $wp 2>/dev/null
             return 1
         fi
     done
-    wait $wp 2>/dev/null
+    wait -f $wp 2>/dev/null
     local exc=$?
     log "ended timeout loop"
     return $exc
@@ -462,6 +462,10 @@ read_fd(){
         [ -z "$l" ] && break
         eval "$2=$l"
     done
+    # close if specified
+    if [ "$3" = "-" ]; then
+        eval "exec $1>&-" &>/dev/null
+    fi
 }
 
 ## discard all the lines of a fd $1
@@ -510,14 +514,24 @@ parse_ip ()
     done < cfg/geoip.json
 }
 
+# try to open a connection to host $1 with port $2 and output to $3
+open_connection() {
+    exec {socket}<>/dev/tcp/${1}/${2} 2>/dev/null
+    echo $socket >&${3}
+}
+
 ## check if a tcp connection to $1=$HOST $2=$PORT is successful
 check_connection() {
-    local host=$1 port=$2
+    local host=$1 port=$2 conn_socket=
     [ -z "$host" ] && { echo 'no host provided'; return 1; }
     [ -z "$port" ] && { echo 'no port provided'; return 1; }
-    timeout 3 'exec {socket}<>/dev/tcp/${host}/${port} 2>/dev/null'
-    avl=$?
-    if [ $avl = 0 ]; then
+    newfd conn_socket
+    timeout 3 open_connection $host $port $conn_socket
+    # read the fd of the opened connection from the conn_socket fd and close it
+    read_fd $conn_socket avl -
+    if [ -n "$avl" ]; then
+        # close connection
+        eval "exec ${avl}<&-" &>/dev/null
         return 0 ## connection can be established
     else
         return 1 ## connection can't be established
@@ -540,9 +554,10 @@ get_cores() {
 get_mem(){
     local l
     while read l; do
-        [ "${l/MemFree}" != "$l" ] &&
+        [ "${l/MemAvail}" != "$l" ] &&
             l=${l//[^0-9]} &&
-            FREEMEM=$((l/1000))
+            FREEMEM=$((l/1000)) &&
+            break
     done < /proc/meminfo
 }
 ## store current free swap (MB) in FREESWP
@@ -551,7 +566,8 @@ get_swp(){
     while read l; do
         [ "${l/SwapFree}" != "$l" ] &&
             l=${l//[^0-9]} &&
-            FREESWP=$((l/1000))
+            FREESWP=$((l/1000)) &&
+            break
     done < /proc/meminfo
 }
 

