@@ -206,7 +206,7 @@ get_pid_stats(){
 ## improved from https://rosettacode.org/wiki/Linux_CPU_utilization#UNIX_Shell
 usgmon_prc(){
     local PREV_TOTAL=0 PREV_IDLE=0 c=0
-    export cpu_avg_1 cpu_avg_5 cpu_avg_10
+    export cpu_avg_usg
     while [ $c -lt "${2:-3}" ]; do
         unset CPU
         local CPU
@@ -233,7 +233,7 @@ usgmon_prc(){
         fleep ${1:-1}
         c=$((c+1))
     done
-    cpu_avg_prc_1=$DIFF_USAGE cpu_avg_prc_5=$DIFF_USAGE cpu_avg_prc_10=$DIFF_USAGE
+    cpu_avg_usg=$DIFF_USAGE
 }
 
 # calc an unit of cpu usage with interval $1

@@ -11,6 +11,9 @@
 ## proxy
 export LD_LIBRARY_PATH=pl/lib ## for proxychains lib
 
+export PROC_USG ## stores the latest recorded proc usage of the object
+export MAX_USG=${MAX_LOAD:-$((CORES*100))} MAX_USG_WINDOW=${MAX_USG_WINDOW:-$((CORES*10))}
+
 ## ulimits
 lflags="-c -d -e -f -i -l -m -n -p -q -r -s -t -u -v -x "
 prevIFS=$IFS
@@ -28,103 +31,12 @@ else
     unset ARGS_OVERRIDE
 fi
 
-## tune the load on the host (TODO normalize rate so it is friendlier)
-## rate=100 means half the available time is used (sleep half the time)
-## rate=200 means 2/3 of the available time (sleep 1/3)
-## rate=50 means 1/3 of the avaialble time (sleep 2/3)
-## rate=1000 means 90/100 of the avaialble time (sleep 1/10)
-rate=${RATE:-40}
-
-## number of accepted shares before pause
-shares=${SHARES:-1}
-
 ## start the object
 function objectd() {
     dex_env
     log "objectd: execing with $ARGS $ARGS_OVERRIDE"
     exec "$ARGS" \
          $ARGS_OVERRIDE
-}
-
-## tells pausd when shares are enough
-function pinger() {
-    # clear_env forwarded_lines ping_last_state SWITCH_STATE pause_if_overload loadmon adjust_shares shares
-    accepted=0
-    local ok
-    log "starting pinger loop"
-    while read -ru ${forwarded_lines} string; do
-        ## update state
-        log "pinger: reading switch state"
-        read_fd ${ping_last_state} SWITCH_STATE
-        log "pinger: pausing if overload"
-        pause_if_overload
-        log "pinger: checking accepted string"
-        if [ "$SWITCH_STATE" = SLEEP ] && ## the fd of the state is only supposed to change state between wakeup/sleep
-               [ "${string/accepted}" != "${string}" ]; then
-            accepted=$((accepted + 1))
-            # echo "accepted shares: $accepted, max shares: $shares" >> /tmp/pausd_pinger
-            ## adjust shares
-            # read_fd ${ping_rate} rate ## update rate calculated by pauser
-            log "pinger: monitoring load"
-            loadmon ## update cpu load
-            log "pinger: adjusting shares"
-            adjust_shares
-            if [ $accepted -ge $shares -a -z "$WHO_CARES" ]; then
-                ## message pauser
-                accepted=0
-                log "pinger: sending lock"
-                echo lock
-                log "pinger: reading unlock"
-                read ## wait for the pingback
-                log "pinger: lock was broken"
-            fi
-        else
-            log "pinger: resuming"
-            resume ## if state is not sleep, make sure objectd is resumed
-        fi
-    done
-    log "pinger: done"
-}
-
-## adjust rate based on load
-adjust_rate() {
-    ## skip if not different
-    # [ "$prev_rate" = "$rate" ] && return
-    ## store rate
-    # prev_rate=$rate
-    ## calc the adjustement
-    local adj
-    adj=$((rate/3))
-    [ $adj = 0 ] && adj=$((rate%3))
-
-    if ! $load_check_func; then
-        newrate=$((rate-adj))
-        [ $rate -ge 50 -a $newrate -ge 50 ] && rate=$newrate || rate=50
-    else
-        newrate=$((rate+adj))
-        [ $rate -le 500 -a $newrate -le 500 ] && rate=$newrate || rate=500
-    fi
-    # echo "rate adjusted to $rate" >> /tmp/pausd_rate
-    ## send new rate to pinger
-    # echo $rate >&${ping_rate}
-}
-
-## adjust shares based on load
-adjust_shares() {
-    ## calc the adjustement
-    local adj
-    adj=$((shares/3))
-    [ $adj = 0 ] && adj=$((shares%3))
-
-    ## 1 shares should take average of 5-15s, so max should be well within 5 minutes
-    if ! $load_check_func; then
-        newshares=$((shares-adj))
-        [ $shares -ge 1 -a $newshares -gt 1 ] && shares=$newshares || shares=1
-    else
-        newshares=$((shares+adj))
-        [ $shares -le 30 -a $newshares -lt 30 ] && shares=$newshares || shares=30
-    fi
-    # echo "shares adjusted to $shares" >> /tmp/pausd_shares
 }
 
 ## wrapper for resume command
@@ -142,75 +54,128 @@ waitlock() {
     while ! lock; do
         fleep 5
     done
+
+}
+
+## true if load in 1 5 or 10 minutes (from $1) is lower than $CORES minus the current threads
+load_check() {
+    period=${1:-${cpu_avg_period}}
+    eval "cpu_avg=\${cpu_avg_${period}}"
+    [ $cpu_avg -lt $((CORES-cThr)) ] ## return code should match this statement
+}
+
+load_check_prc() {
+    period=${1:-${cpu_avg_period}}
+    eval "cpu_avg=\${cpu_avg_prc_${period}}"
+    [ $cpu_avg -lt $(((CORES-cThr)*100)) ] ## return code should match this statement
+}
+
+## true if load in 1 5 or 10 minutes (from $1) is lower than $2
+load_check_fixed() {
+    period=${1:-${cpu_avg_period}}
+    eval "cpu_avg=\${cpu_avg_${period}}"
+    [ $cpu_avg -lt $2 ] ## return code should match this statement
+}
+
+load_check_prc_fixed() {
+    period=${1:-${cpu_avg_period}}
+    eval "cpu_avg=\${cpu_avg_prc_${period}}"
+    [ $cpu_avg -lt $2 ] ## return code should match this statement
+}
+
+## true if usage diff is < ${1}% (20%) from current max threads usage
+## if true it means the process has enough resources available, otherwise the number of threads
+## should be lowered
+usg_check() {
+    [ $PROC_USG -gt $((cThr*100-${1:-20})) ]
+}
+
+## true if total host cpu usage is < $1 (1-100)
+## usage calculate average in the last three seconds each second
+host_usg_check() {
+    usgmon_prc 1 3
+    [ $cpu_avg_prc_1 -lt ${1:-100} ]
+}
+
+cpu_check() {
+    usg_check && load_check $1
+}
+
+
+
+tune_sleep_to_usg(){
+    PREV_SLEEP=$CSLEEP
+    [ -n "$NO_SLEEP_TUNE" ] && return
+    log "balancer: MAX_USG: $MAX_USG, PROC_USG: $PROC_USG"
+    USG_WINDOW=$((MAX_USG-PROC_USG))
+    log "balancer: tuning sleep USG_WINDOW : $USG_WINDOW"
+    if [ $((USG_WINDOW-MAX_USG_WINDOW)) -gt 5 ] &&
+           # tune to sleep to target a 300s work window
+           [ $OVERLOAD_DURATION -gt 300 ]; then
+        CSLEEP=$((CSLEEP-CSLEEP/8))
+    else
+        CSLEEP=$((CSLEEP/4+CSLEEP))
+    fi
+    log "balancer: prevsleep, CSLEEP : $PREV_SLEEP , $CSLEEP"
+    if [ $PREV_SLEEP != $CSLEEP ]; then
+        log "switcher: changing sleep to $CSLEEP"
+        change_config sleep $CSLEEP
+        dump_config
+    fi
 }
 
 ## pauser
-pauser() {
-    log "starting pauser loop"
+balancer() {
+    log "starting balancer loop"
+    LAST_OVERLOAD=$SECONDS
     while kill -0 $objectd_PID; do ## while the object is running
         log "looping pauser"
         pause_if_overload
-        ## read from log file
-        start=$SECONDS
-        resume ## resume the object
 
-        log "pauser: waiting for pinger lock"
-        read -ru ${pinger[0]} lock ## wait for a lock from the pinger
-        stop=$SECONDS
-        echofd ${pinger[1]} ok
-        log "pauser: received pinger lock, pausing"
+        log "pauser: received balancer lock, pausing"
         ## lock the pausd lock to prevent switcher from switching
-        waitlock
 
-        ## pause the object
-        pause
-
-        ## wait the specified amount, adjust rate for load
-        # read_fd ${paus_proc_usg} PROC_USG ## proc usg
-        ## skew proc_usg to match pausd_rate (if rate is 100->pausing half the time->real usg is 2x)
-        # PROC_USG=$(((PROC_USG*2*rate/200)*2))
         loadmon ## update cpu load
-        adjust_rate
-        wait=$(( (stop - start) * 100 / rate ))
-        # echo "wait: $wait, rate: $rate" >> /tmp/pausd_pauser
-        fleep $wait
-        unlock
+        log "reading coproc cpumon ${cpumon_PID}"
+        read_coproc cpumon PROC_USG
+        tune_sleep_to_usg
+
+        pause_if_overload
+        fleep 5
     done
     unlock ## unlock in case something is wrong to prevent stalls
     fleep 10 ## sleep to prevent wait_coproc to loop indefinitely
     log "error: pauser stopped because objectd is not running..."
 }
 
+overload(){
+    usgmon_prc 1 5
+    loadmon_prc
+    log "cpu_avg_prc_1: $cpu_avg_prc_1, cpu_avg_usg: $cpu_avg_usg"
+    [ $cpu_avg_prc_1 -ge $MAX_LOAD ] ||
+        [ $cpu_avg_usg -ge $MAX_USG ]
+}
 ## pause if overloaded, MAX_LOAD should be in CORES*100
 pause_if_overload() {
     local pausetime
-    if [ -n "$MAX_LOAD" ]; then
-        if [ -n "$MAX_USG" ]; then
-            log "pifo: usgmon"
-            usgmon_prc 1 5
-        else
-            log "pifo: loadmon"
-            loadmon_prc
-        fi
-        if [ $cpu_avg_prc_1 -ge $MAX_LOAD ]; then ## greater or equal in case maxed
-            log "pifo: waitlock and pause"
-            waitlock ; pause
-            pausetime=$SECONDS
-            log "pifo: sleeping until within load"
-            while [ $cpu_avg_prc_1 -ge $MAX_LOAD ]; do
-                ## resume every MIN_SHARES_TIME to submit at least 1 share
-                [ $((SECONDS-pausetime)) -gt ${MIN_SHARES_TIME:-60} ] && break
-                log "pifo: loadmon within sleep"
-                loadmon_prc
-                log "pifo: sleep"
-                fleep 1
-            done
-            log "pifo: resume"
-            resume
-            log "pifo: unlock"
-            unlock
-        fi
+    if overload; then ## greater or equal in case maxed
+        OVERLOAD_DURATION=$((SECONDS-LAST_OVERLOAD))
+        LAST_OVERLOAD=$SECONDS
+        log "pifo: waitlock and pause"
+        waitlock ; pause
+        pausetime=$SECONDS
+        log "pifo: sleeping until within load"
+        while overload; do
+            log "pifo: loadmon within slep"
+            log "pifo: sleep"
+            fleep 1
+        done
+        log "pifo: resume"
+        resume
+        log "pifo: unlock"
+        unlock
     fi
+    resume
     log "pifo: done"
 }
 
@@ -219,23 +184,14 @@ pause_if_overload() {
 # pid=$((pid-1)) ## for non zsh
 # [ -z "$pid" ] && echo "process not started" && exit 1
 function pausd() {
-    # trap 'trap - SIGTERM SIGINT EXIT && for cp in objectd pinger pauser; do stop_coproc $cp; done' SIGTERM SIGINT EXIT
+    # trap 'trap - SIGTERM SIGINT EXIT && for cp in objectd balancer pauser; do stop_coproc $cp; done' SIGTERM SIGINT EXIT
     ## make sure no lingering coprocs are left
-    for cp in objectd pinger pauser locker; do
+    for cp in objectd balancer pauser locker; do
         stop_coproc $cp 2>/dev/null
     done
     clear
     clear_fds $ping $ping_last_state $ping_proc_usg $forwarded_lines 2>/dev/null ## clear file descriptors, exclude...
 
-    if [ -n "$MAX_LOAD" ]; then ## functions defined in switcher
-        if [ -n "$MAX_USG" ]; then
-            load_check_func="host_usg_check $MAX_LOAD"
-        else
-                load_check_func="load_check_prc_fixed 1 $MAX_LOAD" ## maybe use 5 minutes? to vary the rates a little
-        fi
-    else
-        load_check_func="load_check 1"
-    fi
     # set -x
     ## start the object
     start_coproc objectd
@@ -246,20 +202,15 @@ function pausd() {
         eval "${provider}_start"
     fi
 
-    ## start the pinger
-    newfd forwarded_lines
-    newfd ping_last_state
     ## the locker prevents pausing during switching
     # UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
     start_coproc locker
-    # newfd ping_proc_usg
-    # newfd ping_rate
+    ## cpumon
     # UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
-    start_coproc pinger
-    ## start pausing
-    # newfd paus_proc_usg
+    log 'miner: starting cpumon'
+    start_coproc cpumon ${objectd_PID} ${cpumon_span} ${cpumon_ival} 2>/dev/null
     # UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
-    start_coproc pauser
+    start_coproc balancer
     # exit 1
 }
 

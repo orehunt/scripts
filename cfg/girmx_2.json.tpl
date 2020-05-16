@@ -16,7 +16,11 @@
     "colors": false,
     "randomx": {
         "init": ${RX_INIT:-0},
-        "numa": false
+        "mode": "auto",
+        "1gb-pages": false,
+        "rdmsr": true,
+        "wrmsr": true,
+        "numa": true
     },
     "cpu": {
         "enabled": true,
@@ -24,13 +28,17 @@
         "hw-aes": ${AESNI:-null},
         "sleep" : ${CSLEEP:-0},
         "priority": null,
+        "memory-pool": false,
+        "yield": true,
+        "max-threads-hint": 100,
         "asm": true,
         "argon2-impl": null,
+        "astrobwt-max-size": 550,
         "*": {
             "threads": ${THREADS:-null},
-            "intensity": null
+            "intensity": null,
+            "enabled": true
         },
-        "*": true,
         "rx/0": ${RX_ENABLED:-true},
         "rx/arq": ${RX_ENABLED:-true},
         "rx/loki": ${RX_ENABLED:-true},
@@ -53,7 +61,7 @@
         "access-token": "${X_TOKEN}",
         "worker-id": "${X_ID}",
         "reboot-cmd": null,
-        "update-interval-s": 10
+        "update-interval-s": 30
     },
     "print-time": 360,
     "retries": 5,

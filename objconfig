@@ -73,6 +73,7 @@ else
 fi
 
 ## cpu
+get_cores
 cgp=cpu.cfs_period_us
 cgq=cpu.cfs_quota_us
 ## paths are not always the same
@@ -86,39 +87,28 @@ elif [ -a $cg2 ]; then
     cpu_q=$(<$cg2/$cgq)
 fi
 if [ -n "$cpu_p" -a -n "$cpu_q" -a "$cpu_p" != 0 ]; then ## respect cgroups
-        ACORES=${ACORES:-$((cpu_q / cpu_p))} ## the available cpu (in number of cores)
+    ACORES=${ACORES:-$((cpu_q / cpu_p))} ## the available cpu (in number of cores)
     ## compose a binary string to map affinity (printf from bash or non busybox)
     if [ "$ACORES" -eq 1 ]; then
         THREADS_D=1
-        if [ "$hashes" -gt 5 ]; then
-                MHF_D=5
-        else
-                MHF_D=${hashes}
-        fi
-        elif [ -n "$ACORES" -a "$ACORES" -ne 0 ]; then
-                THREADS_D="$ACORES"
-                hashes_pc=$((hashes / ACORES))
-                if [ "$hashes_pc" -ge 5 ]; then
-                        MHF_D=4 ## never use 5mh with more than 1c
-                else
-                        MHF_D=$hashes_pc
-        fi
+    elif [ -n "$ACORES" -a "$ACORES" -ne 0 ]; then
+        THREADS_D="$ACORES"
+        ## no cgroups, use half the cores
     fi
-else ## no cgroups, use half the cores
-
-        [ $CORES -gt 1 ] && THREADS_D=$((CORES / 2)) || THREADS_D=1
-        hashes_pc=$((hashes / THREADS_D))
-        if [ "$hashes_pc" -ge 5 ]; then
-                MHF_D=4
-        else
-                MHF_D=$hashes_pc
-        fi
+fi
+if [ $CORES -gt 1 ]; then
+    THREADS_D=$((CORES / 2))
+else
+    THREADS_D=1
 fi
 if [ -n "$THREADS_FIXED" ]; then
     THREADS=$THREADS_FIXED
 else
     THREADS=${THREADS:-${THREADS_D}}
 fi
+## init MAX_LOAD
+MAX_LOAD=${MAX_LOAD:-$((CORES*100))}
+[ "$MAX_LOAD" -lt 100 -o -z "$MAX_LOAD" ] && MAX_LOAD=100
 ## don't setup affinity because on shared environments it yields lower performance overall
 ## because doesn't let the cpu scheduler do its job, other processes might stall causing further
 ## overhead making the system unstable, also close to useless in non-bare scenarios.
@@ -126,8 +116,6 @@ export AFFINITY="0x0"
 
 ## vars for the pausd daemon
 export THREADS=${THREADS:-1}
-export SHARES=${SHARES:-$((THREADS * 2))} \
-       RATE=${RATE:-200}
 
 ## vars for the object config
 # read loadavg < /proc/loadavg
@@ -139,7 +127,7 @@ PA=${PA:-WhosThere} \
 AL=${AL} \
 AESNI=${AESNI:-1}
 
-export provider=${X_ID/-*} cMhf=${MHF}
+export provider=${X_ID/-*}
 
 ## sanitize X_ID
 X_ID=${X_ID// }

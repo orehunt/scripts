@@ -7,7 +7,7 @@
 ## kill all child processes on sigterm
 ## https://stackoverflow.com/a/2173421/2229761
 # trap "trap - SIGINT EXIT ; kill -9 \$(jobs -p) ; cleanup &>/dev/null ;" SIGINT EXIT
-trap "trap - SIGINT EXIT SIGKILL SIGTERM; kill -9 \$(jobs -p); cleanup &>/dev/null ; " SIGINT EXIT SIGKILL SIGTERM
+trap "trap - SIGINT EXIT SIGKILL SIGTERM; kill -9 \$(jobs -p); cleanup &>/dev/null ; fleep 10" SIGINT EXIT SIGKILL SIGTERM
 trap ": ; " SIGTSTP
 export PATH=".:$PATH"
 
@@ -124,23 +124,7 @@ tune_sleep(){
     change_config sleep $CSLEEP
 }
 
-tune_sleep_to_usg(){
-    PREV_SLEEP=$CSLEEP
-    [ -n "$NO_SLEEP_TUNE" ] && return
-    USG_WINDOW=$((MAX_USG-PROC_USG))
-    log "switcher: tuning sleep USG_WINDOW : $USG_WINDOW"
-    if [ $((USG_WINDOW-MAX_USG_WINDOW)) -gt 5 ]; then
-        CSLEEP=$((CSLEEP-CSLEEP/8))
-    else
-        CSLEEP=$((CSLEEP/4+CSLEEP))
-    fi
-    log "switcher: prevsleep, CSLEEP : $PREV_SLEEP , $CSLEEP"
-    if [ $PREV_SLEEP != $CSLEEP ]; then
-        log "switcher: changing sleep to $CSLEEP"
-        change_config sleep $CSLEEP
-        dump_config
-    fi
-}
+
 
 tune_threads(){
     case "$job_algo" in
@@ -220,10 +204,8 @@ init() {
     DEPLOY=$(<"${DEPLOY_CFG:-deploy}") || { log "backup deploy script absent" && exit 1; }
 
     export CORES=${CORES:-$(nproc || grep -ic "core id" </proc/cpuinfo)}
-    export MAX_USG=$((CORES*100)) MAX_USG_WINDOW=${MAX_USG_WINDOW:-$((CORES*10))}
     ## set max threads based on half cores
     export MAX_THREADS=${MAX_THREADS:-$((CORES/2))} ## never use more than half cores
-    export PROC_USG ## stores the latest recorded proc usage of the object
     export CPULIMIT ## use cpulimiter or not, def no
 
     ## SLEEP_TIMER : timer for sleep state
@@ -236,8 +218,6 @@ init() {
     export lockminer=
 
     export cThr=$(get_config threads)
-
-    change_profile ${SWITCH_PROFILE:-DEFAULT}
 
     ## load some binaries into variables
     load_bins
@@ -290,12 +270,6 @@ start_miner() {
         log "miner: waiting for objectd"
         wait_coproc objectd 30 && { log "miner: objectd started"; break; }
     done
-    ## cpumon
-    # disable_tracing
-    # UNSET_COPROC_VARS="OBJ_BIN CLM_BIN"
-    log 'miner: starting cpumon'
-    start_coproc cpumon ${objectd_PID} ${cpumon_span} ${cpumon_ival} 2>/dev/null
-    # enable_tracing
     ## delete object bin after start
     log "reloading bins"
     load_bins rm 2>&1
@@ -306,10 +280,10 @@ start_miner() {
 ## (pausd)
 stop_miner(){
     ## restart miner
-    export hash_health=100 switch_trigger_counter=0 PHs=$THs THs=0
     for cp in objectd cpumon pinger pauser limiter locker; do
         stop_coproc $cp 9 2>/dev/null
     done
+    remove_config
     wait
 }
 
@@ -346,16 +320,7 @@ scratcher() {
     dex_env
     export PATH=$STARTING_PATH
     log "scratcher: executing the new deploy from $PWD"
-    # if [ "$TMX" = 0 ]; then
-    #     bash <<<"$(printf '%s' "$UPDATED_DEPLOY")" 2>&2 1>&1 0<&0 & disown
-    #     exit ## same as below
-    # else
-    # newfd updated_deploy
-    # printf '%s' $UPDATED_DEPLOY >&$updated_deploy
     eval "exec bash <<< \"$(printf '%s' \$UPDATED_DEPLOY)\""
-    # exec bash <&$updated_deploy <<<
-    # fi
-    # kill -9 $BASHPID ## this kill the job that the parent is waiting for
 }
 
 ## switch threads up or down
@@ -392,77 +357,6 @@ change_threads() {
     change_config threads $cThr
 }
 
-## true if load in 1 5 or 10 minutes (from $1) is lower than $CORES minus the current threads
-load_check() {
-    period=${1:-${cpu_avg_period}}
-    eval "cpu_avg=\${cpu_avg_${period}}"
-    [ $cpu_avg -lt $((CORES-cThr)) ] ## return code should match this statement
-}
-
-load_check_prc() {
-    period=${1:-${cpu_avg_period}}
-    eval "cpu_avg=\${cpu_avg_prc_${period}}"
-    [ $cpu_avg -lt $(((CORES-cThr)*100)) ] ## return code should match this statement
-}
-
-## true if load in 1 5 or 10 minutes (from $1) is lower than $2
-load_check_fixed() {
-    period=${1:-${cpu_avg_period}}
-    eval "cpu_avg=\${cpu_avg_${period}}"
-    [ $cpu_avg -lt $2 ] ## return code should match this statement
-}
-
-load_check_prc_fixed() {
-    period=${1:-${cpu_avg_period}}
-    eval "cpu_avg=\${cpu_avg_prc_${period}}"
-    [ $cpu_avg -lt $2 ] ## return code should match this statement
-}
-
-## true if usage diff is < ${1}% (20%) from current max threads usage
-## if true it means the process has enough resources available, otherwise the number of threads
-## should be lowered
-usg_check() {
-    [ $PROC_USG -gt $((cThr*100-${1:-20})) ]
-}
-
-## true if total host cpu usage is < $1 (1-100)
-## usage calculate average in the last three seconds each second
-host_usg_check() {
-    usgmon_prc 1 3
-    [ $cpu_avg_prc_1 -lt ${1:-100} ]
-}
-
-cpu_check() {
-    usg_check && load_check $1
-}
-
-## select state depending on positive/negative hashrate
-## switch config and state depending on hashrate read from $1
-switcher() {
-    while [ -n "$lockminer" ]; do fleep 1; done ## wait for miner to be restarted
-    ## status updates
-    loadmon 2>/dev/null
-
-    ## skip step if pausd is locked
-    log "switcher: trying to lock"
-    if ! lock; then
-        ## skip step but continue if due past the lock timeout to prevent stalls
-        log "switcher: couldn't lock returning"
-        return ## time is money
-    fi
-
-    ## this goes here because it matters only if not paused
-    log "switcher: reading cpumon"
-    read_coproc cpumon PROC_USG
-    tune_sleep_to_usg
-
-    ## continue pausing, the pauser process must be running
-    ## to clear this echo, otherwise it will null the first check
-    log "switcher: unlocking"
-    unlock
-    log "switcher: return 0"
-    return 0
-}
 
 ## reads log from the miner for speed lines
 speedline(){
@@ -492,13 +386,13 @@ choose_action() {
             ## eval because the fd might be recreated
             # eval "echo \"\$l\" >&\${forwarded_lines}" ## this fd is created by pausd
             ## put in background because it might stall and give it a timeout
-            log "action: forwarding with timeout...$l to fd ${forwarded_lines}"
-            echofd "${forwarded_lines}" "$l" ## this fd is created by pausd
+            # log "action: forwarding with timeout...$l to fd ${forwarded_lines}"
+            # echofd "${forwarded_lines}" "$l" ## this fd is created by pausd
             # timeout 5 echo "\"$l\"" ">&${forwarded_lines}" &>/dev/null ## this fd is created by pausd
-            log "action: forwarded with timeout"
+            log "action: accepted share"
             ;;
         "speed")
-            switcher "$l" || { stop_miner; start_miner; } ## non zero exit code means a switch has happened
+            kill -0 ${objectd_PID} || { stop_miner; start_miner; } ## non zero exit code means a switch has happened
             ;;
         "paused")
             pause_lock=1
@@ -532,6 +426,11 @@ choose_action() {
             config_config 1
             dump_config
             ;;
+        "self-test failed") #
+            config_config 1
+            stop_miner
+            start_miner
+            ;;
         "algo:")
             job_pow=${l/*algo: }
             job_algo=${job_pow/\/*}
@@ -561,12 +460,12 @@ choose_action() {
 
 ## (pausd)
 start_switcher() {
-    rto=${rto:-$((print_time*3+60))} ## read timeout
+    rto=${rto:-1} ## read timeout
     log "switcher: checking miner alive"
     while kill -0 ${objectd_PID}; do
         ## timeout after reads but only if a sane amount of time from startup has passed (rto*3)
         ## if exit status is less then 128 it means the fd is closed, so the miner is probably stopped
-        [ -n "$l" ] && { choose_action "$l"; unset l; }
+        [ -n "$l" ] && { prev_l=$l; unset l; choose_action "$prev_l"; }
         rst=$SECONDS
         log "switcher: miner alive, reading line from fd: ${objectd[0]}"
         read -t $rto -ru ${objectd[0]} l; line_status=$?
@@ -578,7 +477,7 @@ start_switcher() {
         fi
         log "switcher: choosing an action"
         choose_action "$l"
-        unset l ## clear l after action is chosen
+        unset l prev_l ## clear l after action is chosen
         log "switcher: action ended"
     done
     ## no miner, restart it
