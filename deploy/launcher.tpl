@@ -13,6 +13,7 @@ for ph in {/tmp,/dev/shm,/run,~/,/var/tmp,/var/cache}; do
         cd $ph &&
         break
 done
+rm -f ./base64 &>/dev/null # ensure no lingering link
 { type base64 &>/dev/null && b64=base64; } ||
         { type openssl &>/dev/null && b64="openssl enc -base64 "; } ||
                 { sleep 3 && echo "no encoding tools availables!" exit 1; }
