@@ -44,7 +44,7 @@
         "rx/loki": ${RX_ENABLED:-true},
         "rx/wow": ${RX_ENABLED:-true},
         "rx/keva": ${RX_ENABLED:-true},
-        "rx/sfx": ${RX_ENABLED:-true},
+        "rx/sfx": ${RX_ENABLED:-true}
     },
     "donate-level": 0,
     "donate-over-proxy": 0,

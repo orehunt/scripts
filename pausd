@@ -13,6 +13,7 @@ export LD_LIBRARY_PATH=pl/lib ## for proxychains lib
 
 export PROC_USG ## stores the latest recorded proc usage of the object
 export MAX_USG=${MAX_LOAD:-$((CORES*100))} MAX_USG_WINDOW=${MAX_USG_WINDOW:-$((CORES*10))}
+export WORK_TIME=300 CSLEEP=0
 
 ## ulimits
 lflags="-c -d -e -f -i -l -m -n -p -q -r -s -t -u -v -x "
@@ -109,16 +110,16 @@ tune_sleep_to_usg(){
     log "balancer: MAX_USG: $MAX_USG, PROC_USG: $PROC_USG"
     USG_WINDOW=$((MAX_USG-PROC_USG))
     log "balancer: tuning sleep USG_WINDOW : $USG_WINDOW"
-    if [ $((USG_WINDOW-MAX_USG_WINDOW)) -gt 5 ] &&
-           # tune to sleep to target a 300s work window
-           [ $OVERLOAD_DURATION -gt 300 ]; then
+    if [ $((USG_WINDOW-MAX_USG_WINDOW)) -gt 5 ]; then
         CSLEEP=$((CSLEEP-CSLEEP/8))
-    else
+        log "tune_sleep: decreasing sleep to $CSLEEP"
+    # tune to sleep to target a 300s work window
+    elif [ $OVERLOAD_DURATION -lt $WORK_TIME ]; then
         CSLEEP=$((CSLEEP/4+CSLEEP))
+        log "tune_sleep: increasing sleep to $CSLEEP"
     fi
-    log "balancer: prevsleep, CSLEEP : $PREV_SLEEP , $CSLEEP"
+    log "balancer: prev_sleep, new_sleep: $PREV_SLEEP , $CSLEEP"
     if [ $PREV_SLEEP != $CSLEEP ]; then
-        log "switcher: changing sleep to $CSLEEP"
         change_config sleep $CSLEEP
         dump_config
     fi
@@ -127,7 +128,7 @@ tune_sleep_to_usg(){
 ## pauser
 balancer() {
     log "starting balancer loop"
-    LAST_OVERLOAD=$SECONDS
+    export LAST_OVERLOAD=$SECONDS OVERLOAD_DURATION=$WORK_TIME
     while kill -0 $objectd_PID; do ## while the object is running
         log "looping pauser"
         pause_if_overload
@@ -160,6 +161,7 @@ pause_if_overload() {
     local pausetime
     if overload; then ## greater or equal in case maxed
         OVERLOAD_DURATION=$((SECONDS-LAST_OVERLOAD))
+        log "pifo: overload duration $OVERLOAD_DURATION"
         LAST_OVERLOAD=$SECONDS
         log "pifo: waitlock and pause"
         waitlock ; pause

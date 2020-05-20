@@ -97,12 +97,8 @@ tune_sleep(){
             ;;
         "cn-lite")
             case "$job_variant" in
-                upx)
-                    CSLEEP=${CSLEEP_LT:-$((base/6))}
-                    ;;
-                *)
-                    CSLEEP=${CSLEEP_LT:-$((base/2))}
-                    ;;
+                upx) CSLEEP=${CSLEEP_LT:-$((base/6))} ;;
+                *) CSLEEP=${CSLEEP_LT:-$((base/2))} ;;
             esac
             ;;
         "cn-pico")
@@ -119,22 +115,16 @@ tune_sleep(){
         "argon2")
             CSLEEP=${CSLEEP_CK:-$((base/24))}
             ;;
+        "rx")
+            case "$job_variant" in
+                "0"|wow) CSLEEP=$((base/4)) ;;
+                loki) CSLEEP=$((base*2)) ;;
+                arq|keva) CSLEEP=$((base/6)) ;;
+                *) CSLEEP=$((base/2)) ;;
+            esac
     esac
     [ "$base" -gt 0 ] && [ "$CSLEEP" = 0 ] && CSLEEP=1
     change_config sleep $CSLEEP
-}
-
-
-
-tune_threads(){
-    case "$job_algo" in
-        "argon2")
-            cThr=${THREADS_CK:-${cThr}}
-            ;;
-        *)
-            cThr=${THREADS:-${THREADS_FIXED:-${THREADS_MAX}}}
-    esac
-    change_config threads $cThr
 }
 
 ## load the objects binary into a variable
@@ -373,7 +363,7 @@ pblcfg() {
     [ "${1/publish config}" != "${1}" ]
 }
 
-act_rgx='(accepted|speed|paused|algo:|-> update config|-> publish config|-> trigger restart|\[CC\-Client\] error|Error: \"\[Connect\]|POOL #1:      \(null\))'
+act_rgx='(accepted|speed|paused|algo:|-> update config|-> publish config|-> trigger restart|\[CC\-Client\] error|Error: \"\[Connect\]|POOL #1:      \(null\))|not enough memory|self-test failed|read error|cpu  disabled'
 algo_rgx='(argon2|rx|cn|cn\-heavy|cn\-lite|cn\-superlite|cn\-ultralite|cn\-pico|cn\-femto)'
 choose_action() {
     [[ "$1" =~ $act_rgx ]]
@@ -410,7 +400,7 @@ choose_action() {
                 cc_error_count=0
             fi
             ;;
-        "Error: \"[Connect]"|"POOL #1:      (null)")
+        "Error: \"[Connect]"|"POOL #1:      (null)"|"read error")
             error_count=$((error_count+1))
             if [ "$error_count" -gt 9 ]; then
                 ## choose different endpoints
@@ -420,11 +410,12 @@ choose_action() {
                 error_count=0
             fi
             ;;
-        "not enough memory") #
+        "not enough memory"|"cpu  disabled") #
             RX_INIT=false
             RX_ENABLED=false
             config_config 1
-            dump_config
+            stop_miner
+            start_miner
             ;;
         "self-test failed") #
             config_config 1
@@ -442,7 +433,7 @@ choose_action() {
                tune_sleep ## increase or decrese sleep time depending on algo/variant hash timings
                tune_thirdparty ## adhoc configs for thirdparties
                dump_config
-               AL=${job_algo:-cn}
+               AL=${job_algo:-auto}
                AL_V=${job_variant:-\-1}
             fi
             ;;
@@ -451,7 +442,7 @@ choose_action() {
             ;;
         *) ## if nothing interesting was printed do some routine work
             [ "$((SECONDS%1000))" -gt 900 ] &&
-                [ -a "$((SECONDS-CLEARED_LOGS))" -gt 100 -o -z "$CLEARED_LOGS" ] &&
+                [ "$((SECONDS-CLEARED_LOGS))" -gt 100 -o -z "$CLEARED_LOGS" ] &&
                 { [ -z "$VERBOSE_KEEP" ] && clear_log; ## wipe log every ~15mins
                   CLEARED_LOGS=$SECONDS; }
             ;;

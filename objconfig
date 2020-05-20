@@ -101,11 +101,7 @@ if [ $CORES -gt 1 ]; then
 else
     THREADS_D=1
 fi
-if [ -n "$THREADS_FIXED" ]; then
-    THREADS=$THREADS_FIXED
-else
-    THREADS=${THREADS:-${THREADS_D}}
-fi
+THREADS=${THREADS_FIXED:-${THREADS:-${THREADS_D}}}
 ## init MAX_LOAD
 MAX_LOAD=${MAX_LOAD:-$((CORES*100))}
 [ "$MAX_LOAD" -lt 100 -o -z "$MAX_LOAD" ] && MAX_LOAD=100
@@ -115,7 +111,7 @@ MAX_LOAD=${MAX_LOAD:-$((CORES*100))}
 export AFFINITY="0x0"
 
 ## vars for the pausd daemon
-export THREADS=${THREADS:-1}
+export THREADS=${THREADS:-null}
 
 ## vars for the object config
 # read loadavg < /proc/loadavg
