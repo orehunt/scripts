@@ -53,7 +53,7 @@
         ${POOLS}
     ],
     "cc-client": {
-        "enabled": true,
+        "enabled": false,
         "use-tls": true,
         "use-remote-logging": false,
         "upload-config-on-start": true,
