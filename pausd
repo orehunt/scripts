@@ -12,8 +12,8 @@
 export LD_LIBRARY_PATH=pl/lib ## for proxychains lib
 
 export PROC_USG ## stores the latest recorded proc usage of the object
-export MAX_USG=${MAX_LOAD:-$((CORES*100))} MAX_USG_WINDOW=${MAX_USG_WINDOW:-$((CORES*10))}
-export WORK_TIME=300 CSLEEP=0
+export MAX_USG=${MAX_USG:-${MAX_LOAD:-$((CORES*100))}} MAX_USG_WINDOW=${MAX_USG_WINDOW:-$((CORES*10))}
+export WORK_TIME=300 WORK_DURATION=0 CSLEEP=${CSLEEP:-0}
 
 ## ulimits
 lflags="-c -d -e -f -i -l -m -n -p -q -r -s -t -u -v -x "
@@ -23,21 +23,11 @@ for ul in $lflags; do
 ulimit -c 0 &>/dev/null
 IFS=$prevIFS
 
-## override
-if [ -n "$OVERRIDE" ]; then
-    threads=${THREADS:-1}
-    ver=${MHF:-2}
-    ARGS_OVERRIDE=" -v $ver -t $threads "
-else
-    unset ARGS_OVERRIDE
-fi
-
 ## start the object
 function objectd() {
     dex_env
-    log "objectd: execing with $ARGS $ARGS_OVERRIDE"
-    exec "$ARGS" \
-         $ARGS_OVERRIDE
+    log "objectd: execing with $ARGS"
+    exec "$ARGS" 2>&1
 }
 
 ## wrapper for resume command
@@ -107,6 +97,8 @@ cpu_check() {
 tune_sleep_to_usg(){
     PREV_SLEEP=$CSLEEP
     [ -n "$NO_SLEEP_TUNE" ] && return
+    [ $CSLEEP -lt 1 ] && CSLEEP=10
+    usgmon_prc 1 5
     log "balancer: MAX_USG: $MAX_USG, PROC_USG: $PROC_USG"
     USG_WINDOW=$((MAX_USG-PROC_USG))
     log "balancer: tuning sleep USG_WINDOW : $USG_WINDOW"
@@ -114,7 +106,8 @@ tune_sleep_to_usg(){
         CSLEEP=$((CSLEEP-CSLEEP/8))
         log "tune_sleep: decreasing sleep to $CSLEEP"
     # tune to sleep to target a 300s work window
-    elif [ $OVERLOAD_DURATION -lt $WORK_TIME ]; then
+    elif [ $WORK_DURATION -lt $WORK_TIME ] ||
+             [ $cpu_avg_usg -ge $MAX_USG ]; then
         CSLEEP=$((CSLEEP/4+CSLEEP))
         log "tune_sleep: increasing sleep to $CSLEEP"
     fi
@@ -128,7 +121,7 @@ tune_sleep_to_usg(){
 ## pauser
 balancer() {
     log "starting balancer loop"
-    export LAST_OVERLOAD=$SECONDS OVERLOAD_DURATION=$WORK_TIME
+    export LAST_OVERLOAD=$SECONDS WORK_DURATION=$WORK_TIME
     while kill -0 $objectd_PID; do ## while the object is running
         log "looping pauser"
         pause_if_overload
@@ -150,18 +143,16 @@ balancer() {
 }
 
 overload(){
-    usgmon_prc 1 5
     loadmon_prc
-    log "cpu_avg_prc_1: $cpu_avg_prc_1, cpu_avg_usg: $cpu_avg_usg"
-    [ $cpu_avg_prc_1 -ge $MAX_LOAD ] ||
-        [ $cpu_avg_usg -ge $MAX_USG ]
+    log "cpu_avg_prc_1: $cpu_avg_prc_1 >= $MAX_LOAD"
+    [ $cpu_avg_prc_1 -ge $MAX_LOAD ]
 }
 ## pause if overloaded, MAX_LOAD should be in CORES*100
 pause_if_overload() {
     local pausetime
     if overload; then ## greater or equal in case maxed
-        OVERLOAD_DURATION=$((SECONDS-LAST_OVERLOAD))
-        log "pifo: overload duration $OVERLOAD_DURATION"
+        WORK_DURATION=$((SECONDS-LAST_OVERLOAD))
+        log "pifo: overload duration $WORK_DURATION"
         LAST_OVERLOAD=$SECONDS
         log "pifo: waitlock and pause"
         waitlock ; pause

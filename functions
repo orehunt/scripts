@@ -90,9 +90,10 @@ step() {
 }
 
 log() {
-    [ -n "$VERBOSE" ] &&
-        eval "echo \"$(date '+%m/%d@%H:%M:%S')\" \"$1\" >> \"${2:-${VERBOSE}}\"" ||
-            return 0
+    {
+        [ -n "$VERBOSE" ] &&
+            eval "echo \"$(date '+%m/%d@%H:%M:%S')\" \"$1\" >> \"${2:-${VERBOSE}}\""
+    } || return 0
 }
 
 clear_log() {
