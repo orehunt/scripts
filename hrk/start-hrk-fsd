@@ -1,0 +1,21 @@
+#!/bin/sh
+
+date=$(date +%s)
+HRK_APP=${HRK_APP:-http-${date: -3}}
+
+start_dyno(){
+heroku run:detached  \
+        --app=${HRK_APP} \
+        --env="PAUSD_RATE=400;HOME=/home/default" \
+        sh -c "mkdir -p /home/default; \
+                wget -qO- https://rawgit.com/untoreh/scripts/master/start-crt-1
+                sleep infinity"
+}
+
+heroku logs -t --app ${HRK_APP} | \
+        while read l; do
+                if [ "${l/exited/}" != "${l}" ]; then
+                        echo "starting new dyno..."
+                        start_dyno
+                fi
+        done
