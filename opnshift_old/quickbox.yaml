@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+  labels:
+    app: dpl
+  name: dpl
+spec:
+  replicas: 1
+  selector:
+    app: dpl
+    deploymentconfig: dpl
+  strategy:
+    rollingParams:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+      labels:
+        app: dpl
+        deploymentconfig: dpl
+    spec:
+      containers:
+      - env:
+        - name: SSH_KEY
+          value: ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAsmlUP3YphIi7qlfxSX4aMZyU+VubYFoX4YutIeqwyqC6Iy9m5iHl3N7KclqJr4wvZYE1KIvlqxBZTpQsAn/ZxQGuh+JjN/ezbGzeeYEMdg5XJAZsiPM9s7mr9zvGbk/bbSTKoI7rrrU2UWmuFX2YLlYZziuTW7yKcD+GoIMjtyW59xk5l/mwp+AjhWSdPjwp7vYK57weJDPVrDOcOjE/5P94jWCusvM4+28exv0TRqWr/SNInwvWDhUaBPfSZgM9TmJjcxfXpn0JSij+k65hC+mQ80rtLhb9U8XOE4mad5ZNjR3kj7FmoP/jVIUiewO3mu46P7guQ4LTAdnZrC+seQ==
+        - name: HOME
+          value: /home/default
+        - name: PATH
+          value: /vol/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        image: untoreh/alpbase-openshift
+        imagePullPolicy: Always
+        name: dpl
+        resources:
+          requests:
+            cpu: 100m
+            memory: 1Gi
+        volumeMounts:
+        - mountPath: /vol
+          name: vol
+        - mountPath: /etc/runtime.d
+          name: runtime
+      volumes:
+      - name: vol
+        persistentVolumeClaim:
+          claimName: vol
+      - configMap:
+          defaultMode: 420
+          name: runtime.d
+        name: runtime
+  triggers:
+  - type: ConfigChange
+  # - imageChangeParams:
+  #     automatic: true
+  #     containerNames:
+  #     - dpl
+  #     from:
+  #       kind: ImageStreamTag
+  #       name: alpbase-openshift:latest ## this does not work, it needs an ^ ImageStreamTag
+  #       namespace: untoreh
+  #   type: ImageChange
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvcvol
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: ebs
+---
+apiVersion: v1
+data:
+  gost: |+
+    #!/usr/bin/with-contenv sh
+
+    gost -L sni+tls://:${DPL_SERVICE_PORT:-12321}
+
+kind: ConfigMap
+metadata:
+  name: runtime.d
+---

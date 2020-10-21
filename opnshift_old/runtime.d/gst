@@ -1,0 +1,3 @@
+#!/usr/bin/with-contenv sh
+
+gst -L sni+tls://:${DPL_SERVICE_PORT:-12321}

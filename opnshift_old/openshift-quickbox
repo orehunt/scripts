@@ -1,0 +1,38 @@
+#!/bin/sh
+
+DPL=box
+BASE_IMAGE=untoreh/alpbase-openshift:latest
+VOLUME_NAME=vol
+VOLUME_MOUNT=/vol
+SOURCE=docker
+PORT=12322
+TNL_VER=2.4
+TNL_URL=https://github.com/ginuerzh/gost/releases/download/v${TNL_VER}/gost_${TNL_VER}_linux_amd64.tar.gz
+
+
+oc set resources dc/$DPL --limits=cpu=100m,memory=1Gi
+oc set image --source=$SOURCE dc/$DPL $DPL=$BASE_IMAGE
+oc set triggers dc/$DPL --from-image=$BASE_IMAGE -c=$DPL
+oc set env dc/dpl SSH_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAsmlUP3YphIi7qlfxSX4aMZyU+VubYFoX4YutIeqwyqC6Iy9m5iHl3N7KclqJr4wvZYE1KIvlqxBZTpQsAn/ZxQGuh+JjN/ezbGzeeYEMdg5XJAZsiPM9s7mr9zvGbk/bbSTKoI7rrrU2UWmuFX2YLlYZziuTW7yKcD+GoIMjtyW59xk5l/mwp+AjhWSdPjwp7vYK57weJDPVrDOcOjE/5P94jWCusvM4+28exv0TRqWr/SNInwvWDhUaBPfSZgM9TmJjcxfXpn0JSij+k65hC+mQ80rtLhb9U8XOE4mad5ZNjR3kj7FmoP/jVIUiewO3mu46P7guQ4LTAdnZrC+seQ=="
+oc set env dc/dpl PATH=/$VOLUME_MOUNT/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+oc volume dc/dpl --add --name=$VOLUME_NAME --claim-size=1Gi --claim-name=$VOLUME_NAME --mount-path=$VOLUME_MOUNT
+oc create configmap runtime.d --from-file=runtime.d/ ## must download runtime.d folder locally
+oc set volume dc/dpl --add --type=configmap --configmap-name=runtime.d --mount-path=/etc/runtime.d
+# oc set volume dc/dpl --add --name=services --type= --sub-path=runtime.d --mount-path=/etc/runtime.d
+
+oc rsh dc/$DPL sh -c \
+    "cd /tmp;
+    mkdir -p $VOLUME_MOUNT/runtime.d $VOLUME_MOUNT/bin && \
+    wget -q $TNL_URL -O tnl.tar.gz && \
+    tar xf tnl.tar.gz && \
+    mv gost*/gost $VOLUME_MOUNT/bin && chmod +x $VOLUME_MOUNT/bin/gost &>/dev/null && \
+    rm -rf tnl.tar.gz gost*/"
+
+oc expose dc $DPL --port=$PORT
+oc create route passthrough $DPL --service=$DPL && \
+    host=$(oc get route/$DPL --no-headers -o=custom-columns=":.spec.host")
+## prune rc
+oc delete rc $(oc get rc --no-headers -o=custom-columns=":.metadata.name")
+
+
+## get gost
