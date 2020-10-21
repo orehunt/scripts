@@ -66,7 +66,7 @@ fi
 # memory
 get_mem
 if [ "$FREEMEM" -lt 1024 ]; then
-    RX_INIT=false
+    RX_INIT=0
     RX_ENABLED=false
 else
     RX_INIT=-1
