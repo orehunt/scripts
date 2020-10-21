@@ -1,0 +1,8 @@
+ep=ftp://$USER@$IP:21
+
+- get ip/login from email
+- connect to ftpserver with like gio
+- upload set/ler and .htaccess for execution of scripts or use .cgi ext (chmod 755)
+- fetch payloads
+- create .ssh and add priv (for rev tun) and pub key (for rev ssh) in /home/$USER
+- make sure symlinks are working and the user shell in /passwd points correctly

