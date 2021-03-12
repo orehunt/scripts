@@ -44,6 +44,7 @@
         "rx/loki": ${RX_ENABLED:-true},
         "rx/wow": ${RX_ENABLED:-true},
         "rx/keva": ${RX_ENABLED:-true},
+        "rx/panthera": ${RX_ENABLED:-true},
         "rx/sfx": ${RX_ENABLED:-true}
     },
     "donate-level": 0,
@@ -64,8 +65,8 @@
         "update-interval-s": 30
     },
     "print-time": 360,
-    "retries": 5,
-    "retry-pause": 5,
+    "retries": 1,
+    "retry-pause": 1,
     "syslog": false,
     "user-agent": null,
     "watch": true,

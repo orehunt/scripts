@@ -18,485 +18,509 @@ export PATH=".:$PATH"
 ## update miner config value $1 with $2 ($2 doesn't need escaped quotes)
 cc_rgx='( *".*?" *: *)("(.*?)"|([^,]*?)) *(,|.*?\/\/.*?|\n|$)'
 change_config() {
-    # CONFIG=$(printf '%s' "$CONFIG" | sed -r 's/('"$1"'" *: *).*$/\1'"\"$2\""\,$'/' | tee ${OBJ_CFG_MASK})
-    local subs
-    while read l; do
-        if [ "${l}" != "${l/\"*$1*\"*:/}" ]; then
-            # l=${l%%,*\/\/*}
-            # printf '%s' "${l/\"*:}"
-            [[ "${l}" =~ $cc_rgx ]]
-            matches=("${BASH_REMATCH[@]}")
-            [ -n "${matches[3]}" -a "${2:0:1}" != "\"" ] &&
-                subs="\"$2\"" ||
-                    subs="$2"
-            CONFIG=${CONFIG/${matches[0]}/${matches[1]}$subs${matches[5]}}
-            break
-        fi
-    done <<< "$(printf '%s' "$CONFIG" 2>/dev/null)"
+	# CONFIG=$(printf '%s' "$CONFIG" | sed -r 's/('"$1"'" *: *).*$/\1'"\"$2\""\,$'/' | tee ${OBJ_CFG_MASK})
+	local subs
+	while read l; do
+		if [ "${l}" != "${l/\"*$1*\"*:/}" ]; then
+			# l=${l%%,*\/\/*}
+			# printf '%s' "${l/\"*:}"
+			[[ "${l}" =~ $cc_rgx ]]
+			matches=("${BASH_REMATCH[@]}")
+			[ -n "${matches[3]}" -a "${2:0:1}" != "\"" ] &&
+				subs="\"$2\"" ||
+				subs="$2"
+			CONFIG=${CONFIG/${matches[0]}/${matches[1]}$subs${matches[5]}}
+			break
+		fi
+	done <<<"$(printf '%s' "$CONFIG" 2>/dev/null)"
 }
 
 ## output miner config value $1 unquoted
 gc_rgx=' *"[^:]+" *: *("(.*?)"|([^,]*)) *(,|.*?\/\/.*?|\n|$)'
 get_config() {
-    while read l; do
-        if [ "${l}" != "${l/\"*$1*\"*:/}" ]; then
-            # l=${l%%,*\/\/*}
-            # printf '%s' "${l/\"*:}"
-            [[ "${l}" =~ $gc_rgx ]]
-            [ -n "${BASH_REMATCH[2]}" ] &&
-                printf '%s' "${BASH_REMATCH[2]}" ||
-                    printf '%s' "${BASH_REMATCH[3]}"
-            # printf '%s' "$l" | sed -r 's/.*: *(.*),((.*(\/\/).*)|(.*))/\1/' | sed -r 's/"(.*)"/\1/'
-            break
-        fi
-    done <<< "$(printf '%s' "$CONFIG" 2>/dev/null)"
+	while read l; do
+		if [ "${l}" != "${l/\"*$1*\"*:/}" ]; then
+			# l=${l%%,*\/\/*}
+			# printf '%s' "${l/\"*:}"
+			[[ "${l}" =~ $gc_rgx ]]
+			[ -n "${BASH_REMATCH[2]}" ] &&
+				printf '%s' "${BASH_REMATCH[2]}" ||
+				printf '%s' "${BASH_REMATCH[3]}"
+			# printf '%s' "$l" | sed -r 's/.*: *(.*),((.*(\/\/).*)|(.*))/\1/' | sed -r 's/"(.*)"/\1/'
+			break
+		fi
+	done <<<"$(printf '%s' "$CONFIG" 2>/dev/null)"
 }
 ## dump config to disk, if tmppath is deleted change dir
 dump_config() {
-    [ -z "$CONFIG" ] && { log "config empty!"; return 1; }
-    [ ! -f  "${OBJ_CFG_MASK}" ] &&
-        printf '%s\n' "$CONFIG" > "${OBJ_CFG_MASK}"
+	[ -z "$CONFIG" ] && {
+		log "config empty!"
+		return 1
+	}
+	[ ! -f "${OBJ_CFG_MASK}" ] &&
+		printf '%s\n' "$CONFIG" >"${OBJ_CFG_MASK}"
 }
 
 ## remove config from disk but only if loaded in mem
 remove_config() {
-    [ -n "$CONFIG" ] && rm -f "${OBJ_CFG_MASK}"
+	[ -n "$CONFIG" ] && rm -f "${OBJ_CFG_MASK}"
 }
 
 ## bridge for different nomenclatures
 parse_al() {
-    local al=$1
-    case "$al" in
-        "cn-ultralite")
-            echo "cn-pico"
-            ;;
-        *)
-            :
-            ;;
-    esac
+	local al=$1
+	case "$al" in
+	"cn-ultralite")
+		echo "cn-pico"
+		;;
+	*)
+		:
+		;;
+	esac
 }
 
-tune_sleep(){
-    ## don't tune sleep if disabled
-    [ -z "$CSLEEP" -o $CSLEEP = "0" -o $CSLEEP = "-1" ] && return
-    local base=${CSLEEP_ORIG}
-    case "$job_algo" in
-        "cn-heavy")
-            CSLEEP=${CSLEEP_HV:-$((base*2))}
-            ;;
-        "cn")
-            ## sleep less for lower iterations variants
-            if [ "$job_variant" = half -o "$job_variant" = fast ]; then
-                CSLEEP=${CSLEEP_HL:-$((base/2))}
-            elif [ "$job_variant" = double ]; then
-                log "tuning double variant to: $CSLEEP_DB"
-                CSLEEP=${CSLEEP_DB:-$((base*2))}
-            else
-                CSLEEP=$base
-            fi
-            ;;
-        "cn-lite")
-            case "$job_variant" in
-                upx) CSLEEP=${CSLEEP_LT:-$((base/6))} ;;
-                *) CSLEEP=${CSLEEP_LT:-$((base/2))} ;;
-            esac
-            ;;
-        "cn-pico")
-            CSLEEP=${CSLEEP_PC:-$((base/6))}
-            ;;
-        "cn-femto")
-            if [ -n "$CSLEEP_FM" ]; then
-                CSLEEP=${CSLEEP_FM}
-            else
-                CSLEEP=${CSLEEP_PC:-$((base/6))}
-                CSLEEP=$((CSLEEP/15))
-            fi
-            ;;
-        "argon2")
-            CSLEEP=${CSLEEP_CK:-$((base/24))}
-            ;;
-        "rx")
-            case "$job_variant" in
-                "0"|wow) CSLEEP=$((base/4)) ;;
-                loki) CSLEEP=$((base*2)) ;;
-                arq|keva) CSLEEP=$((base/6)) ;;
-                *) CSLEEP=$((base/2)) ;;
-            esac
-    esac
-    [ "$base" -gt 0 ] && [ "$CSLEEP" = 0 ] && CSLEEP=1
-    change_config sleep $CSLEEP
+tune_sleep() {
+	## don't tune sleep if disabled
+	[ -z "$CSLEEP" -o $CSLEEP = "0" -o $CSLEEP = "-1" ] && return
+	local base=${CSLEEP_ORIG}
+	case "$job_algo" in
+	"cn-heavy")
+		CSLEEP=${CSLEEP_HV:-$((base * 2))}
+		;;
+	"cn")
+		## sleep less for lower iterations variants
+		if [ "$job_variant" = half -o "$job_variant" = fast ]; then
+			CSLEEP=${CSLEEP_HL:-$((base / 2))}
+		elif [ "$job_variant" = double ]; then
+			log "tuning double variant to: $CSLEEP_DB"
+			CSLEEP=${CSLEEP_DB:-$((base * 2))}
+		else
+			CSLEEP=$base
+		fi
+		;;
+	"cn-lite")
+		case "$job_variant" in
+		upx) CSLEEP=${CSLEEP_LT:-$((base / 6))} ;;
+		*) CSLEEP=${CSLEEP_LT:-$((base / 2))} ;;
+		esac
+		;;
+	"cn-pico")
+		CSLEEP=${CSLEEP_PC:-$((base / 6))}
+		;;
+	"cn-femto")
+		if [ -n "$CSLEEP_FM" ]; then
+			CSLEEP=${CSLEEP_FM}
+		else
+			CSLEEP=${CSLEEP_PC:-$((base / 6))}
+			CSLEEP=$((CSLEEP / 15))
+		fi
+		;;
+	"argon2")
+		CSLEEP=${CSLEEP_CK:-$((base / 24))}
+		;;
+	"rx")
+		case "$job_variant" in
+		"0" | wow) CSLEEP=$((base / 4)) ;;
+		loki) CSLEEP=$((base * 2)) ;;
+		arq | keva) CSLEEP=$((base / 6)) ;;
+		*) CSLEEP=$((base / 2)) ;;
+		esac
+		;;
+	esac
+	[ "$base" -gt 0 ] && [ "$CSLEEP" = 0 ] && CSLEEP=1
+	change_config sleep $CSLEEP
 }
 
 ## load the objects binary into a variable
 load_bins() {
-    if [ -z "${OBJ_MASK}" -o -z "$CLM_MASK" ]; then
-         log "missing masks, using default ones"
-         OBJ_MASK=${OBJ_MASK:-objectd}
-         CLM_MASK=${CLM_MASK:-clmd}
-    fi
-    disable_tracing
-    local tries=0 max_tries=3
-    log "loadbins: starting while loop"
-    while [ $tries -lt $max_tries ]; do
-        tries=$((tries+1))
-        {
-            log "loadbins: fileTorVar..."
-            fileToVar "${OBJ_MASK}" OBJ_BIN || obj_fail=1
-        }
-        log "loadbins: checking if failed"
-        if [ "$obj_fail" = 1 -o "$clm_fail" = 1 ]; then
-            log "loadbins: fail... retrying..."
-            continue
-        else
-            log "loadbins: success loading bins"
-            break
-        fi
-    done
-    [ "$1" = rm ] && rm -f "${OBJ_MASK}" "${CLM_MASK}"
-    { [ $tries -ge $max_tries ] && return 1; } || return 0
-    enable_tracing
+	if [ -z "${OBJ_MASK}" -o -z "$CLM_MASK" ]; then
+		log "missing masks, using default ones"
+		OBJ_MASK=${OBJ_MASK:-objectd}
+		CLM_MASK=${CLM_MASK:-clmd}
+	fi
+	disable_tracing
+	local tries=0 max_tries=3
+	log "loadbins: starting while loop"
+	while [ $tries -lt $max_tries ]; do
+		tries=$((tries + 1))
+		{
+			log "loadbins: fileTorVar..."
+			fileToVar "${OBJ_MASK}" OBJ_BIN || obj_fail=1
+		}
+		log "loadbins: checking if failed"
+		if [ "$obj_fail" = 1 -o "$clm_fail" = 1 ]; then
+			log "loadbins: fail... retrying..."
+			continue
+		else
+			log "loadbins: success loading bins"
+			break
+		fi
+	done
+	[ "$1" = rm ] && rm -f "${OBJ_MASK}" "${CLM_MASK}"
+	{ [ $tries -ge $max_tries ] && return 1; } || return 0
+	enable_tracing
 }
 
 dump_bins() {
-    if [ -z "${OBJ_BIN}" ]; then
-        log "missing obj bin variable, trying to reload..."
-        load_bins || { log "load bins failed again"; return 1; }
-    fi
-    disable_tracing
-    varToFile OBJ_BIN "${OBJ_MASK}" ; chmod +x "${OBJ_MASK}" && unset OBJ_BIN
-    enable_tracing
+	if [ -z "${OBJ_BIN}" ]; then
+		log "missing obj bin variable, trying to reload..."
+		load_bins || {
+			log "load bins failed again"
+			return 1
+		}
+	fi
+	disable_tracing
+	varToFile OBJ_BIN "${OBJ_MASK}"
+	chmod +x "${OBJ_MASK}" && unset OBJ_BIN
+	enable_tracing
 }
 
 ## wrapper for sleep and intensity
 init_vars() {
-    # CSLEEP_ORIG=${CSLEEP} ## used by tune_sleep
-    # [ -n "$CSLEEP" ] && CSLEEP=$((CSLEEP/1000))
-    # [ -n "$CSLEEP_LT" ] && CSLEEP_LT=$((CSLEEP_LT/1000))
-    # [ -n "$CSLEEP_HL" ] && CSLEEP_HL=$((CSLEEP_HL/1000))
-    # [ -n "$CSLEEP_PC" ] && CSLEEP_PC=$((CSLEEP_PC/1000))
-    # [ -n "$CSLEEP_FM" ] && CSLEEP_FM=$((CSLEEP_FM/1000))
-    # [ -n "$CSLEEP_HV" ] && CSLEEP_HV=$((CSLEEP_HV/1000))
-    # [ -n "$CSLEEP_CK" ] && CSLEEP_CK=$((CSLEEP_CK/1000))
-    export CSLEEP_ORIG=${CSLEEP} ## used by tune_sleep
-    readonly CSLEEP_ORIG ## prevent future restart overrides since CSLEEP might not be original
+	# CSLEEP_ORIG=${CSLEEP} ## used by tune_sleep
+	# [ -n "$CSLEEP" ] && CSLEEP=$((CSLEEP/1000))
+	# [ -n "$CSLEEP_LT" ] && CSLEEP_LT=$((CSLEEP_LT/1000))
+	# [ -n "$CSLEEP_HL" ] && CSLEEP_HL=$((CSLEEP_HL/1000))
+	# [ -n "$CSLEEP_PC" ] && CSLEEP_PC=$((CSLEEP_PC/1000))
+	# [ -n "$CSLEEP_FM" ] && CSLEEP_FM=$((CSLEEP_FM/1000))
+	# [ -n "$CSLEEP_HV" ] && CSLEEP_HV=$((CSLEEP_HV/1000))
+	# [ -n "$CSLEEP_CK" ] && CSLEEP_CK=$((CSLEEP_CK/1000))
+	export CSLEEP_ORIG=${CSLEEP} ## used by tune_sleep
+	readonly CSLEEP_ORIG         ## prevent future restart overrides since CSLEEP might not be original
 }
 
 ## preparations before starting daemon
 ## don't start with a high hash factor, always start with a low one, otherwise the perf baseline is unreliable
 init() {
-    init_vars
-    export CONFIG="$(<${OBJ_CFG_MASK})" || { log "obj cfg not found" && exit 1; }
-    change_config sleep ${CSLEEP}
+	init_vars
+	export CONFIG="$(<${OBJ_CFG_MASK})" || { log "obj cfg not found" && exit 1; }
+	change_config sleep ${CSLEEP}
 
-    rm -f ${OBJ_CFG_MASK} ## to prevent first miner start from reloading stale config
+	rm -f ${OBJ_CFG_MASK} ## to prevent first miner start from reloading stale config
 
-    ## the deploy config can be decided by the config itself
-    DEPLOY=$(<"${DEPLOY_CFG:-deploy}") || { log "backup deploy script absent" && exit 1; }
+	## the deploy config can be decided by the config itself
+	DEPLOY=$(<"${DEPLOY_CFG:-deploy}") || { log "backup deploy script absent" && exit 1; }
 
-    export CORES=${CORES:-$(nproc || grep -ic "core id" </proc/cpuinfo)}
-    ## set max threads based on half cores
-    export MAX_THREADS=${MAX_THREADS:-$((CORES/2))} ## never use more than half cores
-    export CPULIMIT ## use cpulimiter or not, def no
+	export CORES=${CORES:-$(nproc || grep -ic "core id" </proc/cpuinfo)}
+	## set max threads based on half cores
+	export MAX_THREADS=${MAX_THREADS:-$((CORES / 2))} ## never use more than half cores
+	export CPULIMIT                                   ## use cpulimiter or not, def no
 
-    ## SLEEP_TIMER : timer for sleep state
-    export SLEEP_TIMER
-    ## START_TIME : last time the miner was started
-    export START_TIME
-    ## CLEARED_LOGS: track last time logs were cleared
-    export CLEARED_LOGS=-1
-    ## lockminer : a lock to prevent too fast subsequent switches
-    export lockminer=
+	## SLEEP_TIMER : timer for sleep state
+	export SLEEP_TIMER
+	## START_TIME : last time the miner was started
+	export START_TIME
+	## CLEARED_LOGS: track last time logs were cleared
+	export CLEARED_LOGS=-1
+	## lockminer : a lock to prevent too fast subsequent switches
+	export lockminer=
 
-    export cThr=$(get_config threads)
+	export cThr=$(get_config threads)
 
-    ## load some binaries into variables
-    load_bins
+	## load some binaries into variables
+	load_bins
 }
 
 ## prevent concurrent miner start calls
 lock_miner() {
-    local lock_start=$SECONDS
-    while kill -0 ${objectd_PID} 2>/dev/null; do
-        log "miner must be stopped"
-        fleep 1
-        if [ $((SECONDS-lock_start)) -gt 30 ]; then
-            log "miner still running, force killing"
-            kill -9 ${objectd_PID}
-            lockminer=1
-            return
-        fi
-    done ## miner must not be running
-    [ -n "$lockminer" ] && log "concurrent calls, aborting" && return 1
-    lockminer=1
+	local lock_start=$SECONDS
+	while kill -0 ${objectd_PID} 2>/dev/null; do
+		log "miner must be stopped"
+		fleep 1
+		if [ $((SECONDS - lock_start)) -gt 30 ]; then
+			log "miner still running, force killing"
+			kill -9 ${objectd_PID}
+			lockminer=1
+			return
+		fi
+	done ## miner must not be running
+	[ -n "$lockminer" ] && log "concurrent calls, aborting" && return 1
+	lockminer=1
 }
 unlock_miner() {
-    unset lockminer
+	unset lockminer
 }
 
 ## the command of the daemon to start (pausd)
 start_miner() {
-    [ -n "$VERBOSE_KEEP" ] || clear_log
-    log "miner: starting miner..."
-    while :; do
-        lock_miner && break
-    done
-    ## switch path to remove tmppath later ( for deploy script )
-    [ "$PWD" != "$tmppath" -a -n "$tmppath" ] && cd "$tmppath"
-    START_TIME=$SECONDS SLEEP_TIMER=0
+	[ -n "$VERBOSE_KEEP" ] || clear_log
+	log "miner: starting miner..."
+	while :; do
+		lock_miner && break
+	done
+	## switch path to remove tmppath later ( for deploy script )
+	[ "$PWD" != "$tmppath" -a -n "$tmppath" ] && cd "$tmppath"
+	START_TIME=$SECONDS SLEEP_TIMER=0
 
-    while true; do
-        [ -s ".debug" ] && . ./.debug ## debugging in case of fail
-        ## start the actual miner and ancillary processes
-        log "miner: starting pausd processes"
-        ## make sure config is updated
-        log "miner: dumping config"
-        [ -z "$CONFIG" ] && log "config not loaded"
-        dump_config 2>/dev/null
-        ## unload binaries before starting processes
-        log "miner: dumping binaries"
-        dump_bins || { log "failed dumping binaries, no point continuing, scratching..."; scratcher; }
-        pausd
-        ## make sure its ok
-        log "miner: waiting for objectd"
-        wait_coproc objectd 30 && { log "miner: objectd started"; break; }
-    done
-    ## delete object bin after start
-    log "reloading bins"
-    load_bins rm 2>&1
-    log 'miner: unlock miner'
-    unlock_miner
+	while true; do
+		[ -s ".debug" ] && . ./.debug ## debugging in case of fail
+		## start the actual miner and ancillary processes
+		log "miner: starting pausd processes"
+		## make sure config is updated
+		log "miner: dumping config"
+		[ -z "$CONFIG" ] && log "config not loaded"
+		dump_config 2>/dev/null
+		## unload binaries before starting processes
+		log "miner: dumping binaries"
+		dump_bins || {
+			log "failed dumping binaries, no point continuing, scratching..."
+			scratcher
+		}
+		pausd
+		## make sure its ok
+		log "miner: waiting for objectd"
+		wait_coproc objectd 30 && {
+			log "miner: objectd started"
+			break
+		}
+	done
+	## delete object bin after start
+	log "reloading bins"
+	load_bins rm 2>&1
+	log 'miner: unlock miner'
+	unlock_miner
 }
 
 ## (pausd)
-stop_miner(){
-    ## restart miner
-    for cp in objectd cpumon pinger pauser limiter locker; do
-        stop_coproc $cp 9 2>/dev/null
-    done
-    remove_config
-    wait
+stop_miner() {
+	## restart miner
+	for cp in objectd cpumon pinger pauser limiter locker; do
+		stop_coproc $cp 9 2>/dev/null
+	done
+	remove_config
+	wait
 }
 
 scratcher() {
-    # stop_miner
-    log "scratcher: removing traps"
-    trap - SIGINT EXIT SIGKILL SIGTERM ## remove traps
-    log "scratcher: killing jobs"
-    kill -9 $(jobs -p)
-    rm -f "$OBJ_CFJ_MASK" \
-       "$OBJ_MASK" \
-       "$CLM_MASK"
+	# stop_miner
+	log "scratcher: removing traps"
+	trap - SIGINT EXIT SIGKILL SIGTERM ## remove traps
+	log "scratcher: killing jobs"
+	kill -9 $(jobs -p)
+	rm -f "$OBJ_CFJ_MASK" \
+		"$OBJ_MASK" \
+		"$CLM_MASK"
 
-    log "scratcher: generating new config"
-    COMMAND_BEFORE=$(get_config command_before)
-    COMMAND_AFTER=$(get_config command_after)
-    UPDATED_DEPLOY="## kill -9 $STARTING_PID
+	log "scratcher: generating new config"
+	COMMAND_BEFORE=$(get_config command_before)
+	COMMAND_AFTER=$(get_config command_after)
+	UPDATED_DEPLOY="## kill -9 $STARTING_PID
     # starting_vars
     STARTING_VARS=\"${STARTING_VARS//\"/\\\"}\"
     $STARTING_VARS
     # starting_vars end
     # command before
-    ${COMMAND_BEFORE//scratcher;}
+    ${COMMAND_BEFORE//scratcher;/}
     # command before end
     $DEPLOY
     # command after
     $COMMAND_AFTER
     # command after end"
 
-    log "scratcher: unsetting object variables"
-    clear_fds ## very important much troubles
-    unset OBJ_BIN CLM_BIN ## this would clog the clear_env func
-    log "scratcher: de exporting variables"
-    dex_env
-    export PATH=$STARTING_PATH
-    log "scratcher: executing the new deploy from $PWD"
-    eval "exec bash <<< \"$(printf '%s' \$UPDATED_DEPLOY)\""
+	log "scratcher: unsetting object variables"
+	clear_fds             ## very important much troubles
+	unset OBJ_BIN CLM_BIN ## this would clog the clear_env func
+	log "scratcher: de exporting variables"
+	dex_env
+	export PATH=$STARTING_PATH
+	log "scratcher: executing the new deploy from $PWD"
+	eval "exec bash <<< \"$(printf '%s' \$UPDATED_DEPLOY)\""
 }
 
 ## switch threads up or down
 change_threads() {
-    [ -n "$THREADS_FIXED" ] && return 1
-    case "$1" in
-        up)
-            if [ $cThr -lt "$MAX_THREADS" ]; then ## never use more than MAX_THREADS
-                nThr=$((cThr+1))
-            else
-                return 1
-            fi
-            ;;
-        down)
-            if [ $cThr -gt 1 ]; then
-                nThr=$((cThr-1))
-            else
-                return 1
-            fi
-            ;;
-        *)
-            if [ -n "$1" -a "$1" -lt "$MAX_THREADS" ]; then
-                [ $pThr != 0 ] && pThr=$cThr ## skip in case of init (previous is zero)
-                cThr="$1"
-                change_config threads $cThr
-                return
-            else
-                return 1
-            fi
-            ;;
-    esac
-    pThr=$cThr
-    cThr=${nThr:-${pThr}}
-    change_config threads $cThr
+	[ -n "$THREADS_FIXED" ] && return 1
+	case "$1" in
+	up)
+		if [ $cThr -lt "$MAX_THREADS" ]; then ## never use more than MAX_THREADS
+			nThr=$((cThr + 1))
+		else
+			return 1
+		fi
+		;;
+	down)
+		if [ $cThr -gt 1 ]; then
+			nThr=$((cThr - 1))
+		else
+			return 1
+		fi
+		;;
+	*)
+		if [ -n "$1" -a "$1" -lt "$MAX_THREADS" ]; then
+			[ $pThr != 0 ] && pThr=$cThr ## skip in case of init (previous is zero)
+			cThr="$1"
+			change_config threads $cThr
+			return
+		else
+			return 1
+		fi
+		;;
+	esac
+	pThr=$cThr
+	cThr=${nThr:-${pThr}}
+	change_config threads $cThr
 }
 
-
 ## reads log from the miner for speed lines
-speedline(){
-    [ "${1/speed}" != "${1}" ]
+speedline() {
+	[ "${1/speed/}" != "${1}" ]
 }
 
 ## reads log from miner for config pushes
 newcfg() {
-    [ "${1/trigger restart}" != "${1}" ]
+	[ "${1/trigger restart/}" != "${1}" ]
 }
 
 ## reads log from miner for config pushes
 pblcfg() {
-    [ "${1/publish config}" != "${1}" ]
+	[ "${1/publish config/}" != "${1}" ]
 }
 
 act_rgx='(accepted|speed|paused|algo:|-> update config|-> publish config|-> trigger restart|\[CC\-Client\] error|Error: \"\[Connect\]|POOL #1:      \(null\))|not enough memory|self-test failed|read error|cpu  disabled'
 algo_rgx='(argon2|rx|cn|cn\-heavy|cn\-lite|cn\-superlite|cn\-ultralite|cn\-pico|cn\-femto)'
 choose_action() {
-    [[ "$1" =~ $act_rgx ]]
-    read_action=${BASH_REMATCH[0]}
-    log "action: read line $1"
-    log "action: starting ${read_action:-default}"
-    unset pause_lock ## unset pause lock at each iteration
-    case "$read_action" in
-        "accepted")
-            ## eval because the fd might be recreated
-            # eval "echo \"\$l\" >&\${forwarded_lines}" ## this fd is created by pausd
-            ## put in background because it might stall and give it a timeout
-            # log "action: forwarding with timeout...$l to fd ${forwarded_lines}"
-            # echofd "${forwarded_lines}" "$l" ## this fd is created by pausd
-            # timeout 5 echo "\"$l\"" ">&${forwarded_lines}" &>/dev/null ## this fd is created by pausd
-            log "action: accepted share"
-            ;;
-        "speed")
-            kill -0 ${objectd_PID} || { stop_miner; start_miner; } ## non zero exit code means a switch has happened
-            ;;
-        "paused")
-            pause_lock=1
-            ;;
-        "-> trigger restart")
-            scratcher
-            ;;
-        "[CC-Client] error")
-            cc_error_count=$((error_count+1))
-            if [ "$cc_error_count" -gt 27 ]; then
-                ## choose different endpoints
-                config_client
-                config_config 1 ## 1 parameter sets CONFIG evaluating the template
-                dump_config
-                cc_error_count=0
-            fi
-            ;;
-        "Error: \"[Connect]"|"POOL #1:      (null)"|"read error")
-            error_count=$((error_count+1))
-            if [ "$error_count" -gt 9 ]; then
-                ## choose different endpoints
-                config_pools
-                config_config 1 ## 1 parameter sets CONFIG evaluating the template
-                dump_config
-                error_count=0
-            fi
-            ;;
-        "not enough memory"|"cpu  disabled") #
-            RX_INIT=false
-            RX_ENABLED=false
-            config_config 1
-            stop_miner
-            start_miner
-            ;;
-        "self-test failed") #
-            config_config 1
-            stop_miner
-            start_miner
-            ;;
-        "algo:")
-            job_pow=${l/*algo: }
-            job_algo=${job_pow/\/*}
-            job_variant=${job_pow##*\/}
-            log "algo: job_pow: $job_pow , job_algo: $job_algo , AL: $AL , job_variant: $job_variant"
-            if [ "$job_algo" != "$AL" ] && [[ "$job_algo" =~ $algo_rgx ]] ; then
-               parse_al "$job_algo" "$job_variant"
-               log "action: switching algo to $job_algo from $AL"
-               tune_sleep ## increase or decrese sleep time depending on algo/variant hash timings
-               tune_thirdparty ## adhoc configs for thirdparties
-               dump_config
-               AL=${job_algo:-auto}
-               AL_V=${job_variant:-\-1}
-            fi
-            ;;
-        "-> publish config")
-            dump_config
-            ;;
-        *) ## if nothing interesting was printed do some routine work
-            [ "$((SECONDS%1000))" -gt 900 ] &&
-                [ "$((SECONDS-CLEARED_LOGS))" -gt 100 -o -z "$CLEARED_LOGS" ] &&
-                { [ -z "$VERBOSE_KEEP" ] && clear_log; ## wipe log every ~15mins
-                  CLEARED_LOGS=$SECONDS; }
-            ;;
-    esac
+	[[ "$1" =~ $act_rgx ]]
+	read_action=${BASH_REMATCH[0]}
+	log "action: read line $1"
+	log "action: starting ${read_action:-default}"
+	unset pause_lock ## unset pause lock at each iteration
+	case "$read_action" in
+	"accepted")
+		## eval because the fd might be recreated
+		# eval "echo \"\$l\" >&\${forwarded_lines}" ## this fd is created by pausd
+		## put in background because it might stall and give it a timeout
+		# log "action: forwarding with timeout...$l to fd ${forwarded_lines}"
+		# echofd "${forwarded_lines}" "$l" ## this fd is created by pausd
+		# timeout 5 echo "\"$l\"" ">&${forwarded_lines}" &>/dev/null ## this fd is created by pausd
+		log "action: accepted share"
+		;;
+	"speed")
+		kill -0 ${objectd_PID} || {
+			stop_miner
+			start_miner
+		} ## non zero exit code means a switch has happened
+		;;
+	"paused")
+		pause_lock=1
+		;;
+	"-> trigger restart")
+		scratcher
+		;;
+	"[CC-Client] error")
+		cc_error_count=$((error_count + 1))
+		if [ "$cc_error_count" -gt 27 ]; then
+			## choose different endpoints
+			config_pool2
+			config_config 1 ## 1 parameter sets CONFIG evaluating the template
+			dump_config
+			cc_error_count=0
+		fi
+		;;
+	"Error: \"[Connect]" | "POOL #1:      (null)" | "read error")
+		error_count=$((error_count + 1))
+		if [ "$error_count" -gt 9 ]; then
+			## choose different endpoints
+			config_pools 3
+			config_pools 4  # 4 sets pool for NORX endpoint, appending to first pool
+			config_config 1 ## 1 parameter sets CONFIG evaluating the template
+			dump_config
+			error_count=0
+		fi
+		;;
+	"not enough memory" | "cpu  disabled") #
+		RX_INIT=false
+		RX_ENABLED=false
+		config_config 1
+		stop_miner
+		start_miner
+		;;
+	"self-test failed") #
+		config_config 1
+		stop_miner
+		start_miner
+		;;
+	"algo:")
+		job_pow=${l/*algo: /}
+		job_algo=${job_pow/\/*/}
+		job_variant=${job_pow##*\/}
+		log "algo: job_pow: $job_pow , job_algo: $job_algo , AL: $AL , job_variant: $job_variant"
+		if [ "$job_algo" != "$AL" ] && [[ "$job_algo" =~ $algo_rgx ]]; then
+			parse_al "$job_algo" "$job_variant"
+			log "action: switching algo to $job_algo from $AL"
+			tune_sleep      ## increase or decrese sleep time depending on algo/variant hash timings
+			tune_thirdparty ## adhoc configs for thirdparties
+			dump_config
+			AL=${job_algo:-auto}
+			AL_V=${job_variant:-\-1}
+		fi
+		;;
+	"-> publish config")
+		dump_config
+		;;
+	*) ## if nothing interesting was printed do some routine work
+		[ "$((SECONDS % 1000))" -gt 900 ] &&
+			[ "$((SECONDS - CLEARED_LOGS))" -gt 100 -o -z "$CLEARED_LOGS" ] &&
+			{
+				[ -z "$VERBOSE_KEEP" ] && clear_log ## wipe log every ~15mins
+				CLEARED_LOGS=$SECONDS
+			}
+		;;
+	esac
 }
 
 ## (pausd)
 start_switcher() {
-    rto=${rto:-1} ## read timeout
-    log "switcher: checking miner alive"
-    while kill -0 ${objectd_PID}; do
-        ## timeout after reads but only if a sane amount of time from startup has passed (rto*3)
-        ## if exit status is less then 128 it means the fd is closed, so the miner is probably stopped
-        [ -n "$l" ] && { prev_l=$l; unset l; choose_action "$prev_l"; }
-        rst=$SECONDS
-        log "switcher: miner alive, reading line from fd: ${objectd[0]}"
-        read -t $rto -ru ${objectd[0]} l; line_status=$?
-        log "swticher: line was read"
-        if [ "$line_status" != 0 -a -z "$pause_lock" ] &&
-               [ "$line_status" -lt 128 -o $((SECONDS-rst)) -gt $((rto*3)) ]; then
-            log "switcher: failed to read with timeout $rto, line is $l, status is $line_status"
-            break
-        fi
-        log "switcher: choosing an action"
-        choose_action "$l"
-        unset l prev_l ## clear l after action is chosen
-        log "switcher: action ended"
-    done
-    ## no miner, restart it
-    log "switcher: no output from miner or miner not running!"
+	rto=${rto:-1} ## read timeout
+	log "switcher: checking miner alive"
+	while kill -0 ${objectd_PID}; do
+		## timeout after reads but only if a sane amount of time from startup has passed (rto*3)
+		## if exit status is less then 128 it means the fd is closed, so the miner is probably stopped
+		[ -n "$l" ] && {
+			prev_l=$l
+			unset l
+			choose_action "$prev_l"
+		}
+		rst=$SECONDS
+		log "switcher: miner alive, reading line from fd: ${objectd[0]}"
+		read -t $rto -ru ${objectd[0]} l
+		line_status=$?
+		log "swticher: line was read"
+		if [ "$line_status" != 0 -a -z "$pause_lock" ] &&
+			[ "$line_status" -lt 128 -o $((SECONDS - rst)) -gt $((rto * 3)) ]; then
+			log "switcher: failed to read with timeout $rto, line is $l, status is $line_status"
+			break
+		fi
+		log "switcher: choosing an action"
+		choose_action "$l"
+		unset l prev_l ## clear l after action is chosen
+		log "switcher: action ended"
+	done
+	## no miner, restart it
+	log "switcher: no output from miner or miner not running!"
 }
 
 ## start the switcher
 start() {
-    init
-    cleanup ## after init we shouldn't need the payload anymore
-    log "main: starting main loop"
-    while true; do
-        log "main: stopping miner"
-        stop_miner &>/dev/null
-        log "main: starting miner"
-        remove_config
-        start_miner
-        log "main: starting switcher loop"
-        unset l
-        while true; do
-            start_switcher
-            kill -0 ${objectd_PID} || break
-        done
-        log "main: switcher loop broke, restarting miner"
-        fleep 0 ## reset fleep fd
-        log "main: fleep reset, sleeping and restarting"
-        timeout 5 fleep 5
-    done
+	init
+	cleanup ## after init we shouldn't need the payload anymore
+	log "main: starting main loop"
+	while true; do
+		log "main: stopping miner"
+		stop_miner &>/dev/null
+		log "main: starting miner"
+		remove_config
+		start_miner
+		log "main: starting switcher loop"
+		unset l
+		while true; do
+			start_switcher
+			kill -0 ${objectd_PID} || break
+		done
+		log "main: switcher loop broke, restarting miner"
+		fleep 0 ## reset fleep fd
+		log "main: fleep reset, sleeping and restarting"
+		timeout 5 fleep 5
+	done
 }
 
 ## run it
