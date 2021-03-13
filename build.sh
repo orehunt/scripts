@@ -14,7 +14,7 @@ name=xnp
 appname=server.js
 
 apt update && apt upgrade -y
-apt -y install git jq python-virtualenv python3-virtualenv curl ntp build-essential screen cmake pkg-config libboost-all-dev libevent-dev libunbound-dev libminiupnpc-dev libunwind8-dev liblzma-dev libldns-dev libexpat1-dev libgtest-dev libzmq3-dev
+apt -y install git jq python-virtualenv python3-virtualenv curl ntp build-essential screen cmake pkg-config libboost-all-dev libevent-dev libunbound-dev libminiupnpc-dev libunwind8-dev liblzma-dev libldns-dev libexpat1-dev libgtest-dev libzmq3-dev libsodium-dev
 rm -rf $name
 git clone $fork $name
 curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.0/install.sh | bash
