@@ -3,8 +3,9 @@
 set -e
 nodeV=8
 # fork=https://github.com/bobbieltd/xmr-node-proxy
-fork=https://github.com/MoneroOcean/xmr-node-proxy
+# fork=https://github.com/MoneroOcean/xmr-node-proxy
 #fork=https://github.com/untoreh/xmr-node-proxy
+fork=https://github.com/orehunt/xmr-node-proxy
 bpath=node_modules/multi-hashing/build/Release
 # modules="{bignum,cryptonote-util,multi-hashing}"
 # modules="{bignum,cryptoforknote-util,cryptonight-hashing,multi-hashing,cryptonote-util,semipool-ipbc-util}"
@@ -31,18 +32,18 @@ npm install
 npm rebuild
 npm install -g pkg@4.2.5
 mv proxy.js $appname
-jq '.+ {"bin": "server.js",
-  "pkg": {
-         "scripts": "lib/**/*.js"
-   }}' < package.json > package.json.new && mv package.json.new package.json
-patch $appname ../proxy.js.patch
-sed 's/sendReply(miner.error)/if (miner.error != "Unauthorized access" ) sendReply(miner.error)/' \
-    -i $appname
+# jq '.+ {"bin": "server.js",
+#   "pkg": {
+#          "scripts": "lib/**/*.js"
+#    }}' <package.json >package.json.new && mv package.json.new package.json
+# patch $appname ../proxy.js.patch
+# sed 's/sendReply(miner.error)/if (miner.error != "Unauthorized access" ) sendReply(miner.error)/' \
+# -i $appname
 pkg -t node$nodeV-linux-x64 package.json -o pkgbin
-rm -rf bindings/ && mkdir bindings && \
-find node_modules \
-     -regextype sed -regex ".*\(Release\|binding\)/[^\/]*.node" | \
-        xargs -I{} cp --parents -a {} bindings/
+rm -rf bindings/ && mkdir bindings &&
+	find node_modules \
+		-regextype sed -regex ".*\(Release\|binding\)/[^\/]*.node" |
+	xargs -I{} cp --parents -a {} bindings/
 mv pkgbin ../
 rm -rf ../bindings
 mv bindings ../
