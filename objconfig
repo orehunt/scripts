@@ -152,13 +152,14 @@ if [ -z "$TNL_SKIP" -o "$TNL_SKIP" = 1 ]; then
     \"enabled\": true,
     \"daemon\": false,
     \"nicehash\": \"${NICEHASH:-false}\"
-}
+},
 POOL
 		## only first setup
 		if [ "$1" = 0 ]; then
 			# fw called on startup
 			fwds_file="net/forwarders"
 			export pool_fwds=$(ushuffle $fwds_file)
+			export POOLS=
 			pool_addresses=$pool_fwds
 		elif [ "$1" = 1 ]; then
 			# norx fw called on startup
@@ -194,7 +195,7 @@ POOL
 					if [ $c -gt $LAST ]; then
 						if [ ${URL/*:/} = "$PPORT" ]; then
 							if check_connection ${URL/:*/} ${URL/*:/}; then
-								pool_str="$(eval "printf '%s\n' \"${POOLS}${pool},\"")"
+								pool_str="$(eval "printf '%s\n' \"${pool}\"")"
 								LAST=$c
 								break
 							fi
@@ -208,7 +209,7 @@ POOL
 				for URL in $pool_addresses; do
 					if [ $c -gt $LAST ]; then
 						if check_connection ${URL/:*/} ${URL/*:/}; then
-							pool_str="$(eval "printf '%s\n' \"${POOLS}${pool},\"")"
+							pool_str="$(eval "printf '%s\n' \"${pool}\"")"
 							LAST=$c
 							break
 						fi
@@ -227,8 +228,8 @@ POOL
 			else
 				last_pool=$LAST
 			fi
-			POOL="${POOL}${pool_str}"
 		done
+		POOLS+=$pool_str
 	}
 	config_pools 0
 	config_pools 1
