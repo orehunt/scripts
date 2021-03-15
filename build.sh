@@ -26,25 +26,13 @@ cd $name
 export JOBS=max
 npm install --ignore-scripts
 
-find ./ -name binding.gyp | xargs sed 's/-march=native/-march=athlon64 -maes/' -i
-find ./ -name binding.gyp | xargs sed '/cn_gpu_/d' -i
+# find ./ -name binding.gyp | xargs sed 's/-march=native/-march=haswell/' -i
+# find ./ -name binding.gyp | xargs sed '/cn_gpu_/d' -i
 npm install
 npm rebuild
-# npm install -g pkg@4.2.5
-# mv proxy.js $appname
-# jq '.+ {"bin": "server.js",
-#   "pkg": {
-#          "scripts": "lib/**/*.js"
-#    }}' <package.json >package.json.new && mv package.json.new package.json
-# patch $appname ../proxy.js.patch
+
+patch $appname ../proxy.js.patch
 sed 's/sendReply(miner.error)/if (miner.error != "Unauthorized access" ) sendReply(miner.error)/' -i $appname
-# pkg -t node$nodeV-linux-x64 package.json -o pkgbin
-# rm -rf bindings/ && mkdir bindings &&
-# 	find node_modules \
-# 		-regextype sed -regex ".*\(Release\|binding\)/[^\/]*.node" |
-# 	xargs -I{} cp --parents -a {} bindings/
-# mv pkgbin ../
-# rm -rf ../bindings
-# mv bindings ../
-# cd ../ && rm -rf $name && mv pkgbin $name
+
 cp ../config.json ../accessControl.jsson $name/
+cp ../cert* $name/
